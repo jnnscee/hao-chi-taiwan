@@ -13,6 +13,8 @@ Test version of Jenny's bilingual Taiwan restaurant guide, starting in Kaohsiung
 - `main` → production on Vercel
 - `staging` → preview / pre-production on Vercel
 
+Staging preview triggered 2026-11-17 — this line exists only to generate the first Vercel preview deployment for the staging branch.
+
 ## Status — test data only
 
 This is a test app, not the final build. Hours, phone numbers, websites and

@@ -381,6 +381,23 @@
         border-radius:11px; padding:9px 16px; font-weight:700; font-size:.9rem; min-height:2.5rem; }
       .foot-install:hover{ border-color:var(--teal); color:var(--teal); }
 
+      /* Install instructions dialog: steps per device/browser */
+      .installwrap{ width:min(560px,100%); }
+      .install-intro{ color:var(--ink); font-size:.98rem; line-height:1.6; margin-top:8px; }
+      .install-nosafari{ background:var(--surface2); border:1px solid var(--line); border-radius:12px;
+        padding:12px 14px; font-size:.94rem; line-height:1.6; margin-top:12px; }
+      .install-detected{ margin-top:16px; border:1.5px solid var(--teal); border-radius:14px; padding:14px 16px; }
+      .install-foryou{ font-size:.76rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--teal); }
+      .install-detected h3{ font-size:1.06rem; font-weight:800; line-height:1.3; margin-top:3px; }
+      .install-steps{ margin:10px 0 0; padding-left:22px; display:grid; gap:7px; font-size:.96rem; line-height:1.55; }
+      .install-note{ margin-top:10px; font-size:.9rem; color:var(--muted); line-height:1.5; }
+      .install-note:empty{ display:none; }
+      .install-all-title{ margin-top:20px; font-weight:800; font-size:.98rem; }
+      .install-sec{ border:1px solid var(--line); border-radius:12px; margin-top:8px; background:var(--surface); }
+      .install-sec summary{ cursor:pointer; font-weight:700; font-size:.96rem; line-height:1.35; padding:11px 14px; min-height:2.25rem; }
+      .install-sec-body{ padding:0 14px 12px; }
+      .install-sec-body .install-steps{ padding-left:20px; }
+
       footer{ border-top:1px solid var(--line); margin-top:34px; padding:22px 0 calc(40px + env(safe-area-inset-bottom, 0px)); color:var(--muted); font-size:.88rem; }
       footer p + p{ margin-top:6px; }
       @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
@@ -522,11 +539,20 @@
 
     <!-- Install instructions (shown when the browser gives no one-tap install offer) -->
     <div class="overlay" id="installOverlay" role="dialog" aria-modal="true" aria-labelledby="installHowTitle">
-      <div class="sheetwrap tipwrap">
+      <div class="sheetwrap installwrap">
         <div class="sheet tip-sheet">
           <button class="closeX" id="installHowClose" aria-label="Close">✕</button>
           <h2 id="installHowTitle">Add to Home Screen</h2>
-          <p class="reserve-body" id="installHowBody"></p>
+          <p class="install-intro" id="installHowIntro"></p>
+          <div class="install-nosafari" id="installNoSafari"></div>
+          <div class="install-detected">
+            <p class="install-foryou" id="installForYou"></p>
+            <h3 id="installDetectedTitle"></h3>
+            <ol class="install-steps" id="installDetectedSteps"></ol>
+            <p class="install-note" id="installDetectedNote"></p>
+          </div>
+          <p class="install-all-title" id="installAllTitle"></p>
+          <div id="installSections"></div>
         </div>
       </div>
     </div>
@@ -787,9 +813,43 @@
           install_text: "The list, details and driver card keep working with no connection.",
           install_btn: "Add",
           install_how_title: "Add to Home Screen",
-          install_how_ios: "On iPhone or iPad: tap the Share button in Safari, then tap “Add to Home Screen”. The app icon lands on your Home Screen, and the list, details and driver card keep working with no connection.",
-          install_how_android: "On Android: open your browser menu (⋮) and tap “Add to Home screen” or “Install app”. The app icon lands on your Home Screen, and the list, details and driver card keep working with no connection.",
-          install_how_desktop: "In your browser's address bar or menu, choose “Install” or “Add to Home Screen”. Once added, the list, details and driver card keep working with no connection."
+          install_how_intro: "Adding this puts a Hao Chi Taiwan icon on your Home Screen, like an app — no app store, nothing to download. The steps are different on each phone, so we put the steps for this device first, and every other phone and browser is listed underneath.",
+          install_no_safari: "Don't have Safari? You only need Safari on an iPhone or iPad — and Safari is already on every iPhone and iPad (look for the blue compass icon), so there's nothing to get. On an Android phone or a computer you don't need Safari at all: use Chrome, or whichever browser you already use.",
+          install_for_you: "Steps for this device",
+          install_all_title: "Different phone or browser? Find yours here:",
+          install_guides: {
+            ios_safari: { title: "iPhone / iPad — in Safari", steps: [
+              "Tap the Share button in Safari — the square with an arrow pointing up, at the bottom of the screen (on an iPad it's at the top).",
+              "Scroll down the list and tap “Add to Home Screen”.",
+              "Tap “Add” in the top-right corner."
+            ], note: "Done — the Hao Chi Taiwan icon is now on your Home Screen, and the list, details and driver card keep working with no connection." },
+            ios_other: { title: "iPhone / iPad — if you're NOT in Safari", steps: [
+              "On an iPhone, “Add to Home Screen” only appears in Safari (in Chrome on newer iPhones it can also appear under Share). If you opened this page in Chrome, LINE, Facebook, Instagram or another app, you won't find it there.",
+              "Open this same page in Safari instead: tap the ⋯ or Share button and choose “Open in Safari” if you see it. If you don't see it, copy the web address, open Safari (the blue compass icon — it's already on your iPhone), paste the address and go.",
+              "In Safari, tap the Share button — the square with an arrow pointing up.",
+              "Scroll down and tap “Add to Home Screen”, then tap “Add”."
+            ], note: "You don't need to download Safari — every iPhone and iPad already has it." },
+            android_chrome: { title: "Android — Chrome (no Safari needed)", steps: [
+              "Tap the ⋮ menu in the top-right corner of Chrome.",
+              "Tap “Install app” or “Add to Home screen” — whichever one you see.",
+              "Tap “Install” / “Add” to confirm."
+            ], note: "Done — the icon lands on your Home Screen. Android never uses Safari." },
+            android_other: { title: "Android — Samsung Internet, Firefox, Edge, or inside another app", steps: [
+              "If you opened this page inside another app (LINE, Facebook, Instagram…), tap its ⋯ / ⋮ menu and choose “Open in browser” first — “Add to Home Screen” doesn't appear inside other apps.",
+              "Samsung Internet: tap the ☰ menu, then “Add page to” → “Home screen”.",
+              "Firefox: tap the ⋮ menu, then “Add to Home screen” (or “Install”).",
+              "Edge: tap the … menu, then “Add to phone” / “Install app”."
+            ], note: "Using Chrome instead? Tap ⋮ → “Install app” / “Add to Home screen”." },
+            desktop_chrome: { title: "Computer — Chrome or Edge (no Safari needed)", steps: [
+              "Chrome: click the install icon at the right end of the address bar, or click ⋮ → “Save and share” → “Install Hao Chi Taiwan…” / “Create shortcut”.",
+              "Edge: click … → “Apps” → “Install this site as an app”.",
+              "Click “Install” to confirm — it then opens in its own window, with an icon like a regular app."
+            ], note: "On a Chromebook this works exactly the same way, in Chrome." },
+            desktop_other: { title: "Computer — Safari or Firefox", steps: [
+              "Safari on a Mac: there's no “Add to Home Screen” on a computer. On newer macOS, use File → “Add to Dock…” to keep it in your Dock; otherwise press ⌘D to bookmark it.",
+              "Firefox: press Ctrl/⌘D to bookmark it, or drag the padlock in the address bar onto your desktop for a shortcut."
+            ], note: "Want the phone-style Home Screen icon? Open this page on your phone instead and follow the iPhone or Android steps." }
+          }
         },
         zh: {
           testpill: "測試預覽",
@@ -896,9 +956,43 @@
           install_text: "沒有網路連線時，清單、詳情和司機卡都還能用。",
           install_btn: "加入",
           install_how_title: "加到主畫面",
-          install_how_ios: "在 iPhone 或 iPad 上：在 Safari 點「分享」按鈕，再點「加入主畫面」。圖示會出現在主畫面上，之後沒有連線時清單、詳情和司機卡都還能用。",
-          install_how_android: "在 Android 上：打開瀏覽器選單（⋮），點「加到主畫面」或「安裝應用程式」。圖示會出現在主畫面上，之後沒有連線時清單、詳情和司機卡都還能用。",
-          install_how_desktop: "在瀏覽器的網址列或選單中，選擇「安裝」或「加到主畫面」。加入後，沒有連線時清單、詳情和司機卡都還能用。"
+          install_how_intro: "加入主畫面後，主畫面上會多一個好吃台灣的圖示，就像 App 一樣 — 不用去應用商店、不用下載。每種手機的步驟不一樣，我們先把你目前這台裝置的步驟放在最前面，其他手機和瀏覽器的步驟都列在下面。",
+          install_no_safari: "沒有 Safari 怎麼辦？只有 iPhone 或 iPad 才需要 Safari — 而且 Safari 本來就內建在每一台 iPhone 和 iPad 上（找藍色的指南針圖示），不用另外取得。Android 手機和電腦完全不需要 Safari：用 Chrome，或你平常在用的瀏覽器就可以了。",
+          install_for_you: "你目前裝置的步驟",
+          install_all_title: "用的是其他手機或瀏覽器？在這裡找你的：",
+          install_guides: {
+            ios_safari: { title: "iPhone / iPad — 在 Safari 裡", steps: [
+              "點 Safari 的「分享」按鈕 — 一個方框加上向上箭頭，在畫面下方（iPad 在上方）。",
+              "往下捲，點「加入主畫面」。",
+              "點右上角的「加入」。"
+            ], note: "完成了 — 好吃台灣的圖示會出現在主畫面上，沒有連線時清單、詳情和司機卡都還能用。" },
+            ios_other: { title: "iPhone / iPad — 如果你不在 Safari 裡", steps: [
+              "在 iPhone 上，「加入主畫面」只會在 Safari 出現（較新的 iPhone 在 Chrome 的「分享」裡也可能有）。如果你是在 Chrome、LINE、Facebook、Instagram 或其他 App 裡打開這個頁面，那裡不會出現這個選項。",
+              "請改用 Safari 打開同一個頁面：點 ⋯ 或「分享」按鈕，若有「在 Safari 中打開」就點它；沒有的話，複製網址，打開 Safari（藍色指南針圖示，本來就在你的 iPhone 上），貼上網址前往。",
+              "在 Safari 點「分享」按鈕（方框加上向上箭頭）。",
+              "往下捲，點「加入主畫面」，再點「加入」。"
+            ], note: "不用下載 Safari — 每台 iPhone 和 iPad 本來就有。" },
+            android_chrome: { title: "Android — Chrome（不需要 Safari）", steps: [
+              "點 Chrome 右上角的 ⋮ 選單。",
+              "點「安裝應用程式」或「加到主畫面」— 看到哪個就點哪個。",
+              "點「安裝」/「加入」確認。"
+            ], note: "完成了 — 圖示會出現在主畫面上。Android 上完全用不到 Safari。" },
+            android_other: { title: "Android — Samsung 瀏覽器、Firefox、Edge，或在其他 App 裡", steps: [
+              "如果你是在其他 App 裡打開這個頁面（LINE、Facebook、Instagram…），先點它的 ⋯ / ⋮ 選單，選「在瀏覽器中打開」— 在其他 App 裡面不會出現「加到主畫面」。",
+              "Samsung 瀏覽器：點 ☰ 選單，再點「新增頁面至」→「主畫面」。",
+              "Firefox：點 ⋮ 選單，再點「加到主畫面」（或「安裝」）。",
+              "Edge：點 … 選單，再點「新增至手機」/「安裝應用程式」。"
+            ], note: "如果你用的是 Chrome：點 ⋮ →「安裝應用程式」/「加到主畫面」。" },
+            desktop_chrome: { title: "電腦 — Chrome 或 Edge（不需要 Safari）", steps: [
+              "Chrome：點網址列右端的安裝圖示，或點 ⋮ →「儲存並分享」→「安裝好吃台灣…」/「建立捷徑」。",
+              "Edge：點 … →「應用程式」→「將此網站安裝為應用程式」。",
+              "點「安裝」確認 — 它會在自己的視窗開啟，並有像一般程式的圖示。"
+            ], note: "Chromebook 在 Chrome 裡也是同樣的作法。" },
+            desktop_other: { title: "電腦 — Safari 或 Firefox", steps: [
+              "Mac 上的 Safari：電腦上沒有「加入主畫面」。較新的 macOS 可用「檔案」→「加入 Dock」把它留在 Dock 裡；不然按 ⌘D 加入書籤。",
+              "Firefox：按 Ctrl/⌘D 加入書籤，或把網址列的鎖頭圖示拖到桌面上做成捷徑。"
+            ], note: "想要手機上那種主畫面圖示？改在手機上打開這個頁面，照上面的 iPhone 或 Android 步驟做。" }
+          }
         }
       };
 
@@ -1944,18 +2038,93 @@
         if (foot) foot.textContent = t().install_how_title;
         var howT = document.getElementById("installHowTitle");
         if (howT) howT.textContent = t().install_how_title;
+        renderInstallHow();
       }
       function updateInstallBar() {
         var bar = document.getElementById("installBar");
         if (!bar) return;
-        var show = !installDismissed && !isStandalone() && (!!deferredInstallPrompt || isIOS());
+        var ua = window.navigator.userAgent || "";
+        var isMobile = isIOS() || /android/i.test(ua);
+        var show = !installDismissed && !isStandalone() && (!!deferredInstallPrompt || isMobile);
         bar.classList.toggle("show", show);
         bar.setAttribute("aria-hidden", show ? "false" : "true");
         document.body.classList.toggle("has-install", show);
       }
+      /* Which install guide fits the browser actually in use right now.
+         Safari only exists in the iPhone/iPad steps: on iOS every other
+         browser (and every in-app browser) is sent to Safari first, while
+         Android and desktop get their own browsers' steps. */
+      var INSTALL_GUIDE_ORDER = ["ios_safari", "ios_other", "android_chrome", "android_other", "desktop_chrome", "desktop_other"];
+      function detectInstallGuideKey() {
+        var ua = window.navigator.userAgent || "";
+        var inApp = /FBAN|FBAV|FBIOS|Instagram|Line\/|MicroMessenger|Snapchat|Twitter|; wv\)/i.test(ua);
+        var otherIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS|YaBrowser/i.test(ua);
+        if (isIOS()) return (inApp || otherIOSBrowser) ? "ios_other" : "ios_safari";
+        if (/android/i.test(ua)) {
+          if (inApp || /SamsungBrowser|Firefox|EdgA|OPR\//i.test(ua)) return "android_other";
+          return "android_chrome";
+        }
+        if (/Firefox/i.test(ua)) return "desktop_other";
+        if (/Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR\//i.test(ua)) return "desktop_other";
+        return "desktop_chrome";
+      }
+      function fillInstallSteps(ol, steps) {
+        if (!ol) return;
+        ol.textContent = "";
+        (steps || []).forEach(function (s) {
+          var li = document.createElement("li");
+          li.textContent = s;
+          ol.appendChild(li);
+        });
+      }
+      function renderInstallHow() {
+        var dict = t();
+        var guides = dict.install_guides;
+        if (!guides) return;
+        var intro = document.getElementById("installHowIntro");
+        if (intro) intro.textContent = dict.install_how_intro || "";
+        var noSafari = document.getElementById("installNoSafari");
+        if (noSafari) noSafari.textContent = dict.install_no_safari || "";
+        var forYou = document.getElementById("installForYou");
+        if (forYou) forYou.textContent = dict.install_for_you || "";
+        var allTitle = document.getElementById("installAllTitle");
+        if (allTitle) allTitle.textContent = dict.install_all_title || "";
+        var key = detectInstallGuideKey();
+        var guide = guides[key] || guides.desktop_chrome;
+        var dTitle = document.getElementById("installDetectedTitle");
+        if (dTitle) dTitle.textContent = guide.title;
+        fillInstallSteps(document.getElementById("installDetectedSteps"), guide.steps);
+        var dNote = document.getElementById("installDetectedNote");
+        if (dNote) dNote.textContent = guide.note || "";
+        var sections = document.getElementById("installSections");
+        if (!sections) return;
+        sections.textContent = "";
+        INSTALL_GUIDE_ORDER.forEach(function (k) {
+          if (k === key || !guides[k]) return;
+          var g = guides[k];
+          var det = document.createElement("details");
+          det.className = "install-sec";
+          var sum = document.createElement("summary");
+          sum.textContent = g.title;
+          det.appendChild(sum);
+          var bodyWrap = document.createElement("div");
+          bodyWrap.className = "install-sec-body";
+          var ol = document.createElement("ol");
+          ol.className = "install-steps";
+          fillInstallSteps(ol, g.steps);
+          bodyWrap.appendChild(ol);
+          if (g.note) {
+            var note = document.createElement("p");
+            note.className = "install-note";
+            note.textContent = g.note;
+            bodyWrap.appendChild(note);
+          }
+          det.appendChild(bodyWrap);
+          sections.appendChild(det);
+        });
+      }
       function openInstallHow() {
-        var body = document.getElementById("installHowBody");
-        if (body) body.textContent = isIOS() ? t().install_how_ios : (/android/i.test(window.navigator.userAgent || "") ? t().install_how_android : t().install_how_desktop);
+        renderInstallHow();
         syncInstallUI();
         var ov = document.getElementById("installOverlay");
         if (ov) ov.classList.add("open");

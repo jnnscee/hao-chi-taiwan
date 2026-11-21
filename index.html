@@ -437,6 +437,39 @@
       .install-sec-body{ padding:0 14px 12px; }
       .install-sec-body .install-steps{ padding-left:20px; }
 
+      /* ---------- Contact & feedback ---------- */
+      .contactsec{ padding:26px 0 4px; }
+      .contactsec h2{ font-size:1.45rem; font-weight:800; margin-bottom:4px; }
+      .contactsec .sub{ color:var(--muted); font-size:.95rem; margin-bottom:14px; max-width:46rem; }
+      .contact-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px;
+        display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; box-shadow:0 2px 10px rgba(33,38,31,.05); }
+      .contact-open-btn{ background:var(--teal); color:#fff; border:1px solid var(--teal); border-radius:11px;
+        padding:10px 20px; font-weight:700; font-size:.95rem; min-height:2.6rem; }
+      @media (prefers-color-scheme: dark){ .contact-open-btn{ color:#10201b; } }
+      .contact-email-line{ font-size:.95rem; color:var(--muted); }
+      .contact-email-line a{ font-weight:700; }
+      .report-wrap{ margin-top:18px; border-top:1px solid var(--line); padding-top:12px; }
+      .report-link{ background:none; border:0; padding:4px 0; min-height:2.25rem; color:var(--muted);
+        font-size:.92rem; font-weight:600; text-decoration:underline; text-underline-offset:3px; text-align:left; }
+      .report-link:hover{ color:var(--red-ink); }
+      .cf-fields{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+      .cf-fields label{ display:flex; flex-direction:column; gap:4px; font-size:.85rem; font-weight:700; color:var(--muted); }
+      .cf-fields input, .cf-fields select, .cf-fields textarea{ font:inherit; font-size:1rem; padding:9px 11px;
+        border:1.5px solid var(--line); border-radius:10px; min-height:2.6rem; background:var(--surface); color:var(--ink); width:100%; }
+      .cf-fields textarea{ min-height:7.5rem; resize:vertical; line-height:1.5; }
+      .cf-note{ font-size:.86rem; color:var(--muted); line-height:1.5; margin-top:12px; }
+      .cf-status{ font-size:.9rem; color:var(--teal); font-weight:600; min-height:1.25em; margin-top:10px; }
+      .cf-status:empty{ margin-top:0; min-height:0; }
+      .cf-actions{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+      .cf-actions .btn{ justify-content:center; width:100%; }
+      .cf-fallback{ margin-top:14px; border-top:1px dashed var(--line); padding-top:12px;
+        font-size:.9rem; color:var(--muted); line-height:1.55; }
+      .cf-fallback a{ font-weight:700; }
+      .cf-copy-btn{ margin-top:8px; background:transparent; color:var(--ink); border:1.5px solid var(--line);
+        border-radius:11px; padding:9px 16px; font-weight:700; font-size:.92rem; min-height:2.5rem; }
+      .cf-copy-btn:hover{ border-color:var(--teal); color:var(--teal); }
+      footer .foot-install{ margin-right:8px; }
+
       footer{ border-top:1px solid var(--line); margin-top:34px; padding:22px 0 calc(40px + env(safe-area-inset-bottom, 0px)); color:var(--muted); font-size:.88rem; }
       footer p + p{ margin-top:6px; }
       @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
@@ -573,12 +606,22 @@
         </div>
         <p class="map-offline-note" id="mapOfflineNote"></p>
       </section>
+
+      <section class="contactsec" aria-labelledby="contactH">
+        <h2 id="contactH" data-i18n="contact_h">Contact &amp; feedback</h2>
+        <p class="sub" data-i18n="contact_sub">Spotted a place that's closed, a broken Google Maps or Instagram link, or wrong hours? Want to suggest a place Jenny should try, or just share feedback? Send a note — problem reports get checked and fixed.</p>
+        <div class="contact-card">
+          <button type="button" class="contact-open-btn" id="contactOpenBtn">Write to us</button>
+          <span class="contact-email-line"><span id="contactEmailLabel">Email us at</span> <a href="mailto:haochitaiwan@muse.ai">haochitaiwan@muse.ai</a></span>
+        </div>
+      </section>
     </main>
 
     <footer>
       <div class="wrap">
         <p data-i18n="foot1">Places come from Jenny's Google Maps lists “Taiwan - Tried &amp; Tested” (Recommended) and “Taiwan - On My Radar” (Want to Try). Ratings are the Google ratings captured with the lists in Nov 2026.</p>
         <p data-i18n="foot2">Hours and phone numbers for the first ten places (Zuoying) are provisional, from shop listings, last checked Nov 2026, and are being checked before the real launch — use “Check today's hours” in a place's details to see its current hours on Google Maps. Chinese addresses are drafts awaiting Jenny's check.</p>
+        <button type="button" class="foot-install" id="footContactBtn">Contact &amp; feedback</button>
         <button type="button" class="foot-install" id="footInstallBtn">Add to Home Screen</button>
       </div>
     </footer>
@@ -649,12 +692,59 @@
             <p class="ss-status" id="ssStatus" role="status" aria-live="polite"></p>
             <p class="ss-note" id="ssNote">Save is stored on this device only — no account needed, and it won't sync to other phones or browsers.</p>
           </div>
+          <div class="report-wrap">
+            <button type="button" class="report-link" id="dReport">Report a problem with this place</button>
+          </div>
           <div class="sheet-actions">
             <button class="btn btn-driver btn-big" id="dDriver"></button>
             <button type="button" class="btn btn-ghost btn-big" id="dPlanBtn">Plan ahead</button>
             <button type="button" class="btn btn-ghost btn-big" id="dCashBtn">Cash</button>
             <button type="button" class="btn btn-ghost btn-big" id="dCalBtn">Add to calendar</button>
             <a class="btn btn-ghost btn-big" id="dMaps" target="_blank" rel="noopener"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact & feedback form: opens the visitor's own email app addressed to
+         the app's inbox — this page sends nothing itself. -->
+    <div class="overlay" id="contactOverlay" role="dialog" aria-modal="true" aria-labelledby="cfTitle">
+      <div class="sheetwrap tipwrap">
+        <div class="sheet tip-sheet">
+          <button class="closeX" id="cfClose" aria-label="Close">✕</button>
+          <h2 id="cfTitle">Contact &amp; feedback</h2>
+          <p class="reserve-body" id="cfIntro">Tell us what's on your mind. When you tap the send button, your email app opens with everything filled in, addressed to haochitaiwan@muse.ai — nothing is sent until you press Send there, and you can attach a screenshot in your email app.</p>
+          <div class="cf-fields">
+            <label><span id="lblCfCategory">What is this about?</span>
+              <select id="cfCategory">
+                <option value="feedback">Feedback</option>
+                <option value="problem">Report a problem</option>
+                <option value="suggest">Suggest a place</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label><span id="lblCfPlace">Place (if it's about one place)</span>
+              <input id="cfPlace" type="text" placeholder="Place name (optional)" autocomplete="off" />
+            </label>
+            <label><span id="lblCfName">Your name (optional)</span>
+              <input id="cfName" type="text" placeholder="What should we call you?" autocomplete="name" />
+            </label>
+            <label><span id="lblCfEmail">Your email (optional — add it if you'd like a reply)</span>
+              <input id="cfEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+            </label>
+            <label><span id="lblCfMessage">Your message</span>
+              <textarea id="cfMessage" placeholder="Write what you'd like us to know…"></textarea>
+            </label>
+          </div>
+          <p class="cf-note" id="cfShotNote">Reporting a broken link, wrong hours or a place that's closed? Say which link or detail is wrong — a screenshot helps, and you can attach it in your email app after it opens.</p>
+          <p class="cf-status" id="cfStatus" role="status" aria-live="polite"></p>
+          <div class="cf-actions">
+            <a class="btn btn-driver" id="cfSend" href="mailto:haochitaiwan@muse.ai">Open in email app</a>
+            <a class="btn btn-ghost" id="cfGmail" href="googlegmail://co?to=haochitaiwan@muse.ai">Open in Gmail</a>
+          </div>
+          <div class="cf-fallback">
+            <p><span id="cfFallbackA">If your email app doesn't open, email us at</span> <a href="mailto:haochitaiwan@muse.ai">haochitaiwan@muse.ai</a> <span id="cfFallbackB">— or copy your message:</span></p>
+            <button type="button" class="cf-copy-btn" id="cfCopy">Copy message</button>
           </div>
         </div>
       </div>
@@ -856,6 +946,30 @@
           cal_ics: "Download .ics (Apple Calendar / Outlook)",
           cal_need: "Pick a date and a time first.",
           cal_view_in: "View in Hao Chi Taiwan",
+          contact_h: "Contact & feedback",
+          contact_sub: "Spotted a place that's closed, a broken Google Maps or Instagram link, or wrong hours? Want to suggest a place Jenny should try, or just share feedback? Send a note — problem reports get checked and fixed.",
+          contact_btn: "Write to us",
+          contact_email_label: "Email us at",
+          report_place: "Report a problem with this place",
+          cf_title: "Contact & feedback",
+          cf_intro: "Tell us what's on your mind. When you tap the send button, your email app opens with everything filled in, addressed to haochitaiwan@muse.ai — nothing is sent until you press Send there, and you can attach a screenshot in your email app.",
+          cf_category: "What is this about?",
+          cf_cat_feedback: "Feedback", cf_cat_problem: "Report a problem", cf_cat_suggest: "Suggest a place", cf_cat_other: "Other",
+          cf_place: "Place (if it's about one place)", cf_place_ph: "Place name (optional)",
+          cf_name: "Your name (optional)", cf_name_ph: "What should we call you?",
+          cf_email: "Your email (optional — add it if you'd like a reply)", cf_email_ph: "you@example.com",
+          cf_message: "Your message", cf_message_ph: "Write what you'd like us to know…",
+          cf_shot: "Reporting a broken link, wrong hours or a place that's closed? Say which link or detail is wrong — a screenshot helps, and you can attach it in your email app after it opens.",
+          cf_send: "Open in email app",
+          cf_gmail: "Open in Gmail",
+          cf_need: "Write a short message first, so we know how to help.",
+          cf_opened: "Your email app should open with your message ready — just press Send there. If nothing opens, email haochitaiwan@muse.ai directly.",
+          cf_direct: "Or email directly:",
+          cf_fallback_a: "If your email app doesn't open, email us at",
+          cf_fallback_b: "— or copy your message:",
+          cf_copy: "Copy message",
+          cf_copied: "Message copied — paste it into an email to haochitaiwan@muse.ai and send it from there.",
+          cf_copy_fail: "Copy didn't work here — select the text in the message box above and copy it yourself, then paste it into an email.",
           reserve_phrase_btn: "Show booking phrase card · 顯示訂位中文卡",
           reserve_not_listed_phone: "Reservations info is not listed for this place yet. If it takes bookings, it’s usually by phone — call the number listed above to ask.",
           reserve_not_listed_nophone: "Reservations info is not listed for this place yet, and no phone number is listed here. Check its Google Maps page for the latest contact details.",
@@ -1004,6 +1118,30 @@
           cal_ics: "下載 .ics（Apple 行事曆 / Outlook）",
           cal_need: "請先選擇日期和時間。",
           cal_view_in: "在好吃台灣查看",
+          contact_h: "聯絡與意見回饋",
+          contact_sub: "發現某家店已經歇業、Google Maps 或 Instagram 連結壞了，或營業時間不對？想推薦 Jenny 去試的店，或單純分享意見？歡迎來信 — 問題回報都會逐一確認並修正。",
+          contact_btn: "寫信給我們",
+          contact_email_label: "Email：",
+          report_place: "回報這家店的問題",
+          cf_title: "聯絡與意見回饋",
+          cf_intro: "告訴我們你的想法。點下傳送按鈕後，你的郵件 App 會開啟並自動填好內容，收件人是 haochitaiwan@muse.ai — 在那邊按下傳送之前，這裡不會寄出任何東西；你也可以在郵件 App 裡附上截圖。",
+          cf_category: "這封信是關於什麼？",
+          cf_cat_feedback: "意見回饋", cf_cat_problem: "回報問題", cf_cat_suggest: "推薦一家店", cf_cat_other: "其他",
+          cf_place: "店家（如果是關於某一家店）", cf_place_ph: "店名（可留空）",
+          cf_name: "你的名字（可留空）", cf_name_ph: "我們可以怎麼稱呼你",
+          cf_email: "你的 Email（可留空，填了我們才能回覆你）", cf_email_ph: "you@example.com",
+          cf_message: "訊息", cf_message_ph: "寫下你想告訴我們的事…",
+          cf_shot: "要回報連結壞掉、營業時間錯誤或店家歇業嗎？請說明是哪個連結或哪項資訊有問題 — 附上截圖會很有幫助，你可以在郵件 App 裡加上附件。",
+          cf_send: "開啟郵件 App",
+          cf_gmail: "用 Gmail 開啟",
+          cf_need: "請先寫一點訊息，我們才知道怎麼幫忙。",
+          cf_opened: "你的郵件 App 應該已經開啟並填好訊息 — 在那邊按傳送就可以。如果沒有開啟，請直接寄信到 haochitaiwan@muse.ai。",
+          cf_direct: "或直接寄信：",
+          cf_fallback_a: "如果你的郵件 App 沒有開啟，請直接寄信到",
+          cf_fallback_b: "，或複製你的訊息：",
+          cf_copy: "複製訊息",
+          cf_copied: "訊息已複製 — 把它貼到寄給 haochitaiwan@muse.ai 的郵件裡，再從那邊寄出就可以。",
+          cf_copy_fail: "這裡無法自動複製 — 請選取上方訊息欄裡的文字自己複製，再貼到郵件裡。",
           reserve_phrase_btn: "顯示訂位中文卡 · Show booking phrase card",
           reserve_not_listed_phone: "這家店尚未列出訂位資訊。如果有接受訂位，通常是電話訂位 — 請打上面列出的電話詢問。",
           reserve_not_listed_nophone: "這家店尚未列出訂位資訊，這裡也沒有列出電話。請到它的 Google Maps 頁面查看最新聯絡方式。",
@@ -1075,6 +1213,7 @@
       /* Recommended places (numeric ids) carry no "list" field — they are the Recommended list.
          Want to Try places carry list: "Want to Try". */
       function listOf(p) { return p.list || "Recommended"; }
+      const CONTACT_EMAIL = "haochitaiwan@muse.ai";
       let current = null;
       let wakeLock = null;
       let userLoc = null;
@@ -1401,6 +1540,125 @@
         const cn = $("dCashNote"); if (cn && current) cn.textContent = cashNoteText(current);
         else if (cn) cn.textContent = t().cash_not_listed;
       }
+      /* ---------- Contact & feedback ----------
+         One form for feedback, problem reports, place suggestions and support.
+         Sending builds a pre-written email and opens the visitor's own email
+         app addressed to CONTACT_EMAIL — this page sends nothing itself, and
+         the visitor can attach a screenshot in their email app. Opened from a
+         place's details ("Report a problem with this place"), the category is
+         preset to Report a problem and the place (plus its page and Maps
+         links) is filled in. */
+      const CF_CATS = [
+        { k: "feedback", en: "Feedback" },
+        { k: "problem", en: "Report a problem" },
+        { k: "suggest", en: "Suggest a place" },
+        { k: "other", en: "Other" }
+      ];
+      let contactPlace = null;
+      function syncContactUI() {
+        const set = (id, txt) => { const el = $(id); if (el && txt != null) el.textContent = txt; };
+        set("contactOpenBtn", t().contact_btn);
+        set("contactEmailLabel", t().contact_email_label);
+        set("footContactBtn", t().contact_h);
+        set("dReport", t().report_place);
+        set("cfTitle", t().cf_title);
+        set("cfIntro", t().cf_intro);
+        set("lblCfCategory", t().cf_category);
+        set("lblCfPlace", t().cf_place);
+        set("lblCfName", t().cf_name);
+        set("lblCfEmail", t().cf_email);
+        set("lblCfMessage", t().cf_message);
+        set("cfShotNote", t().cf_shot);
+        set("cfSend", t().cf_send);
+        set("cfGmail", t().cf_gmail);
+        set("cfFallbackA", t().cf_fallback_a);
+        set("cfFallbackB", t().cf_fallback_b);
+        set("cfCopy", t().cf_copy);
+        const ph = (id, txt) => { const el = $(id); if (el && txt != null) el.placeholder = txt; };
+        ph("cfPlace", t().cf_place_ph); ph("cfName", t().cf_name_ph);
+        ph("cfEmail", t().cf_email_ph); ph("cfMessage", t().cf_message_ph);
+        const sel = $("cfCategory");
+        if (sel) {
+          const cur = sel.value || "feedback";
+          const labels = { feedback: t().cf_cat_feedback, problem: t().cf_cat_problem, suggest: t().cf_cat_suggest, other: t().cf_cat_other };
+          sel.innerHTML = CF_CATS.map((c) => '<option value="' + c.k + '">' + esc(labels[c.k]) + "</option>").join("");
+          sel.value = labels[cur] ? cur : "feedback";
+        }
+        syncCfSend();
+      }
+      function openContact(categoryKey, place) {
+        contactPlace = place || null;
+        syncContactUI();
+        const sel = $("cfCategory");
+        if (sel) sel.value = CF_CATS.some((c) => c.k === categoryKey) ? categoryKey : "feedback";
+        const pf = $("cfPlace");
+        if (pf) pf.value = place ? (place.en + " (" + place.zh + ")") : "";
+        const st = $("cfStatus"); if (st) st.textContent = "";
+        syncCfSend();
+        $("contactOverlay").classList.add("open");
+      }
+      function closeContact() { const ov = $("contactOverlay"); if (ov) ov.classList.remove("open"); }
+      /* Compose the email from the current field values. */
+      function contactCompose() {
+        const catKey = $("cfCategory") ? $("cfCategory").value : "feedback";
+        const cat = CF_CATS.find((c) => c.k === catKey) || CF_CATS[0];
+        const placeTxt = $("cfPlace") ? $("cfPlace").value.trim() : "";
+        const msg = $("cfMessage") ? $("cfMessage").value.trim() : "";
+        const subject = "[Hao Chi Taiwan] " + cat.en + (contactPlace ? " — " + contactPlace.en : (placeTxt ? " — " + placeTxt : ""));
+        const lines = [];
+        lines.push("Category: " + cat.en);
+        if (placeTxt) lines.push("Place: " + placeTxt);
+        if (contactPlace) {
+          lines.push("Place page: " + placeUrl(contactPlace));
+          lines.push("Google Maps: " + (contactPlace.mapsShort || contactPlace.maps));
+        }
+        const nm = $("cfName") ? $("cfName").value.trim() : "";
+        if (nm) lines.push("Name: " + nm);
+        const em = $("cfEmail") ? $("cfEmail").value.trim() : "";
+        if (em) lines.push("Reply to: " + em);
+        lines.push("");
+        lines.push(msg);
+        lines.push("");
+        lines.push("(Sent from the Hao Chi Taiwan contact form — a screenshot can be attached to this email.)");
+        return { subject: subject, body: lines.join("\n") };
+      }
+      /* The two send controls are real links whose hrefs are kept in step
+         with the fields as the visitor types, so their own tap on a link is
+         what opens the mail app — a script-driven jump to a mail app is
+         exactly what browsers block inside a framed preview. One link is a
+         plain mailto: (the system mail app); the other uses the Gmail app's
+         own scheme, for visitors whose mail lives in Gmail — it only works
+         where the Gmail app is installed, which is why both stay. */
+      function syncCfSend() {
+        const m = contactCompose();
+        const q = "?subject=" + encodeURIComponent(m.subject) + "&body=" + encodeURIComponent(m.body);
+        const a = $("cfSend"); if (a) a.href = "mailto:" + CONTACT_EMAIL + q;
+        const g = $("cfGmail"); if (g) g.href = "googlegmail://co?to=" + CONTACT_EMAIL + "&" + q.slice(1);
+      }
+      /* Empty-message guard for both send links: the tap is stopped, the
+         inline prompt shows, and focus moves to the message box. With a
+         message present the handler steps aside and the real link opens
+         the mail app on its own. */
+      function onCfSendClick(e) {
+        const msgEl = $("cfMessage");
+        const msg = msgEl ? msgEl.value.trim() : "";
+        const st = $("cfStatus");
+        if (!msg) { e.preventDefault(); if (st) st.textContent = t().cf_need; if (msgEl) msgEl.focus(); return; }
+        syncCfSend();
+        if (st) st.textContent = t().cf_opened;
+      }
+      /* Fallback for anywhere that blocks mail links entirely: copy the
+         whole composed message so the visitor can paste it into an email. */
+      async function copyContactMessage() {
+        const msgEl = $("cfMessage");
+        const msg = msgEl ? msgEl.value.trim() : "";
+        const st = $("cfStatus");
+        if (!msg) { if (st) st.textContent = t().cf_need; if (msgEl) msgEl.focus(); return; }
+        const m = contactCompose();
+        const ok = await copyText("To: " + CONTACT_EMAIL + "\nSubject: " + m.subject + "\n\n" + m.body);
+        if (st) st.textContent = ok ? t().cf_copied : t().cf_copy_fail;
+      }
+
       /* ---------- Add to calendar (built locally — nothing is sent anywhere) ---------- */
       function syncCalUI() {
         const ct = $("calTitle"); if (ct) ct.textContent = t().cal_title;
@@ -1865,6 +2123,7 @@
         syncReserveUI();
         syncCashUI();
         syncCalUI();
+        syncContactUI();
         syncSavedUI();
         syncAdvUI();
         if (typeof syncOfflineUI === "function") syncOfflineUI();
@@ -2063,6 +2322,18 @@
       $("langZh").addEventListener("click", () => { lang = "zh"; applyLang(); });
       $("dClose").addEventListener("click", () => $("detailOverlay").classList.remove("open"));
       $("detailOverlay").addEventListener("click", (e) => { if (e.target === $("detailOverlay")) $("detailOverlay").classList.remove("open"); });
+      $("contactOpenBtn").addEventListener("click", () => openContact("feedback", null));
+      $("footContactBtn").addEventListener("click", () => openContact("feedback", null));
+      $("dReport").addEventListener("click", () => { if (current) openContact("problem", current); });
+      $("cfClose").addEventListener("click", closeContact);
+      $("contactOverlay").addEventListener("click", (e) => { if (e.target === $("contactOverlay")) closeContact(); });
+      $("cfSend").addEventListener("click", onCfSendClick);
+      $("cfGmail").addEventListener("click", onCfSendClick);
+      $("cfCopy").addEventListener("click", copyContactMessage);
+      ["cfCategory", "cfPlace", "cfName", "cfEmail", "cfMessage"].forEach((id) => {
+        const el = $(id);
+        if (el) { el.addEventListener("input", syncCfSend); el.addEventListener("change", syncCfSend); }
+      });
       $("dPlanBtn").addEventListener("click", () => { openPlanCard(); });
       $("dCashBtn").addEventListener("click", () => { openCashCard(); });
       $("dCalBtn").addEventListener("click", () => { openCalCard(); });
@@ -2094,7 +2365,7 @@
         setTimeout(() => { $("dvCopy").textContent = t().copy_addr; }, 1800);
       });
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") { closeDriver(); closePhraseCard(); closePlanCard(); closeCashCard(); closeCalCard(); if (typeof closeInstallHow === "function") closeInstallHow(); $("detailOverlay").classList.remove("open"); }
+        if (e.key === "Escape") { closeDriver(); closePhraseCard(); closePlanCard(); closeCashCard(); closeCalCard(); closeContact(); if (typeof closeInstallHow === "function") closeInstallHow(); $("detailOverlay").classList.remove("open"); }
       });
       $("savedToggle").addEventListener("click", () => {
         savedOnly = !savedOnly;
@@ -2132,6 +2403,7 @@
       syncReserveUI();
       syncCashUI();
       syncCalUI();
+      syncContactUI();
       updatePhraseLine();
       syncSavedUI();
       syncAdvUI();

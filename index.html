@@ -3010,6 +3010,11 @@
          pins on mount. Falls back to the stored static map when the live
          map is unavailable. */
       function showMapFallback() {
+        /* The static picture replaces the live map for the rest of the
+           session, so the pin sync must stop: with mapLive off, syncMapPins
+           no-ops instead of remounting into the hidden container while the
+           visible pins (the picture's) can never change. */
+        mapLive = false;
         $("map").style.display = "none";
         $("mapFallback").style.display = "block";
       }
@@ -3021,11 +3026,17 @@
           marker: (place, index, selected) => '<div class="pin' + (selected ? " pin--on" : "") + '"><span>' + (index + 1) + "</span></div>",
           onSelectPlace: (index) => { if (index !== null && mapShown[index]) openDetails(mapShown[index]); }
         };
-        /* The library auto-fits only with 2+ pins. A single match is framed
-           by hand; an empty set keeps the familiar all-places framing with
-           no pins on it. */
+        /* Framing: with 2+ pins the library fits the view to them itself.
+           A single pin and an empty set need an explicit centre/zoom, in
+           the top-level center/zoom options the library actually reads —
+           a mapView option is silently ignored, and without them an empty
+           map opens on a world view centred on 0,0. A single match is
+           centred at street level; an empty set is framed on the guide's
+           home area (the middle of all the places, at about the zoom the
+           fitted all-places view uses) with no pins on it. */
         if (mapShown.length === 1) {
-          opts.mapView = { center: [mapShown[0].lng, mapShown[0].lat], zoom: 14 };
+          opts.center = { lng: mapShown[0].lng, lat: mapShown[0].lat };
+          opts.zoom = 14;
         } else if (mapShown.length === 0) {
           let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
           PLACES.forEach((p) => {
@@ -3034,7 +3045,8 @@
             if (p.lng < minLng) minLng = p.lng;
             if (p.lng > maxLng) maxLng = p.lng;
           });
-          opts.mapView = { bounds: [[minLng, minLat], [maxLng, maxLat]], fitBoundsOptions: { padding: 48, maxZoom: 16 } };
+          opts.center = { lng: (minLng + maxLng) / 2, lat: (minLat + maxLat) / 2 };
+          opts.zoom = 6.8;
         }
         mapHandle = MapHelpers.mountMap($("map"), opts, showMapFallback);
         if (mapHandle === null) mapLive = false;

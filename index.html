@@ -265,6 +265,14 @@
       .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
       .btn-ghost:hover{ border-color:var(--teal); color:var(--teal); }
       .empty{ display:none; text-align:center; color:var(--muted); padding:44px 16px; font-size:1.05rem; }
+      /* ---------- Show more (batched list) ---------- */
+      .showmore-wrap{ text-align:center; padding:16px 0 8px; }
+      .showmore-wrap[hidden]{ display:none !important; }
+      .batch-count{ color:var(--muted); font-size:.92rem; font-weight:600; margin-bottom:10px; }
+      .showmore-btn{ background:var(--teal); color:#fff; border:1px solid var(--teal); border-radius:999px;
+        padding:11px 30px; font-weight:700; font-size:.98rem; min-height:2.8rem; }
+      .showmore-btn[hidden]{ display:none !important; }
+      @media (prefers-color-scheme: dark){ .showmore-btn{ color:#10201b; } }
 
       /* ---------- Overlays ---------- */
       .overlay{ position:fixed; inset:0; z-index:80; display:none; align-items:flex-end; justify-content:center;
@@ -548,6 +556,10 @@
         <p class="sub"><span class="count" id="count"></span> · <span data-i18n="list_sub">Jenny's recommendations — tap a place for details, or show the driver card to a taxi driver.</span></p>
         <p class="want-note" id="wantNote" data-i18n="want_note" hidden>Listed in no particular order — places I want to try.</p>
         <div class="grid" id="grid"></div>
+        <div class="showmore-wrap" id="showMoreWrap" hidden>
+          <p class="batch-count" id="batchCount" role="status"></p>
+          <button type="button" class="showmore-btn" id="showMoreBtn">Show more</button>
+        </div>
         <p class="empty" id="empty" data-i18n="empty">No places match — try a different search or filter.</p>
       </section>
 
@@ -771,6 +783,9 @@
           foot2: "Hours and phone numbers for the first ten places (Zuoying) are provisional, from shop listings, last checked Nov 2026, and are being checked before the real launch — use “Check today's hours” in a place's details to see its current hours on Google Maps. Chinese addresses are drafts awaiting Jenny's check.",
           all_cities: "All places", all_districts: "All districts", all_cuisines: "All food types",
           showing: (n) => n === 1 ? "Showing 1 place" : "Showing " + n + " places",
+          show_more: "Show more",
+          showing_of: (shown, total) => "Showing " + shown + " of " + total,
+          showing_all: (total) => total === 1 ? "Showing all 1 place" : "Showing all " + total + " places",
           details: "Details", driver: "Show driver 給司機看", open_maps: "Open in Google Maps",
           f_address: "Address", f_address_zh: "地址 (driver)", f_hours: "Hours", f_phone: "Phone",
           f_website: "Website", f_instagram: "Instagram", f_facebook: "Facebook", f_area: "Area",
@@ -916,6 +931,9 @@
           foot2: "前十家（左營）的營業時間和電話是暫定的，來自店家刊登資訊，最後確認於 2026 年 11 月，正式上線前還在確認中 — 在店家詳情點「查看今日營業時間」可在 Google Maps 看目前時間。中文地址是草稿，等 Jenny 檢查。",
           all_cities: "全部", all_districts: "全部地區", all_cuisines: "全部類型",
           showing: (n) => "共 " + n + " 家店",
+          show_more: "顯示更多",
+          showing_of: (shown, total) => "顯示 " + shown + " 家 · 共 " + total + " 家",
+          showing_all: (total) => "已顯示全部 " + total + " 家",
           details: "詳情", driver: "給司機看", open_maps: "在 Google Maps 打開",
           f_address: "地址（英文）", f_address_zh: "中文地址", f_hours: "營業時間", f_phone: "電話",
           f_website: "網站", f_instagram: "Instagram", f_facebook: "Facebook", f_area: "地區",
@@ -1063,6 +1081,15 @@
       let nearActive = false;
       let savedOnly = false;
       let openNowOnly = false;
+      /* Batched list rendering: only the first `visibleCount` places of the
+         current filtered/sorted result set are rendered. "Show more" grows it
+         by one batch in place. Anything that changes the result set (search,
+         filters, sort, list tab, Near me on/off) resets it to the first batch
+         via renderCards(true); renders that keep the same result set (opening
+         a detail, saving, language or view changes) leave it untouched, so an
+         expanded list survives a detail round-trip. */
+      const BATCH_SIZE = 15;
+      let visibleCount = BATCH_SIZE;
       /* List view default: a saved toggle choice always wins, on any screen
          size. With no saved choice, phone-width viewports (the app's 640px
          breakpoint) open in Compact; wider screens open in Cards. */
@@ -1626,10 +1653,12 @@
       function jumpToResults() { const el = $("listH"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
       function jumpToFilters() { const el = $("controlsPanel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
       function goToSearch() {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        const el = $("controlsPanel");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        else window.scrollTo({ top: 0, behavior: "smooth" });
         setTimeout(() => { const q = $("q"); if (q) { try { q.focus({ preventScroll: true }); } catch (e) { q.focus(); } } }, 480);
       }
-      function renderAndJump() { renderCards(); jumpToResults(); }
+      function renderAndJump() { renderCards(true); jumpToResults(); }
       function syncFloatBtn() {
         const btn = $("floatSearch");
         if (!btn) return;
@@ -1645,7 +1674,8 @@
         if (qcl && q) qcl.hidden = !q.value;
       }
 
-      function renderCards() {
+      function renderCards(resetBatch) {
+        if (resetBatch === true) visibleCount = BATCH_SIZE;
         /* Remember which card is at the top of the viewport before the grid is
            rebuilt, so actions taken deep in the list (Save, a filter tweak)
            don't throw you back to a different place. */
@@ -1717,7 +1747,7 @@
             return ra === 0 ? a.idx - b.idx : byAz(a, b);
           });
         }
-        items.forEach((it) => {
+        items.slice(0, visibleCount).forEach((it) => {
           const p = it.p;
           const saved = isSaved(p.id);
           if (viewMode === "compact") {
@@ -1767,6 +1797,17 @@
         syncAdvUI();
         const shown = items.length;
         $("count").textContent = savedOnly ? t().saved_showing(shown) : t().showing(shown);
+        /* Batch progress below the list: "Showing 15 of 30" + Show more while
+           more remain; "Showing all N" (and no button) once everything is in. */
+        const batchShown = Math.min(visibleCount, shown);
+        const smWrap = $("showMoreWrap");
+        if (smWrap) {
+          smWrap.hidden = shown === 0;
+          const bc = $("batchCount");
+          if (bc) bc.textContent = shown === 0 ? "" : (batchShown >= shown ? t().showing_all(shown) : t().showing_of(batchShown, shown));
+          const smb = $("showMoreBtn");
+          if (smb) { smb.textContent = t().show_more; smb.hidden = batchShown >= shown; }
+        }
         $("empty").style.display = shown ? "none" : "block";
         if (savedOnly && shown === 0) $("empty").textContent = t().saved_empty;
         else if (!nearActive) $("empty").textContent = t().empty;
@@ -1949,17 +1990,21 @@
         syncListUI();
         renderAndJump();
       });
-      $("q").addEventListener("input", renderCards);
+      $("q").addEventListener("input", () => renderCards(true));
       $("qClear").addEventListener("click", (e) => {
         e.preventDefault();
         $("q").value = "";
-        renderCards();
+        renderCards(true);
         try { $("q").focus({ preventScroll: true }); } catch (err) { $("q").focus(); }
       });
       $("quickResults").addEventListener("click", jumpToResults);
       $("quickFilters").addEventListener("click", jumpToFilters);
       $("quickTop").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
       $("floatSearch").addEventListener("click", goToSearch);
+      /* Show more: grow the batch by 15 and re-render in place. renderCards()
+         without the reset flag keeps the expanded count, and its anchor
+         restore keeps the scroll position — no jump, no reload. */
+      $("showMoreBtn").addEventListener("click", () => { visibleCount += BATCH_SIZE; renderCards(); });
       window.addEventListener("scroll", syncFloatBtn, { passive: true });
       try {
         const _mo = new MutationObserver(() => syncBodyLock());
@@ -1992,7 +2037,7 @@
             nearActive = true;
             btn.disabled = false;
             syncNearUI();
-            renderCards();
+            renderCards(true);
             const listEl = document.getElementById("listH");
             if (listEl) listEl.scrollIntoView({ behavior: "smooth", block: "start" });
           },
@@ -2012,7 +2057,7 @@
         syncNearUI();
         setNearStatus(t().near_hint, "");
         $("empty").textContent = t().empty;
-        renderCards();
+        renderCards(true);
       });
       $("langEn").addEventListener("click", () => { lang = "en"; applyLang(); });
       $("langZh").addEventListener("click", () => { lang = "zh"; applyLang(); });
@@ -2054,7 +2099,7 @@
       $("savedToggle").addEventListener("click", () => {
         savedOnly = !savedOnly;
         syncSavedUI();
-        renderCards();
+        renderCards(true);
         if (savedOnly) { const el = document.getElementById("listH"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
       });
       $("dSave").addEventListener("click", () => { if (current) toggleSaved(current.id); });

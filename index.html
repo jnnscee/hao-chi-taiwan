@@ -2253,18 +2253,29 @@
       }
       /* Called ONLY from the panel's ✕ button. The list already updates
          live behind the panel as filters change, so closing drops the
-         user straight onto the current results — no jump needed. */
+         user straight onto the current results — no jump needed.
+         On close the floating button's visibility is re-checked right
+         away — and again on the next frame, once the panel is gone and
+         layout has settled — so on desktop it reappears the moment the
+         panel closes when the in-page controls are off screen, instead
+         of waiting for the user's next scroll to re-run the check. The
+         search box is blurred before its node travels back to the top
+         of the page, so the browser cannot yank the scroll position
+         toward the newly restored (focused) input and undo that check. */
       function closeSearchPanel() {
         if (!panelOpen) return;
         panelOpen = false;
+        const panel = $("searchPanel");
+        const ae = document.activeElement;
+        if (panel && ae && panel.contains(ae)) { try { ae.blur(); } catch (e) { /* blur is a nicety, never required */ } }
         for (let i = panelSlots.length - 1; i >= 0; i--) {
           const s = panelSlots[i];
           if (s.ph.parentNode) s.ph.parentNode.replaceChild(s.node, s.ph);
         }
         panelSlots.length = 0;
-        const panel = $("searchPanel");
         if (panel) { panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true"); }
         syncFloatBtn();
+        requestAnimationFrame(() => syncFloatBtn());
       }
       function clearAllFilters() {
         const q = $("q"); if (q) q.value = "";

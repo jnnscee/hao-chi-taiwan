@@ -2211,6 +2211,15 @@
       let lastResultCount = PLACES.length;
       let lastTabTotal = PLACES.length;
       let panelOpen = false;
+      /* Fix 2 — where ✕ lands you depends on this panel session: if Clear
+         all was pressed while the panel was open, closing is a fresh start
+         (page scrolls back up to the search area and the panel reopens at
+         its top next time); if it was not, closing leaves the page scroll
+         and the panel's own scroll position exactly where they were.
+         panelCleared is per-session (reset on every open); panelReopenAtTop
+         carries the "reopen at the top" half across the close → open gap. */
+      let panelCleared = false;
+      let panelReopenAtTop = false;
       const panelSlots = [];
       function syncBadge() {
         const b = $("floatBadge");
@@ -2240,20 +2249,39 @@
         const panel = $("searchPanel"), body = $("searchPanelBody");
         if (!panel || !body) return;
         panelOpen = true;
+        panelCleared = false;
         const searchbar = document.querySelector(".searchbar");
         const controls = $("controlsPanel");
         if (searchbar) moveIntoPanel(searchbar, body);
         if (controls) moveIntoPanel(controls, body);
         panel.classList.add("open");
         panel.setAttribute("aria-hidden", "false");
+        if (panelReopenAtTop) {
+          /* The previous session ended with Clear all + ✕: start this one
+             at the top of the panel, by the search box. Without that flag
+             the sheet's scroll position is left untouched, so the panel
+             reopens exactly where the user last left it. */
+          panelReopenAtTop = false;
+          const sheet = panel.querySelector(".sheet");
+          if (sheet) {
+            sheet.scrollTop = 0;
+            requestAnimationFrame(() => { sheet.scrollTop = 0; });
+          }
+        }
         syncPanelUI();
         syncFloatBtn();
         const q = $("q");
         if (q) { try { q.focus({ preventScroll: true }); } catch (e) { /* focus is a nicety, never required */ } }
       }
       /* Called ONLY from the panel's ✕ button. The list already updates
-         live behind the panel as filters change, so closing drops the
-         user straight onto the current results — no jump needed.
+         live behind the panel as filters change, so closing normally
+         drops the user straight onto the current results at the exact
+         page scroll position they had — no jump. The one exception is
+         Fix 2: if Clear all was pressed during this panel session,
+         closing is a fresh start and the page scrolls back up to the
+         search area (the in-page search controls on desktop; on phone
+         there is no in-page search area, so the list heading above the
+         results), and the panel is set to reopen at its top next time.
          On close the floating button's visibility is re-checked right
          away — and again on the next frame, once the panel is gone and
          layout has settled — so on desktop it reappears the moment the
@@ -2265,6 +2293,9 @@
       function closeSearchPanel() {
         if (!panelOpen) return;
         panelOpen = false;
+        const cleared = panelCleared;
+        panelCleared = false;
+        if (cleared) panelReopenAtTop = true;
         const panel = $("searchPanel");
         const ae = document.activeElement;
         if (panel && ae && panel.contains(ae)) { try { ae.blur(); } catch (e) { /* blur is a nicety, never required */ } }
@@ -2274,10 +2305,23 @@
         }
         panelSlots.length = 0;
         if (panel) { panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true"); }
+        if (cleared) {
+          /* Nodes are back in the page first, so the desktop target is the
+             restored in-page search area itself. On phone that area is
+             display:none, so land on the list heading instead — the top
+             of the (now unfiltered) results, under the hero. */
+          const phone = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+          const target = phone ? $("listH") : ($("searchHead") || $("listH"));
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
         syncFloatBtn();
         requestAnimationFrame(() => syncFloatBtn());
       }
       function clearAllFilters() {
+        /* Fix 2: remember the clear for this panel session — when the
+           user then ✕s out, closeSearchPanel() takes them back up to
+           the search area instead of leaving them where they were. */
+        if (panelOpen) panelCleared = true;
         const q = $("q"); if (q) q.value = "";
         cityFilter = "All";
         listFilter = "All";

@@ -348,6 +348,11 @@
       .facts dd{ margin:0; font-size:.98rem; overflow-wrap:anywhere; }
       .flag{ margin-top:14px; background:var(--surface2); border-radius:12px; padding:11px 14px; font-size:.9rem; }
       .sheet-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+      /* Save tip line under the dMaps button: the button itself just opens
+         the place in Google Maps; this line tells visitors whose lists
+         live in Google Maps to tap Save there. The app's own Save button
+         (in .ss-wrap above) is separate and unchanged. */
+      .maps-save-hint{ font-size:.88rem; color:var(--muted); margin-top:10px; line-height:1.5; }
       .btn-big{ flex:1 1 180px; justify-content:center; padding:13px; font-size:1rem; }
       .dir-wrap{ margin-top:20px; border-top:1px solid var(--line); padding-top:16px; }
       .dir-wrap h3{ font-size:1.08rem; font-weight:800; line-height:1.2; }
@@ -803,6 +808,7 @@
             <button type="button" class="btn btn-ghost btn-big" id="dCalBtn">Add to calendar</button>
             <a class="btn btn-ghost btn-big" id="dMaps" target="_blank" rel="noopener"></a>
           </div>
+          <p class="maps-save-hint" id="dMapsHint"></p>
         </div>
       </div>
     </div>
@@ -1029,6 +1035,7 @@
           showing_of: (shown, total) => "Showing " + shown + " of " + total,
           showing_all: (total) => total === 1 ? "Showing all 1 place" : "Showing all " + total + " places",
           details: "Details", driver: "Show driver 給司機看", open_maps: "Open in Google Maps",
+          maps_save_hint: "Want to keep this place? Once it opens in Google Maps, tap Save there and it's in your own lists.",
           f_address: "Address", f_address_zh: "地址 (driver)", f_hours: "Hours", f_phone: "Phone",
           f_website: "Website", f_instagram: "Instagram", f_facebook: "Facebook", f_area: "Area",
           city_names: { "Kaohsiung": "Kaohsiung", "Chiayi County": "Chiayi", "Tainan City": "Tainan", "Pingtung County": "Pingtung", "Taipei": "Taipei", "New Taipei": "New Taipei", "Yilan": "Yilan", "Taichung": "Taichung", "Changhua": "Changhua", "Yunlin": "Yunlin", "Tainan": "Tainan" },
@@ -1202,6 +1209,7 @@
           showing_of: (shown, total) => "顯示 " + shown + " 家 · 共 " + total + " 家",
           showing_all: (total) => "已顯示全部 " + total + " 家",
           details: "詳情", driver: "給司機看", open_maps: "在 Google Maps 打開",
+          maps_save_hint: "想收藏這家店嗎？在 Google 地圖開啟後，點按『儲存』即可存進你的清單。",
           f_address: "地址（英文）", f_address_zh: "中文地址", f_hours: "營業時間", f_phone: "電話",
           f_website: "網站", f_instagram: "Instagram", f_facebook: "Facebook", f_area: "地區",
           city_names: { "Kaohsiung": "高雄", "Chiayi County": "嘉義", "Tainan City": "台南", "Pingtung County": "屏東", "Taipei": "台北", "New Taipei": "新北", "Yilan": "宜蘭", "Taichung": "台中", "Changhua": "彰化", "Yunlin": "雲林", "Tainan": "台南" },
@@ -1379,9 +1387,15 @@
          filters, sort, list tab, Near me on/off) resets it to the first batch
          via renderCards(true); renders that keep the same result set (opening
          a detail, saving, language or view changes) leave it untouched, so an
-         expanded list survives a detail round-trip. */
-      const BATCH_SIZE = 15;
-      let visibleCount = BATCH_SIZE;
+         expanded list survives a detail round-trip. The batch size depends on
+         the view: cards are tall, so Cards shows 10 at a time; compact rows
+         are short, so Compact shows 15. Switching views mid-list keeps the
+         places already shown — only the size of the NEXT batch changes, and
+         every place stays reachable via Show more in both views. */
+      const BATCH_CARDS = 10;
+      const BATCH_COMPACT = 15;
+      function batchSize() { return viewMode === "compact" ? BATCH_COMPACT : BATCH_CARDS; }
+      let visibleCount = BATCH_CARDS;
       /* List view default: a saved toggle choice always wins, on any screen
          size. With no saved choice, phone-width viewports (the app's 640px
          breakpoint) open in Compact; wider screens open in Cards. */
@@ -1393,6 +1407,17 @@
         else if (window.matchMedia("(max-width:640px)").matches) viewMode = "compact";
       } catch (e) {}
       function persistView() { try { localStorage.setItem(VIEW_KEY, viewMode); } catch (e) {} }
+      visibleCount = batchSize(); /* the first batch matches the resolved default view */
+      /* Map pin sync state: the map's pins mirror the FULL filtered result
+         set (not just the batch on screen). mapSig is the id signature of
+         the set currently plotted, so the map is only rebuilt when the
+         filtered set actually changes — unrelated re-renders (saving a
+         place, language or view switches) never touch it or refit it. */
+      let mapHandle = null;
+      let mapLive = false;
+      let mapSig = null;
+      let mapShown = [];
+      let mapPinTimer = null;
       const SAVED_KEY = "hao-chi-saved-v1";
       let savedIds = new Set();
       try {
@@ -2444,7 +2469,7 @@
       }
 
       function renderCards(resetBatch) {
-        if (resetBatch === true) visibleCount = BATCH_SIZE;
+        if (resetBatch === true) visibleCount = batchSize();
         /* Remember which card is at the top of the viewport before the grid is
            rebuilt, so actions taken deep in the list (Save, a filter tweak)
            don't throw you back to a different place. */
@@ -2520,6 +2545,10 @@
             return ra === 0 ? a.idx - b.idx : byAz(a, b);
           });
         }
+        /* The map's pins always mirror this FULL filtered set — all of it,
+           not just the batch rendered below. syncMapPins no-ops unless the
+           set itself changed. */
+        syncMapPins(items);
         items.slice(0, visibleCount).forEach((it) => {
           const p = it.p;
           const saved = isSaved(p.id);
@@ -2572,8 +2601,9 @@
         lastResultCount = shown;
         lastTabTotal = PLACES.filter((p) => (listFilter === "All" || listOf(p) === listFilter) && (!savedOnly || isSaved(p.id))).length;
         $("count").textContent = savedOnly ? t().saved_showing(shown) : t().showing(shown);
-        /* Batch progress below the list: "Showing 15 of 30" + Show more while
-           more remain; "Showing all N" (and no button) once everything is in. */
+        /* Batch progress below the list: "Showing X of Y" (X follows the
+           current view's batching) + Show more while more remain; "Showing
+           all N" (and no button) once everything is in. */
         const batchShown = Math.min(visibleCount, shown);
         const smWrap = $("showMoreWrap");
         if (smWrap) {
@@ -2706,8 +2736,14 @@
           else { gtk.style.display = "none"; $("dGtkText").textContent = ""; }
         }
         $("dDriver").textContent = t().driver;
+        /* The Google Maps action simply opens the place in Google Maps
+           (its cleaned CID link) — labelled "Open in Google Maps" so it
+           never deters a visitor who just wants to look. The save tip for
+           visitors whose lists live in Google Maps lives in the hint line
+           below the button. The in-house Save button above is untouched. */
         $("dMaps").textContent = t().open_maps;
         $("dMaps").href = p.maps;
+        const mh = $("dMapsHint"); if (mh) mh.textContent = t().maps_save_hint;
         const rn = $("dReserveNote"); if (rn) rn.innerHTML = reserveNoteHTML(p);
         const cn2 = $("dCashNote"); if (cn2) cn2.textContent = cashNoteText(p);
         syncReserveUI();
@@ -2781,10 +2817,11 @@
          scroll, wheel, touchmove, or Escape handler closes it. */
       $("searchPanelClose").addEventListener("click", () => closeSearchPanel());
       $("clearAllBtn").addEventListener("click", clearAllFilters);
-      /* Show more: grow the batch by 15 and re-render in place. renderCards()
-         without the reset flag keeps the expanded count, and its anchor
-         restore keeps the scroll position — no jump, no reload. */
-      $("showMoreBtn").addEventListener("click", () => { visibleCount += BATCH_SIZE; renderCards(); });
+      /* Show more: grow the batch by the current view's batch size (10 in
+         Cards, 15 in Compact) and re-render in place. renderCards() without
+         the reset flag keeps the expanded count, and its anchor restore
+         keeps the scroll position — no jump, no reload. */
+      $("showMoreBtn").addEventListener("click", () => { visibleCount += batchSize(); renderCards(); });
       window.addEventListener("scroll", syncFloatBtn, { passive: true });
       /* Crossing the phone breakpoint in either direction re-homes the
          view/language toggles and re-evaluates the floating button. */
@@ -2962,20 +2999,64 @@
         if (pid) { const dp = PLACES.find((x) => String(x.id) === pid); if (dp) openDetails(dp); }
       } catch (e) {}
 
-      /* Map: numbered pins for all places; falls back to the stored static map. */
-      (function initMap() {
-        const places = PLACES.map((p) => ({ label: p.en, venue: p.en, address: p.addr, locality: p.city, country: "Taiwan", lat: p.lat, lng: p.lng }));
-        const showFallback = () => {
-          $("map").style.display = "none";
-          $("mapFallback").style.display = "block";
-        };
-        if (!window.MapHelpers || !window.HatchMaps) { showFallback(); return; }
-        MapHelpers.mountMap($("map"), {
-          places: places,
+      /* Map: numbered pins mirror the FULL currently filtered result set
+         (search text + every filter + List tab + Near me), reframed to fit
+         whenever that set changes; unfiltered, that's all 242 places in the
+         default fitted view, exactly as the map has always opened. An empty
+         result set plots no pins, framed on the guide's home area. The map
+         library exposes no way to swap pins in place, so a changed set is
+         applied by remounting with the new places (debounced, so typing in
+         the search box doesn't thrash it); the library fits the view to the
+         pins on mount. Falls back to the stored static map when the live
+         map is unavailable. */
+      function showMapFallback() {
+        $("map").style.display = "none";
+        $("mapFallback").style.display = "block";
+      }
+      function mountPins(placesArr) {
+        mapShown = placesArr.slice();
+        const opts = {
+          places: mapShown.map((p) => ({ label: p.en, venue: p.en, address: p.addr, locality: p.city, country: "Taiwan", lat: p.lat, lng: p.lng })),
           baseStyle: "light",
           marker: (place, index, selected) => '<div class="pin' + (selected ? " pin--on" : "") + '"><span>' + (index + 1) + "</span></div>",
-          onSelectPlace: (index) => { if (index !== null && PLACES[index]) openDetails(PLACES[index]); }
-        }, showFallback);
+          onSelectPlace: (index) => { if (index !== null && mapShown[index]) openDetails(mapShown[index]); }
+        };
+        /* The library auto-fits only with 2+ pins. A single match is framed
+           by hand; an empty set keeps the familiar all-places framing with
+           no pins on it. */
+        if (mapShown.length === 1) {
+          opts.mapView = { center: [mapShown[0].lng, mapShown[0].lat], zoom: 14 };
+        } else if (mapShown.length === 0) {
+          let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+          PLACES.forEach((p) => {
+            if (p.lat < minLat) minLat = p.lat;
+            if (p.lat > maxLat) maxLat = p.lat;
+            if (p.lng < minLng) minLng = p.lng;
+            if (p.lng > maxLng) maxLng = p.lng;
+          });
+          opts.mapView = { bounds: [[minLng, minLat], [maxLng, maxLat]], fitBoundsOptions: { padding: 48, maxZoom: 16 } };
+        }
+        mapHandle = MapHelpers.mountMap($("map"), opts, showMapFallback);
+        if (mapHandle === null) mapLive = false;
+      }
+      function syncMapPins(items) {
+        if (!mapLive) return;
+        const sig = items.map((it) => it.p.id).join(",");
+        if (sig === mapSig) return;
+        mapSig = sig;
+        const snapshot = items.map((it) => it.p);
+        if (mapPinTimer) clearTimeout(mapPinTimer);
+        mapPinTimer = setTimeout(() => {
+          mapPinTimer = null;
+          if (!mapLive) return;
+          try { if (mapHandle && mapHandle.destroy) mapHandle.destroy(); } catch (e) {}
+          mountPins(snapshot);
+        }, 250);
+      }
+      (function initMap() {
+        if (!window.MapHelpers || !window.HatchMaps) { showMapFallback(); return; }
+        mountPins(PLACES);
+        if (mapHandle) { mapLive = true; mapSig = PLACES.map((p) => p.id).join(","); }
       })();
     </script>
     <script>

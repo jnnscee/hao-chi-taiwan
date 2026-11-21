@@ -25,11 +25,6 @@
         --bg:#f4f2ec; --surface:#ffffff; --surface2:#eceadf; --ink:#21261f; --muted:#5d675c;
         --red:#c23a1e; --red-ink:#a52f16; --teal:#0d6a58; --gold:#c98f1b; --line:#ddd8c9;
         --chip:#ffffff; --shadow:0 10px 30px rgba(33,38,31,.10);
-        /* Real height of the sticky head, measured in JS (syncStickyH) and kept
-           in --sticky-h so scroll clearance always matches the bar itself —
-           however tall it wraps on a narrow screen or in either language.
-           The value here is only the pre-JS / no-JS fallback estimate. */
-        --sticky-h:108px;
         color-scheme: light;
       }
       @media (prefers-color-scheme: dark){
@@ -41,11 +36,10 @@
         }
       }
       html{ scroll-behavior:smooth; overflow-x:clip;
-        /* Every scroll-into-view landing (quick-bar jumps, filter changes,
-           deep links, browser find) stops below the sticky head, not under it.
-           The per-element scroll-margins below add a small breathing gap on
-           top of this exact bar height. */
-        scroll-padding-top:var(--sticky-h); }
+        /* Nothing sticks over the list anymore (the sticky quick bar was
+           retired for the floating search button), so scroll-into-view
+           landings only need a small breathing gap. */
+        scroll-padding-top:12px; }
       body{ margin:0; background:var(--bg); color:var(--ink); overflow-x:clip;
         font-family:"Archivo","Noto Sans TC",system-ui,sans-serif; line-height:1.5; }
       h1,h2,h3,p,ul,figure{ margin:0; }
@@ -82,34 +76,24 @@
       @media (max-width:820px){ .hero-in{ grid-template-columns:1fr; padding-top:28px; padding-bottom:30px; } .hero figure img{ max-height:230px; } }
 
       /* ---------- Controls ---------- */
-      /* The search box + a slim quick bar stay pinned as one sticky head, so the
-         search is always within reach however far down the list you have scrolled.
-         Every other filter scrolls away with the page (a pinned full filter bar
-         took ~40% of the phone screen). The quick bar jumps you to the results,
-         back to the filters, or to the top in one tap — no manual scrolling. */
-      .sticky-head{ position:sticky; top:0; z-index:40; background:var(--bg); border-bottom:1px solid var(--line);
-        box-shadow:0 6px 18px rgba(33,38,31,.07); }
+      /* The search box and the result-count line sit in normal flow under the
+         hero — nothing is pinned over the list. Once you scroll past the
+         in-page controls, the floating search button (below) is the way back
+         to them: it opens the very same controls in a panel, exactly as you
+         left them. */
+      .search-head{ background:var(--bg); border-bottom:1px solid var(--line); }
       .searchbar{ padding:10px 0 6px; }
       .searchbar .search{ width:100%; }
       .q-clear{ flex:none; border:0; background:var(--surface2); color:var(--ink); width:32px; height:32px;
         min-height:32px; border-radius:50%; font-size:.95rem; line-height:1; padding:0; }
       .q-clear[hidden]{ display:none !important; }
       .quickbar{ padding:0 0 8px; }
-      /* The bar may wrap taller (narrow screen, longer Chinese labels, larger
-         text) instead of squeezing or overflowing — that is fine, because the
-         clearance below it is measured from its real height, never assumed. */
-      .quickbar-in{ display:flex; align-items:center; gap:8px 10px; flex-wrap:wrap; }
-      .quick-count{ flex:1 1 7rem; min-width:0; font-weight:700; color:var(--red-ink); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .quick-btns{ display:flex; gap:8px; margin-left:auto; flex:none; flex-wrap:wrap; justify-content:flex-end; }
-      .quick-btn{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px;
-        padding:6px 14px; font-weight:700; font-size:.88rem; min-height:2.25rem; white-space:nowrap; }
-      .quick-btn:active{ border-color:var(--teal); color:var(--teal); }
-      /* Land sections, headings and cards just below the sticky head, never
-         under it. html's scroll-padding-top already reserves the bar's exact
-         measured height (--sticky-h, synced by JS); these margins are only
-         the extra breathing gap beyond the bar — no fixed total to go stale
-         when the bar wraps taller. Headings are named directly because the
-         quick bar scrolls to the heading element itself, not its section. */
+      .quickbar-in{ display:flex; align-items:center; }
+      .quick-count{ flex:1 1 auto; min-width:0; font-weight:700; color:var(--red-ink); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      /* Landings (filter jumps, deep links) stop a small gap
+         below the viewport top — no bar overlays them, so no measured
+         clearance is needed. Headings are named directly because jumps
+         scroll to the heading element itself, not its section. */
       .listsec, .mapsec, .controls, .contactsec,
       #listH, #mapH, #contactH{ scroll-margin-top:14px; }
       .card, .crow{ scroll-margin-top:22px; }
@@ -117,15 +101,48 @@
          closing the sheet puts you back at the exact card you came from. */
       body.overlay-open{ overflow:hidden; }
       .card.return-flash, .crow.return-flash{ outline:3px solid var(--teal); outline-offset:2px; }
-      /* Floating "Edit search" pill: appears once you are deep in the list. */
-      .float-search{ position:fixed; right:max(16px, env(safe-area-inset-right, 0px));
+      /* Floating search button: the ONE floating control over the list. A
+         circle with a magnifier, bottom-right — the install bar (bottom,
+         full width) already lives along the bottom edge, so the button
+         lifts above it while that bar is showing (body.has-install), and
+         the toast is bottom-centre, clear of this corner. On desktop it
+         appears only once the in-page controls have scrolled off screen;
+         on phone (≤640px) it is always visible (see syncFloatBtn). The badge
+         carries the filtered result count so an active filter is never
+         invisible while the panel is closed. */
+      .float-search{ position:fixed; right:max(18px, env(safe-area-inset-right, 0px));
         bottom:calc(18px + env(safe-area-inset-bottom, 0px)); z-index:65;
-        background:var(--teal); color:#fff; border:1px solid var(--teal); border-radius:999px;
-        padding:12px 18px; font-weight:800; font-size:.95rem; box-shadow:var(--shadow);
-        display:inline-flex; align-items:center; gap:8px; min-height:2.9rem; }
+        width:58px; height:58px; min-height:58px; border-radius:50%; padding:0;
+        background:var(--teal); color:#fff; border:1px solid var(--teal); box-shadow:var(--shadow);
+        display:inline-flex; align-items:center; justify-content:center; }
       @media (prefers-color-scheme: dark){ .float-search{ color:#10201b; } }
       .float-search[hidden]{ display:none !important; }
       body.has-install .float-search{ bottom:calc(118px + env(safe-area-inset-bottom, 0px)); }
+      .float-badge{ position:absolute; top:-6px; right:-6px; min-width:24px; height:24px; padding:0 6px;
+        border-radius:999px; background:var(--red); color:#fff; font-size:.78rem; font-weight:800; line-height:1;
+        display:inline-flex; align-items:center; justify-content:center; border:2px solid var(--bg); }
+      .float-badge[hidden]{ display:none !important; }
+      /* Search & filter panel: the actual in-page search box and controls
+         are moved into this sheet while it is open (placeholders keep the
+         page's height, so the list behind never jumps), and moved back
+         untouched when it closes — state is preserved by construction. */
+      .spanel{ position:fixed; inset:0; z-index:85; display:none; align-items:flex-end; justify-content:center;
+        background:rgba(10,14,12,.62);
+        padding:14px max(16px, env(safe-area-inset-right, 0px)) max(14px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+      .spanel.open{ display:flex; }
+      @media (min-width:700px){ .spanel{ align-items:center; } }
+      .searchpanelwrap{ width:min(680px,100%); }
+      /* The panel's ✕ is a direct child of the (non-scrolling) wrap, so it
+         stays pinned in the corner while the sheet's contents scroll. */
+      .spanel .closeX{ z-index:2; box-shadow:0 2px 8px rgba(33,38,31,.12); }
+      .panel-count{ font-weight:700; color:var(--red-ink); margin-top:4px; }
+      #searchPanelBody{ margin-top:12px; }
+      .moved-placeholder{ display:block; }
+      .spanel .searchbar{ padding:0 0 10px; }
+      .spanel .searchbar .wrap, .spanel .controls .wrap{ max-width:none; padding-left:0; padding-right:0; }
+      .spanel .controls{ padding:0; border-bottom:0; background:transparent; }
+      .search-panel-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; border-top:1px solid var(--line); padding-top:14px; }
+      .search-panel-actions .btn{ flex:1 1 160px; justify-content:center; }
       .controls{ background:var(--bg); border-bottom:1px solid var(--line);
         padding:12px 0; }
       .controls-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
@@ -152,6 +169,25 @@
         .langtoggle{ margin-left:0; }
         .card{ padding:18px 16px; }
         .listsec .sub, .mapsec .sub{ padding-right:2px; }
+      }
+
+      /* ---------- Phone-only: floating-search-only layout (≤640px) ----------
+         On phone the in-page search & filter area leaves the page flow
+         entirely: the list starts right under the hero and the floating
+         button (always visible on phone — see syncFloatBtn) is the only
+         way into search, via the panel. The .spanel overrides below keep
+         the very same nodes fully visible once they are moved into the
+         panel, so nothing about the panel changes. Desktop (>640px) is
+         untouched: every rule here lives inside the phone media query. */
+      .phone-toolbar{ display:none; }
+      @media (max-width:640px){
+        .search-head{ display:none; }
+        .controls{ display:none; }
+        .spanel .controls{ display:block; }
+        .phone-toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; }
+        .phone-toolbar:empty{ display:none; }
+        .phone-toolbar .viewtoggle{ margin-left:0; }
+        .phone-toolbar .langtoggle{ margin-left:auto; }
       }
 
       /* ---------- Advanced filters ---------- */
@@ -530,7 +566,7 @@
       </div>
     </header>
 
-    <div class="sticky-head">
+    <div class="search-head" id="searchHead">
       <div class="searchbar">
         <div class="wrap">
           <label class="search">
@@ -543,11 +579,6 @@
       <div class="quickbar">
         <div class="wrap quickbar-in">
           <span class="quick-count" id="quickCount" role="status"></span>
-          <div class="quick-btns">
-            <button type="button" class="quick-btn" id="quickResults">Results ↓</button>
-            <button type="button" class="quick-btn" id="quickFilters">Filters</button>
-            <button type="button" class="quick-btn" id="quickTop">Top ↑</button>
-          </div>
         </div>
       </div>
     </div>
@@ -621,6 +652,12 @@
         <h2 id="listH" data-i18n="list_h">The list</h2>
         <p class="sub"><span class="count" id="count"></span> · <span data-i18n="list_sub">Jenny's recommendations — tap a place for details, or show the driver card to a taxi driver.</span></p>
         <p class="want-note" id="wantNote" data-i18n="want_note" hidden>Listed in no particular order — places I want to try.</p>
+        <!-- Phone only (≤640px): the Cards/Compact view toggle and the
+             EN/中文 language toggle are moved into this row by
+             syncPhoneLayout() so they stay reachable beside the count line
+             above while the search & filter area lives only in the
+             floating button's panel. Empty and display:none on desktop. -->
+        <div class="phone-toolbar" id="phoneToolbar"></div>
         <div class="grid" id="grid"></div>
         <div class="showmore-wrap" id="showMoreWrap" hidden>
           <p class="batch-count" id="batchCount" role="status"></p>
@@ -664,8 +701,34 @@
       </div>
     </footer>
 
-    <!-- Floating shortcut back to the search, shown once you are deep in the list -->
-    <button type="button" class="float-search" id="floatSearch" hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><span id="floatSearchLabel">Edit search</span></button>
+    <!-- Floating search button: the one floating control over the list.
+         On desktop it appears once the in-page controls have scrolled off
+         screen; on phone (≤640px) there is no in-page search area, so it
+         is always visible from the very top. Opens the search & filter
+         panel below. The badge shows the filtered result count whenever
+         a search or filter is active. -->
+    <button type="button" class="float-search" id="floatSearch" hidden aria-label="Search &amp; filters / 搜尋與篩選"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><span class="float-badge" id="floatBadge" hidden></span></button>
+
+    <!-- Search & filter panel: while open, the real in-page search box and
+         controls section are moved into this sheet (see openSearchPanel in
+         the script) and restored untouched on close, so the panel always
+         shows the search exactly as the user last left it. The ✕ is the
+         ONLY way to close it — scrolling, tapping the backdrop, or pressing
+         Escape do not dismiss it. The ✕ sits outside the scrolling sheet
+         (as a direct child of the wrap) so it stays pinned in the corner. -->
+    <div class="spanel" id="searchPanel" role="dialog" aria-modal="false" aria-labelledby="searchPanelTitle" aria-hidden="true">
+      <div class="sheetwrap searchpanelwrap">
+        <button class="closeX" id="searchPanelClose" aria-label="Close">✕</button>
+        <div class="sheet search-sheet">
+          <h2 id="searchPanelTitle">Search &amp; filters</h2>
+          <p class="panel-count" id="panelCount" role="status"></p>
+          <div id="searchPanelBody"></div>
+          <div class="search-panel-actions">
+            <button type="button" class="btn btn-ghost" id="clearAllBtn">Clear all</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Add to Home Screen install bar -->
     <div class="install-bar" id="installBar" aria-hidden="true">
@@ -950,8 +1013,9 @@
           lede: "Jenny's food guide to Taiwan — 45 places she has tried, tested and recommends, plus 197 more she wants to try. Most are in Kaohsiung, from mom-and-pop stalls to old favourites.",
           stat_total: "places in total", stat_recommended: "Recommended · tried & tested", stat_want: "Want to Try", stat_khh: "in Kaohsiung",
           search_ph: "Search a place, dish or area…",
-          quick_results: "Results ↓", quick_filters: "Filters", quick_top: "Top ↑",
-          edit_search: "Edit search", clear_search: "Clear search",
+          search_filters: "Search & filters", clear_search: "Clear search",
+          clear_all: "Clear all", see_results: "See results",
+          panel_showing: (n, total) => "Showing " + n + " of " + total,
           map_h: "Where they are",
           map_sub: "Tap a pin to open that place. Most of the list clusters in Zuoying, Kaohsiung — zoom in there.",
           list_h: "The list",
@@ -1122,8 +1186,9 @@
           lede: "Jenny 的台灣美食指南 — 45 家她親自吃過、真心推薦的店，加上 197 家她想去試試的店。大部分都在高雄，從小吃攤到老字號都有。",
           stat_total: "家店（全部）", stat_recommended: "家推薦 · 親自吃過", stat_want: "家想去試試", stat_khh: "家在高雄",
           search_ph: "搜尋店名、料理或地區…",
-          quick_results: "看結果 ↓", quick_filters: "篩選", quick_top: "回到頂部 ↑",
-          edit_search: "修改搜尋", clear_search: "清除搜尋",
+          search_filters: "搜尋與篩選", clear_search: "清除搜尋",
+          clear_all: "清除全部", see_results: "看結果",
+          panel_showing: (n, total) => "顯示 " + n + " 家 · 共 " + total + " 家",
           map_h: "地圖",
           map_sub: "點地圖上的圖釘就能打開那家店。大部分店都集中在高雄左營 — 可以放大那一帶看。",
           list_h: "清單",
@@ -2123,47 +2188,107 @@
         );
       }
 
-      /* ---------- Stay in place: quick jumps + scroll memory ----------
-         The sticky head keeps the search box on screen at all times; the quick
-         bar and the floating pill cover the rest of the trip (results / filters /
-         top) in one tap. While a sheet is open the list behind it is locked, and
+      /* ---------- Stay in place: scroll memory ----------
+         While a detail / tip sheet is open the list behind it is locked, and
          closing the sheet restores the exact scroll position and outlines the
          card you came from, so you never lose your place in the list. */
       let savedListScrollY = null;
       let lastOpenedCardId = null;
-      /* ---------- Sticky-head clearance ----------
-         The bar's height is not fixed: the quick bar wraps taller on narrow
-         screens, its labels change with the language, and webfont loading
-         shifts the search box. A hardcoded clearance therefore under-shoots
-         at some widths and cards slide under the bar. Instead, measure the
-         bar's real height and publish it as --sticky-h; the CSS turns that
-         into scroll-padding / scroll-margin so every landing (quick jumps,
-         filter changes, saved-only, deep links) stops below the bar.
-         A ResizeObserver on the bar re-measures the moment it wraps taller
-         or shorter — setting --sticky-h never changes the bar's own height,
-         so the observer cannot loop. */
-      let stickyH = 108;
-      function syncStickyH() {
-        const head = document.querySelector(".sticky-head");
-        if (!head) return;
-        const h = Math.ceil(head.getBoundingClientRect().height);
-        if (h > 0) {
-          stickyH = h;
-          document.documentElement.style.setProperty("--sticky-h", h + "px");
-        }
+      /* ---------- Floating search button + panel ----------
+         Nothing is pinned over the list anymore. The circular button appears
+         once the in-page controls have scrolled off screen; tapping it opens
+         the panel, which hosts the ACTUAL search box and controls section —
+         they are moved into the sheet (with same-height placeholders left
+         behind so the page never jumps) and moved back untouched on close.
+         Because the same nodes and the same state variables are used, the
+         panel always opens exactly as the user last left it: search text,
+         List tab, filters, sort and Near me range all preserved. The panel
+         is deliberately NOT one of the .overlay sheets: it does not lock
+         the list or trigger the scroll-restore above. The ONLY way to
+         close it is its ✕ button — scrolling (the page behind it or the
+         panel itself), tapping the backdrop, and pressing Escape all
+         leave it open, so an accidental scroll can never dismiss it. */
+      let lastResultCount = PLACES.length;
+      let lastTabTotal = PLACES.length;
+      let panelOpen = false;
+      const panelSlots = [];
+      function syncBadge() {
+        const b = $("floatBadge");
+        if (!b) return;
+        /* Badge = an active narrowing: results fewer than the full set for
+           the current List tab (and Saved view, when that is on). */
+        const show = lastResultCount < lastTabTotal;
+        b.hidden = !show;
+        if (show) b.textContent = lastResultCount;
       }
-      let stickyObserverStarted = false;
-      function startStickySync() {
-        syncStickyH();
-        if (stickyObserverStarted) return;
-        stickyObserverStarted = true;
-        const head = document.querySelector(".sticky-head");
-        if (head && typeof ResizeObserver !== "undefined") {
-          new ResizeObserver(() => syncStickyH()).observe(head);
+      function syncPanelUI() {
+        const title = $("searchPanelTitle"); if (title) title.textContent = t().search_filters;
+        const pc = $("panelCount"); if (pc) pc.textContent = t().panel_showing(lastResultCount, PLACES.length);
+        const ca = $("clearAllBtn"); if (ca) ca.textContent = t().clear_all;
+      }
+      function moveIntoPanel(node, body) {
+        const ph = document.createElement("div");
+        ph.className = "moved-placeholder";
+        ph.setAttribute("data-for", node.id || "searchbar");
+        ph.style.height = Math.ceil(node.getBoundingClientRect().height) + "px";
+        node.parentNode.insertBefore(ph, node);
+        body.appendChild(node);
+        panelSlots.push({ node: node, ph: ph });
+      }
+      function openSearchPanel() {
+        if (panelOpen) return;
+        const panel = $("searchPanel"), body = $("searchPanelBody");
+        if (!panel || !body) return;
+        panelOpen = true;
+        const searchbar = document.querySelector(".searchbar");
+        const controls = $("controlsPanel");
+        if (searchbar) moveIntoPanel(searchbar, body);
+        if (controls) moveIntoPanel(controls, body);
+        panel.classList.add("open");
+        panel.setAttribute("aria-hidden", "false");
+        syncPanelUI();
+        syncFloatBtn();
+        const q = $("q");
+        if (q) { try { q.focus({ preventScroll: true }); } catch (e) { /* focus is a nicety, never required */ } }
+      }
+      /* Called ONLY from the panel's ✕ button. The list already updates
+         live behind the panel as filters change, so closing drops the
+         user straight onto the current results — no jump needed. */
+      function closeSearchPanel() {
+        if (!panelOpen) return;
+        panelOpen = false;
+        for (let i = panelSlots.length - 1; i >= 0; i--) {
+          const s = panelSlots[i];
+          if (s.ph.parentNode) s.ph.parentNode.replaceChild(s.node, s.ph);
         }
-        window.addEventListener("resize", syncStickyH, { passive: true });
-        window.addEventListener("orientationchange", syncStickyH, { passive: true });
-        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncStickyH());
+        panelSlots.length = 0;
+        const panel = $("searchPanel");
+        if (panel) { panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true"); }
+        syncFloatBtn();
+      }
+      function clearAllFilters() {
+        const q = $("q"); if (q) q.value = "";
+        cityFilter = "All";
+        listFilter = "All";
+        savedOnly = false;
+        openNowOnly = false;
+        sortAutoAz = false;
+        if ($("districtSel")) $("districtSel").value = "All";
+        if ($("cuisineSel")) $("cuisineSel").value = "All";
+        if ($("mealSel")) $("mealSel").value = "All";
+        if ($("priceSel")) $("priceSel").value = "All";
+        if ($("dietarySel")) $("dietarySel").value = "All";
+        if ($("sortSel")) $("sortSel").value = "default";
+        userLoc = null;
+        nearActive = false;
+        syncNearUI();
+        setNearStatus(t().near_hint, "");
+        document.querySelectorAll("[data-city]").forEach((c) => c.setAttribute("aria-pressed", c.getAttribute("data-city") === "All" ? "true" : "false"));
+        syncAdvUI();
+        syncSavedUI();
+        renderCards(true);
+        syncPanelUI();
+        /* The panel stays open so the reset is visible taking effect. */
       }
       function noteOpenedPlace(p) { if (p) lastOpenedCardId = "card-" + p.id; }
       function anyOverlayOpen() { return !!document.querySelector(".overlay.open"); }
@@ -2184,27 +2309,83 @@
         }
       }
       function jumpToResults() { const el = $("listH"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
-      function jumpToFilters() { const el = $("controlsPanel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
-      function goToSearch() {
-        const el = $("controlsPanel");
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-        else window.scrollTo({ top: 0, behavior: "smooth" });
-        setTimeout(() => { const q = $("q"); if (q) { try { q.focus({ preventScroll: true }); } catch (e) { q.focus(); } } }, 480);
-      }
-      function renderAndJump() { renderCards(true); jumpToResults(); }
+      /* Filter changes made inside the panel update the list live behind
+         it — so jumps only happen from the in-page controls, never while
+         the panel is open. */
+      function renderAndJump() { renderCards(true); if (!panelOpen) jumpToResults(); }
       function syncFloatBtn() {
         const btn = $("floatSearch");
         if (!btn) return;
-        btn.hidden = !(window.scrollY > 700 && !anyOverlayOpen());
+        if (panelOpen) {
+          /* While the panel is open the button is hidden — and scrolling
+             does NOT close the panel; only its ✕ does. */
+          btn.hidden = true;
+          return;
+        }
+        /* Phone (≤640px): there is no in-page search area in the flow, so
+           the button is the only way into search and stays visible from
+           the very top of the page — never scroll-gated. (It still steps
+           aside while a detail / tip sheet is open, like on desktop.)
+           This branch runs before any geometry is measured, so the
+           hidden-on-phone controls returning 0-height rects can never
+           affect it — or the desktop logic below. */
+        if (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
+          btn.hidden = anyOverlayOpen();
+          syncBadge();
+          return;
+        }
+        /* Visible only once the in-page controls (or the placeholder holding
+           their place) have scrolled fully off the top of the screen. */
+        const ph = document.querySelector('.moved-placeholder[data-for="controlsPanel"]');
+        const anchor = ph || $("controlsPanel");
+        const past = anchor ? anchor.getBoundingClientRect().bottom <= 4 : window.scrollY > 700;
+        btn.hidden = !(past && !anyOverlayOpen());
+        syncBadge();
+      }
+      /* ---------- Phone layout relocation (≤640px) ----------
+         Two controls that are NOT search/filters live inside the controls
+         section: the Cards/Compact view toggle and the EN/中文 language
+         toggle. On phone the controls section leaves the page flow, so
+         these two are moved into the phone toolbar beside the count line
+         above the list, where they stay reachable without opening the
+         panel; on desktop they move back to their exact original spots
+         and the page is byte-for-byte the layout it always was. Moving
+         the real nodes keeps their ids, listeners and state intact, and
+         because they are no longer inside #controlsPanel on phone, the
+         panel's node-moving never touches them. Everything else in the
+         controls section (district/cuisine/List/Sort/Meal/Price/Dietary
+         selects, Open now, city chips, Saved toggle, Near me) IS search
+         or filtering, so on phone it lives only in the panel. */
+      let vtHome = null, ltHome = null;
+      function syncPhoneLayout() {
+        const toolbar = $("phoneToolbar");
+        if (!toolbar) return;
+        const vt = document.querySelector(".viewtoggle");
+        const lt = document.querySelector(".langtoggle");
+        if (!vt || !lt) return;
+        if (!vtHome) vtHome = { parent: vt.parentNode, next: vt.nextSibling };
+        if (!ltHome) ltHome = { parent: lt.parentNode, next: lt.nextSibling };
+        const phone = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+        if (phone) {
+          if (vt.parentNode !== toolbar) toolbar.appendChild(vt);
+          if (lt.parentNode !== toolbar) toolbar.appendChild(lt);
+        } else {
+          if (vt.parentNode !== vtHome.parent) {
+            if (vtHome.next && vtHome.next.parentNode === vtHome.parent) vtHome.parent.insertBefore(vt, vtHome.next);
+            else vtHome.parent.appendChild(vt);
+          }
+          if (lt.parentNode !== ltHome.parent) {
+            if (ltHome.next && ltHome.next.parentNode === ltHome.parent) ltHome.parent.insertBefore(lt, ltHome.next);
+            else ltHome.parent.appendChild(lt);
+          }
+        }
+        syncFloatBtn();
       }
       function syncQuickUI() {
-        const qr = $("quickResults"); if (qr) qr.textContent = t().quick_results;
-        const qf = $("quickFilters"); if (qf) qf.textContent = t().quick_filters;
-        const qt = $("quickTop"); if (qt) qt.textContent = t().quick_top;
-        const fl = $("floatSearchLabel"); if (fl) fl.textContent = t().edit_search;
         const qc = $("qClear"); if (qc) qc.setAttribute("aria-label", t().clear_search);
         const q = $("q"); const qcl = $("qClear");
         if (qcl && q) qcl.hidden = !q.value;
+        syncPanelUI();
       }
 
       function renderCards(resetBatch) {
@@ -2215,14 +2396,15 @@
         let _anchor = null;
         try {
           const _g = $("grid");
-          if (_g && window.scrollY > 480) {
+          if (_g && window.scrollY > 480 && !panelOpen) {
             const kids = _g.children;
             for (let i = 0; i < kids.length; i++) {
               const r = kids[i].getBoundingClientRect();
-              /* "Top of the viewport" means below the sticky bar, not the
-                 screen edge: a card whose bottom is still under the bar is
-                 not the visible anchor. Uses the measured bar height. */
-              if (r.bottom > stickyH + 28) { _anchor = { id: kids[i].id, top: r.top }; break; }
+              /* The anchor is the first card visibly in the viewport (no bar
+                 overlays the list, so the screen edge is the reference).
+                 Skipped while the panel is open: re-renders from the panel
+                 must not shift the list behind it. */
+              if (r.bottom > 28) { _anchor = { id: kids[i].id, top: r.top }; break; }
             }
           }
         } catch (e) { _anchor = null; }
@@ -2332,6 +2514,8 @@
         });
         syncAdvUI();
         const shown = items.length;
+        lastResultCount = shown;
+        lastTabTotal = PLACES.filter((p) => (listFilter === "All" || listOf(p) === listFilter) && (!savedOnly || isSaved(p.id))).length;
         $("count").textContent = savedOnly ? t().saved_showing(shown) : t().showing(shown);
         /* Batch progress below the list: "Showing 15 of 30" + Show more while
            more remain; "Showing all N" (and no button) once everything is in. */
@@ -2355,6 +2539,8 @@
         }
         syncSavedUI();
         const _qc = $("quickCount"); if (_qc) _qc.textContent = $("count").textContent;
+        syncBadge();
+        syncPanelUI();
         const _qcl = $("qClear"); if (_qcl) _qcl.hidden = !$("q").value;
         if (_anchor && _anchor.id) {
           const _el = document.getElementById(_anchor.id);
@@ -2410,9 +2596,6 @@
         syncQuickUI();
         if (current) syncDetailSaveUI();
         if (!nearActive) setNearStatus(t().near_hint, "");
-        /* The quick bar's labels just changed language — re-measure its
-           height before anything scrolls, so the clearance follows it. */
-        syncStickyH();
         renderCards();
       }
 
@@ -2538,15 +2721,24 @@
         renderCards(true);
         try { $("q").focus({ preventScroll: true }); } catch (err) { $("q").focus(); }
       });
-      $("quickResults").addEventListener("click", jumpToResults);
-      $("quickFilters").addEventListener("click", jumpToFilters);
-      $("quickTop").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
-      $("floatSearch").addEventListener("click", goToSearch);
+      $("floatSearch").addEventListener("click", openSearchPanel);
+      /* The ✕ is the ONLY way out of the search panel: no backdrop-click,
+         scroll, wheel, touchmove, or Escape handler closes it. */
+      $("searchPanelClose").addEventListener("click", () => closeSearchPanel());
+      $("clearAllBtn").addEventListener("click", clearAllFilters);
       /* Show more: grow the batch by 15 and re-render in place. renderCards()
          without the reset flag keeps the expanded count, and its anchor
          restore keeps the scroll position — no jump, no reload. */
       $("showMoreBtn").addEventListener("click", () => { visibleCount += BATCH_SIZE; renderCards(); });
       window.addEventListener("scroll", syncFloatBtn, { passive: true });
+      /* Crossing the phone breakpoint in either direction re-homes the
+         view/language toggles and re-evaluates the floating button. */
+      try {
+        const _phoneMq = window.matchMedia("(max-width: 640px)");
+        if (_phoneMq.addEventListener) _phoneMq.addEventListener("change", syncPhoneLayout);
+        else if (_phoneMq.addListener) _phoneMq.addListener(syncPhoneLayout);
+      } catch (e) {}
+      window.addEventListener("resize", syncPhoneLayout, { passive: true });
       try {
         const _mo = new MutationObserver(() => syncBodyLock());
         document.querySelectorAll(".overlay").forEach((ov) => _mo.observe(ov, { attributes: true, attributeFilter: ["class"] }));
@@ -2580,7 +2772,7 @@
             syncNearUI();
             renderCards(true);
             const listEl = document.getElementById("listH");
-            if (listEl) listEl.scrollIntoView({ behavior: "smooth", block: "start" });
+            if (!panelOpen && listEl) listEl.scrollIntoView({ behavior: "smooth", block: "start" });
           },
           (err) => {
             btn.disabled = false;
@@ -2656,13 +2848,15 @@
         setTimeout(() => { $("dvCopy").textContent = t().copy_addr; }, 1800);
       });
       document.addEventListener("keydown", (e) => {
+        /* Escape closes the other sheets, but deliberately NOT the search
+           panel — its ✕ is the only way out. */
         if (e.key === "Escape") { closeDriver(); closePhraseCard(); closePlanCard(); closeCashCard(); closeCalCard(); closeContact(); closeInfo(); if (typeof closeInstallHow === "function") closeInstallHow(); $("detailOverlay").classList.remove("open"); }
       });
       $("savedToggle").addEventListener("click", () => {
         savedOnly = !savedOnly;
         syncSavedUI();
         renderCards(true);
-        if (savedOnly) { const el = document.getElementById("listH"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        if (savedOnly && !panelOpen) { const el = document.getElementById("listH"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
       });
       $("dSave").addEventListener("click", () => { if (current) toggleSaved(current.id); });
       $("dCopyLink").addEventListener("click", async () => {
@@ -2702,8 +2896,8 @@
       if (typeof syncOfflineUI === "function") syncOfflineUI();
       if (typeof syncInstallUI === "function") syncInstallUI();
       syncQuickUI();
+      syncPhoneLayout();
       syncFloatBtn();
-      startStickySync();
       setNearStatus(t().near_hint, "");
       renderCards();
       // Deep link: ?place=<id> opens that place straight away (used by Share links)

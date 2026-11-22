@@ -46,6 +46,18 @@ served from the repo root until the rebuild is ready to take over.
   (1-hour Google Calendar template, Asia/Taipei) and a quiet
   "Report a problem with this place" mailto link. The dialog closes via
   its ✕ or Escape and leaves the list state untouched.
+- A **real interactive map** (`app/PlaceMap.tsx`, Leaflet with
+  OpenStreetMap tiles, loaded client-side only) sits between the
+  controls and the list, headed by the live app's own map strings
+  ("Where they are" / 「地圖」 and its tap-a-pin hint, in `lib/i18n.ts`).
+  It draws exactly the current filtered set: numbered pins (number =
+  the place's list number) at 60 or fewer results, small dot markers
+  above that, every marker clickable to open that place's details. The
+  view fits the set's bounds (fit zoom capped at 15) only when the set
+  itself changes — panning or zooming and then toggling Cards/Compact
+  keeps the visitor's view. Wheel/drag/pinch zoom runs to street
+  level. The marker logic is pure functions in `lib/map.ts`,
+  unit-checked against the real data.
 - The filtering/sorting/numbering logic lives in `lib/places.ts` and the
   details link/saved-set logic in `lib/details.ts`, both as pure
   functions, unit-checked against the real data.
@@ -67,6 +79,6 @@ npm start
 
 ## Not yet
 
-No map, Near me, contact form, place pages, admin login or PWA — those
+No Near me, contact form, place pages, admin login or PWA — those
 are the later Phase 2 steps. There is also no `/zh/` route yet; the
 language lives in state + the `?lang=` parameter for now.

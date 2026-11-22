@@ -37,6 +37,8 @@ export type Strings = {
   view_cards: string;
   view_compact: string;
   clear_all: string;
+  map_h: string;
+  map_sub: string;
   empty: string;
   show_more: string;
   details: string;
@@ -103,6 +105,8 @@ export const STRINGS: Record<Lang, Strings> = {
     view_cards: "Cards",
     view_compact: "Compact list",
     clear_all: "Clear all",
+    map_h: "Where they are",
+    map_sub: "Tap a pin to open that place. Use the + and − buttons — or pinch — to zoom in: most of the list clusters in Zuoying, Kaohsiung.",
     empty: "No places match — try a different search or filter.",
     show_more: "Show more",
     details: "Details",
@@ -301,6 +305,8 @@ export const STRINGS: Record<Lang, Strings> = {
     view_cards: "卡片",
     view_compact: "緊湊清單",
     clear_all: "清除全部",
+    map_h: "地圖",
+    map_sub: "點地圖上的圖釘就能打開那家店。用 +、− 按鈕或雙指縮放來放大 — 大部分店都集中在高雄左營。",
     empty: "沒有符合的店 — 換個搜尋或篩選試試。",
     show_more: "顯示更多",
     details: "詳情",

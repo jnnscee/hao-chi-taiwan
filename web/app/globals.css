@@ -176,6 +176,66 @@ body {
   text-align: center;
 }
 
+/* --- Interactive map (Leaflet) --- */
+
+.map-section {
+  margin: 0 0 1.25rem;
+}
+
+.map-heading {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.map-sub {
+  margin: 0 0 0.75rem;
+  color: #666;
+  font-size: 0.92rem;
+}
+
+/* position + z-index make the container a stacking context, so
+   Leaflet's internal panes/controls (z-index up to 1000) stay below
+   the details dialog (z-index 40) and driver overlay (50). */
+.place-map {
+  position: relative;
+  z-index: 0;
+  height: 420px;
+  border: 1px solid #d8cfb4;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #eef2ea;
+  font-family: inherit;
+}
+
+@media (max-width: 640px) {
+  .place-map {
+    height: 320px;
+  }
+}
+
+/* Numbered pins are divIcons: the wrap carries no Leaflet default
+   styling; the badge inside is the visible pin. */
+.map-pin-wrap {
+  background: transparent;
+  border: none;
+}
+
+.map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #7a4a12;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* --- Place lists --- */
 
 .place-list {

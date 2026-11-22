@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   assignDisplayNumbers,
   batchFor,
@@ -13,6 +14,7 @@ import {
   type TabKey,
   type ViewKey,
 } from "@/lib/places";
+import { buildMapMarkers } from "@/lib/map";
 import {
   SAVED_STORAGE_KEY,
   parseSavedIds,
@@ -30,6 +32,14 @@ import {
   type Lang,
 } from "@/lib/i18n";
 import PlaceDetails from "./PlaceDetails";
+
+// The interactive map is client-only: Leaflet needs `window`, so it is
+// dynamically imported with ssr:false and hydrates after the static
+// prerender. The placeholder keeps the section's height while it loads.
+const PlaceMap = dynamic(() => import("./PlaceMap"), {
+  ssr: false,
+  loading: () => <div className="place-map" aria-hidden="true" />,
+});
 
 const VIEW_STORAGE_KEY = "hao-chi-view-v1"; // same key as the live app
 
@@ -211,6 +221,11 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   const numbers = useMemo(
     () => assignDisplayNumbers(displayed),
     [displayed]
+  );
+  // The map draws exactly the displayed set, with the same numbers.
+  const markerSet = useMemo(
+    () => buildMapMarkers(displayed, numbers),
+    [displayed, numbers]
   );
   const visible = displayed.slice(0, visibleCount);
   const hasMore = visibleCount < displayed.length;
@@ -397,6 +412,12 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
       <p className="result-count" aria-live="polite">
         {t.showing(displayed.length)}
       </p>
+
+      <section className="map-section" aria-label={t.map_h}>
+        <h2 className="map-heading">{t.map_h}</h2>
+        <p className="map-sub">{t.map_sub}</p>
+        <PlaceMap markerSet={markerSet} onSelect={openDetails} />
+      </section>
 
       {displayed.length === 0 ? (
         <p className="empty">{t.empty}</p>

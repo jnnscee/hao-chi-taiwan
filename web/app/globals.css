@@ -18,6 +18,13 @@ body {
   padding: 1.5rem 1rem 4rem;
 }
 
+.hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .hero h1 {
   margin: 0 0 0.25rem;
   font-size: 2rem;
@@ -26,6 +33,38 @@ body {
 .counts {
   margin: 0 0 1.5rem;
   color: #666;
+}
+
+/* --- Language toggle --- */
+
+.langtoggle {
+  display: flex;
+  flex: none;
+  margin-top: 0.35rem;
+}
+
+.lang-btn {
+  border: 1px solid #cfc6a8;
+  background: #fff;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #1a1a1a;
+}
+
+.lang-btn:first-child {
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.lang-btn:last-child {
+  border-radius: 0 0.5rem 0.5rem 0;
+  border-left: none;
+}
+
+.lang-btn.active {
+  background: #7a4a12;
+  border-color: #7a4a12;
+  color: #fff;
 }
 
 /* --- List controls --- */
@@ -241,9 +280,20 @@ body {
   flex: none;
 }
 
+.batch-area {
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+.batch-count {
+  margin: 0 0 0.6rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
 .show-more {
   display: block;
-  margin: 1.25rem auto 0;
+  margin: 0 auto;
   border: 1px solid #7a4a12;
   background: #fff;
   color: #7a4a12;

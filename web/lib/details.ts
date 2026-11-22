@@ -4,6 +4,7 @@
 // passed in) so the behaviour can be unit-checked in plain node.
 
 import type { Place } from "./places";
+import type { Lang } from "./i18n";
 
 export const SAVED_STORAGE_KEY = "hao-chi-saved-v1"; // same key as the live app
 export const CONTACT_EMAIL = "haochitaiwan@muse.ai";
@@ -22,9 +23,21 @@ export function directionsUrl(place: Place): string {
   );
 }
 
-/** The shareable deep link for a place, e.g. "https://host/?place=r12". */
-export function deepLinkFor(origin: string, legacyId: string): string {
-  return `${origin}/?place=${encodeURIComponent(legacyId)}`;
+/**
+ * The shareable deep link for a place, carrying the sender's language so
+ * the recipient lands in the same language, e.g.
+ * "https://host/?place=r12&lang=zh" (mirrors the live app, whose share
+ * links point at the language variant matching the current toggle).
+ */
+export function deepLinkFor(
+  origin: string,
+  legacyId: string,
+  lang: Lang
+): string {
+  return (
+    `${origin}/?place=${encodeURIComponent(legacyId)}` +
+    `&lang=${encodeURIComponent(lang)}`
+  );
 }
 
 /** Extract the ?place= id from a query string ("?place=r12&x=1"), or null. */
@@ -71,6 +84,25 @@ export function lastCheckedLabel(isoDate: string | null): string | null {
   return `${MONTHS[month - 1]} ${match[1]}`;
 }
 
+/**
+ * The full "last checked" line in the current language, in the live
+ * app's wording: EN "Last checked Nov 2026" (its hours_last_checked
+ * string, with the month/year taken from the stored date) and ZH
+ * "最後確認：2026 年 11 月". Returns null for missing/invalid input.
+ */
+export function lastCheckedText(
+  isoDate: string | null,
+  lang: Lang
+): string | null {
+  if (!isoDate) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!match) return null;
+  const month = parseInt(match[2], 10);
+  if (month < 1 || month > 12) return null;
+  if (lang === "zh") return `最後確認：${match[1]} 年 ${month} 月`;
+  return `Last checked ${MONTHS[month - 1]} ${match[1]}`;
+}
+
 /** Format a Date as Google Calendar's basic format in Asia/Taipei time. */
 function formatTaipei(date: Date): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -96,14 +128,19 @@ function formatTaipei(date: Date): string {
  * the next whole hour after `now`, titled with the place name, located at
  * the English address, in Asia/Taipei, with the deep link in the details.
  */
-export function calendarUrl(place: Place, deepLink: string, now: Date): string {
+export function calendarUrl(
+  place: Place,
+  deepLink: string,
+  now: Date,
+  viewInLabel: string = "View in Hao Chi Taiwan"
+): string {
   const start = new Date(now);
   start.setMinutes(0, 0, 0);
   start.setHours(start.getHours() + 1);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
 
   const title = place.name_en || place.name_zh;
-  const details = `View in Hao Chi Taiwan: ${deepLink}`;
+  const details = `${viewInLabel}: ${deepLink}`;
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: title,

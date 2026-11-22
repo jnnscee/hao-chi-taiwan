@@ -19,6 +19,19 @@ served from the repo root until the rebuild is ready to take over.
   localStorage under `hao-chi-view-v1` with Compact as the phone default;
   per-place numbers (legacy numbers for Recommended, 1..N in displayed
   order for Want to Try); a live result count and Clear all.
+- An **EN / 中文 language toggle** in the header switches the whole
+  chrome — hero stats, tabs, search, filter/sort labels, result and
+  batch counts, Cards/Compact, the details dialog and the driver card.
+  All wording comes from `lib/i18n.ts`, lifted verbatim from the live
+  app's own string table, including its district (33), cuisine (86) and
+  city label tables: in Chinese mode the District and Cuisine dropdowns
+  show the Chinese labels while option values and filtering are
+  unchanged. The choice persists in localStorage under
+  `hao-chi-lang-v1`; a `?lang=zh` / `?lang=en` URL parameter wins over
+  the stored choice for that visit, switching the toggle rewrites the
+  URL parameter in place (keeping any `?place=`), and Share links carry
+  the current language. Place names keep the Chinese heading with the
+  English sub-line in both languages.
 - Clicking or tapping any card or row opens the details dialog
   (`app/PlaceDetails.tsx`): names and gloss, temporarily-closed and list
   badges, cuisine, area, both addresses, the muted Google rating, hours
@@ -54,5 +67,6 @@ npm start
 
 ## Not yet
 
-No language toggle, map, Near me, contact form, place pages, admin login
-or PWA — those are the later Phase 2 steps.
+No map, Near me, contact form, place pages, admin login or PWA — those
+are the later Phase 2 steps. There is also no `/zh/` route yet; the
+language lives in state + the `?lang=` parameter for now.

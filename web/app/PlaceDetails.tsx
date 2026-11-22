@@ -6,12 +6,14 @@ import {
   calendarUrl,
   deepLinkFor,
   directionsUrl,
-  lastCheckedLabel,
+  lastCheckedText,
   reportMailto,
 } from "@/lib/details";
+import { STRINGS, cityLabel, type Lang } from "@/lib/i18n";
 
 type Props = {
   place: Place;
+  lang: Lang;
   isSaved: boolean;
   onToggleSave: (place: Place) => void;
   onClose: () => void;
@@ -19,10 +21,12 @@ type Props = {
 
 export default function PlaceDetails({
   place,
+  lang,
   isSaved,
   onToggleSave,
   onClose,
 }: Props) {
+  const t = STRINGS[lang];
   const [driverOpen, setDriverOpen] = useState(false);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -43,16 +47,20 @@ export default function PlaceDetails({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [driverOpen, onClose]);
 
-  const deepLink = deepLinkFor(window.location.origin, place.legacy_id);
-  const checkedLabel = lastCheckedLabel(place.hours_checked_on);
+  const deepLink = deepLinkFor(window.location.origin, place.legacy_id, lang);
+  const checkedText = lastCheckedText(place.hours_checked_on, lang);
 
   async function share() {
-    if (typeof navigator !== "undefined" && "share" in navigator) {
+    // Mirrors the live app: the share title uses the place's English
+    // name in English mode and its Chinese name in Chinese mode, plus
+    // the language-matched suffix; the deep link carries the language.
+    const title =
+      (lang === "zh" ? place.name_zh : place.name_en) + t.share_title_suffix;
+    const hasShare =
+      typeof navigator !== "undefined" && "share" in navigator;
+    if (hasShare) {
       try {
-        await navigator.share({
-          title: `${place.name_zh} · Hao Chi Taiwan`,
-          url: deepLink,
-        });
+        await navigator.share({ title, url: deepLink });
         return;
       } catch {
         // User dismissed the share sheet (or it failed): fall through to copy.
@@ -60,7 +68,7 @@ export default function PlaceDetails({
     }
     try {
       await navigator.clipboard.writeText(deepLink);
-      setShareNote("Link copied");
+      setShareNote(hasShare ? t.link_copied : t.share_no_sheet);
     } catch {
       setShareNote(deepLink);
     }
@@ -72,13 +80,13 @@ export default function PlaceDetails({
         className="dialog"
         role="dialog"
         aria-modal="true"
-        aria-label={`Details for ${place.name_en}`}
+        aria-label={`${t.details}: ${place.name_zh}`}
       >
         <button
           type="button"
           ref={closeRef}
           className="dialog-close"
-          aria-label="Close details"
+          aria-label={t.close}
           onClick={onClose}
         >
           ✕
@@ -86,10 +94,12 @@ export default function PlaceDetails({
 
         <div className="dialog-badges">
           <span className="badge list-badge">
-            {place.list_type === "recommended" ? "Recommended" : "Want to Try"}
+            {place.list_type === "recommended"
+              ? t.list_recommended
+              : t.list_want}
           </span>
           {place.temporarily_closed ? (
-            <span className="badge closed-badge">Temporarily closed</span>
+            <span className="badge closed-badge">{t.temp_closed}</span>
           ) : null}
         </div>
 
@@ -100,37 +110,39 @@ export default function PlaceDetails({
         <dl className="dialog-facts">
           {place.cuisine ? (
             <div className="fact">
-              <dt>Cuisine</dt>
+              <dt>{t.label_cuisine}</dt>
               <dd>{place.cuisine}</dd>
             </div>
           ) : null}
           {place.city || place.district ? (
             <div className="fact">
-              <dt>Area</dt>
+              <dt>{t.f_area}</dt>
               <dd>
-                {[place.city, place.district].filter(Boolean).join(" · ")}
+                {[place.district, cityLabel(lang, place.city ?? "")]
+                  .filter(Boolean)
+                  .join(" · ")}
               </dd>
             </div>
           ) : null}
           {place.address_en ? (
             <div className="fact">
-              <dt>Address</dt>
+              <dt>{t.f_address}</dt>
               <dd>{place.address_en}</dd>
             </div>
           ) : null}
           {place.address_zh ? (
             <div className="fact">
-              <dt>地址</dt>
+              <dt>{t.f_address_zh}</dt>
               <dd>{place.address_zh}</dd>
             </div>
           ) : null}
           {place.rating_value != null ? (
             <div className="fact">
-              <dt>Google rating</dt>
+              <dt>{t.google_rating}</dt>
               <dd className="dialog-rating">
                 {place.rating_value.toFixed(1)}
                 {place.rating_count != null
-                  ? ` (${place.rating_count.toLocaleString()} reviews)`
+                  ? ` · ${place.rating_count.toLocaleString()} ${t.reviews_word}`
                   : ""}
               </dd>
             </div>
@@ -139,18 +151,18 @@ export default function PlaceDetails({
 
         {place.hours ? (
           <section className="dialog-section">
-            <h3>Hours</h3>
+            <h3>{t.f_hours}</h3>
             <p className="hours-text">{place.hours}</p>
             {place.hours_note ? (
               <p className="hours-note">{place.hours_note}</p>
             ) : null}
-            {checkedLabel ? (
-              <p className="hours-checked">Last checked {checkedLabel}</p>
+            {checkedText ? (
+              <p className="hours-checked">{checkedText}</p>
             ) : null}
             {place.maps_url ? (
               <p>
                 <a href={place.maps_url} target="_blank" rel="noreferrer">
-                  Check today&rsquo;s hours
+                  {t.check_todays_hours}
                 </a>
               </p>
             ) : null}
@@ -159,7 +171,7 @@ export default function PlaceDetails({
 
         {place.phone || place.website || place.instagram || place.facebook ? (
           <section className="dialog-section">
-            <h3>Contact</h3>
+            <h3>{t.label_contact}</h3>
             <ul className="link-list">
               {place.phone ? (
                 <li>
@@ -171,14 +183,14 @@ export default function PlaceDetails({
               {place.website ? (
                 <li>
                   <a href={place.website} target="_blank" rel="noreferrer">
-                    Website
+                    {t.f_website}
                   </a>
                 </li>
               ) : null}
               {place.instagram ? (
                 <li>
                   <a href={place.instagram} target="_blank" rel="noreferrer">
-                    Instagram
+                    {t.f_instagram}
                     {place.instagram_handle
                       ? ` ${place.instagram_handle}`
                       : ""}
@@ -188,7 +200,7 @@ export default function PlaceDetails({
               {place.facebook ? (
                 <li>
                   <a href={place.facebook} target="_blank" rel="noreferrer">
-                    Facebook
+                    {t.f_facebook}
                   </a>
                 </li>
               ) : null}
@@ -198,9 +210,9 @@ export default function PlaceDetails({
 
         {place.visitor_notes || place.cash_only ? (
           <section className="dialog-section good-to-know">
-            <h3>Good to know</h3>
+            <h3>{t.good_to_know}</h3>
             {place.visitor_notes ? <p>{place.visitor_notes}</p> : null}
-            {place.cash_only ? <p>Cash only</p> : null}
+            {place.cash_only ? <p>{t.cash_only_place}</p> : null}
           </section>
         ) : null}
 
@@ -213,12 +225,9 @@ export default function PlaceDetails({
                 target="_blank"
                 rel="noreferrer"
               >
-                Open in Google Maps
+                {t.open_maps}
               </a>
-              <p className="hint">
-                Want to keep this place? Once it opens in Google Maps, tap
-                Save there and it&rsquo;s in your own lists.
-              </p>
+              <p className="hint">{t.maps_save_hint}</p>
             </div>
           ) : null}
 
@@ -228,7 +237,7 @@ export default function PlaceDetails({
             target="_blank"
             rel="noreferrer"
           >
-            Get directions
+            {t.dir_title}
           </a>
 
           {place.address_zh ? (
@@ -237,7 +246,7 @@ export default function PlaceDetails({
               className="action"
               onClick={() => setDriverOpen(true)}
             >
-              Show driver
+              {t.driver}
             </button>
           ) : null}
 
@@ -247,20 +256,20 @@ export default function PlaceDetails({
             aria-pressed={isSaved}
             onClick={() => onToggleSave(place)}
           >
-            {isSaved ? "Saved" : "Save"}
+            {isSaved ? t.saved : t.save}
           </button>
 
           <button type="button" className="action" onClick={share}>
-            Share
+            {t.share}
           </button>
 
           <a
             className="action"
-            href={calendarUrl(place, deepLink, new Date())}
+            href={calendarUrl(place, deepLink, new Date(), t.cal_view_in)}
             target="_blank"
             rel="noreferrer"
           >
-            Add to calendar
+            {t.cal_btn}
           </a>
           {shareNote ? (
             <p className="share-note" aria-live="polite">
@@ -271,7 +280,7 @@ export default function PlaceDetails({
 
         <p className="report-row">
           <a className="report-link" href={reportMailto(place, deepLink)}>
-            Report a problem with this place
+            {t.report_place}
           </a>
         </p>
       </div>
@@ -281,12 +290,12 @@ export default function PlaceDetails({
           className="driver-overlay"
           role="dialog"
           aria-modal="true"
-          aria-label={`Show to driver: ${place.name_en}`}
+          aria-label={place.name_zh}
         >
           <button
             type="button"
             className="driver-close"
-            aria-label="Close driver card"
+            aria-label={t.close}
             onClick={() => setDriverOpen(false)}
           >
             ✕

@@ -19,18 +19,28 @@ import {
   placeIdFromSearch,
   toggleSavedId,
 } from "@/lib/details";
+import {
+  LANG_STORAGE_KEY,
+  STRINGS,
+  cityLabel,
+  cuisineLabel,
+  districtLabel,
+  langFromSearch,
+  parseStoredLang,
+  type Lang,
+} from "@/lib/i18n";
 import PlaceDetails from "./PlaceDetails";
 
 const VIEW_STORAGE_KEY = "hao-chi-view-v1"; // same key as the live app
 
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "recommended", label: "Recommended" },
-  { key: "want_to_try", label: "Want to Try" },
-];
+const TAB_KEYS: TabKey[] = ["all", "recommended", "want_to_try"];
 
 export default function PlaceBrowser({ places }: { places: Place[] }) {
   const [filters, setFilters] = useState<ListFilters>(DEFAULT_FILTERS);
+  // UI language. Server render and first paint are English; the URL /
+  // stored choice is applied on mount, like the view default below.
+  const [lang, setLang] = useState<Lang>("en");
+  const t = STRINGS[lang];
   // Server render and first paint use Cards; the saved/phone default is
   // applied on mount to avoid a hydration mismatch.
   const [view, setView] = useState<ViewKey>("cards");
@@ -62,6 +72,29 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     }
   }, []);
 
+  // On mount: resolve the language — a ?lang= URL parameter wins over
+  // the stored toggle choice (hao-chi-lang-v1), which wins over the
+  // English default. The URL parameter applies to this visit only; it
+  // does not overwrite the stored choice.
+  useEffect(() => {
+    let initial: Lang = "en";
+    try {
+      initial =
+        langFromSearch(window.location.search) ??
+        parseStoredLang(window.localStorage.getItem(LANG_STORAGE_KEY)) ??
+        "en";
+    } catch {
+      // storage/URL unavailable: keep the English default
+    }
+    if (initial !== "en") setLang(initial);
+  }, []);
+
+  // Keep the html lang attribute in step with the toggle (the live app
+  // uses zh-Hant for Chinese).
+  useEffect(() => {
+    document.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
+  }, [lang]);
+
   // On mount: load the saved set, and open the details dialog when the
   // URL carries a ?place=<legacy_id> deep link for a known place.
   useEffect(() => {
@@ -78,26 +111,45 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     }
   }, [places]);
 
-  function openDetails(place: Place) {
-    setSelectedId(place.legacy_id);
+  // Rewrite the URL in place, preserving whichever of ?place= / ?lang=
+  // is not being changed.
+  function syncUrl(patch: { place?: string | null; lang?: Lang }) {
     try {
+      const params = new URLSearchParams(window.location.search);
+      if (patch.place !== undefined) {
+        if (patch.place) params.set("place", patch.place);
+        else params.delete("place");
+      }
+      if (patch.lang !== undefined) params.set("lang", patch.lang);
+      const qs = params.toString();
       window.history.replaceState(
         null,
         "",
-        `${window.location.pathname}?place=${encodeURIComponent(place.legacy_id)}`
+        window.location.pathname + (qs ? `?${qs}` : "")
       );
     } catch {
-      // history unavailable: the dialog still opens
+      // history unavailable: state still updates, the URL just won't
     }
+  }
+
+  function chooseLang(next: Lang) {
+    setLang(next);
+    try {
+      window.localStorage.setItem(LANG_STORAGE_KEY, next);
+    } catch {
+      // storage unavailable: the choice just won't persist
+    }
+    syncUrl({ lang: next });
+  }
+
+  function openDetails(place: Place) {
+    setSelectedId(place.legacy_id);
+    syncUrl({ place: place.legacy_id });
   }
 
   function closeDetails() {
     setSelectedId(null);
-    try {
-      window.history.replaceState(null, "", window.location.pathname);
-    } catch {
-      // history unavailable: nothing to clean up
-    }
+    syncUrl({ place: null });
   }
 
   function toggleSave(place: Place) {
@@ -143,6 +195,10 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     }),
     [places]
   );
+  const kaohsiungCount = useMemo(
+    () => places.filter((p) => p.city === "Kaohsiung").length,
+    [places]
+  );
 
   const cities = useMemo(() => distinctValues(places, "city"), [places]);
   const districts = useMemo(() => distinctValues(places, "district"), [places]);
@@ -163,6 +219,26 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
       ? (places.find((p) => p.legacy_id === selectedId) ?? null)
       : null;
 
+  const tabLabels: Record<TabKey, string> = {
+    all: t.list_all,
+    recommended: t.list_recommended,
+    want_to_try: t.list_want,
+  };
+
+  function detailsLabel(place: Place): string {
+    // Mirrors the live app's card aria-label: "Details: <name> — <gloss>".
+    const food = place.gloss ?? place.cuisine;
+    return `${t.details}: ${place.name_zh}${food ? ` — ${food}` : ""}`;
+  }
+
+  function ratingText(place: Place): string {
+    if (place.rating_value == null) return "";
+    const base = `${t.google_rating} ${place.rating_value.toFixed(1)}`;
+    return place.rating_count != null
+      ? `${base} · ${place.rating_count.toLocaleString()} ${t.reviews_word}`
+      : base;
+  }
+
   function openOnKeyDown(place: Place) {
     return (event: React.KeyboardEvent) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -174,17 +250,46 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
 
   return (
     <div className="browser">
-      <div className="tabs" role="tablist" aria-label="Place lists">
-        {TABS.map((tab) => (
+      <header className="hero">
+        <div className="hero-top">
+          <h1>Hao Chi Taiwan 好吃台灣</h1>
+          <div className="langtoggle" role="group" aria-label="Language / 語言">
+            <button
+              type="button"
+              aria-pressed={lang === "en"}
+              className={lang === "en" ? "lang-btn active" : "lang-btn"}
+              onClick={() => chooseLang("en")}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              aria-pressed={lang === "zh"}
+              className={lang === "zh" ? "lang-btn active" : "lang-btn"}
+              onClick={() => chooseLang("zh")}
+            >
+              中文
+            </button>
+          </div>
+        </div>
+        <p className="counts">
+          {places.length} {t.stat_total} · {tabCounts.recommended}{" "}
+          {t.stat_recommended} · {tabCounts.want_to_try} {t.stat_want} ·{" "}
+          {kaohsiungCount} {t.stat_khh}
+        </p>
+      </header>
+
+      <div className="tabs" role="tablist" aria-label={t.list_label}>
+        {TAB_KEYS.map((key) => (
           <button
-            key={tab.key}
+            key={key}
             type="button"
             role="tab"
-            aria-selected={filters.tab === tab.key}
-            className={filters.tab === tab.key ? "tab active" : "tab"}
-            onClick={() => updateFilters({ tab: tab.key })}
+            aria-selected={filters.tab === key}
+            className={filters.tab === key ? "tab active" : "tab"}
+            onClick={() => updateFilters({ tab: key })}
           >
-            {tab.label} ({tabCounts[tab.key]})
+            {tabLabels[key]} ({tabCounts[key]})
           </button>
         ))}
       </div>
@@ -193,77 +298,77 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
         <input
           type="search"
           className="search"
-          placeholder="Search places…"
-          aria-label="Search places"
+          placeholder={t.search_ph}
+          aria-label={t.search_ph}
           value={filters.query}
           onChange={(event) => updateFilters({ query: event.target.value })}
         />
 
         <label className="control">
-          <span>City</span>
+          <span>{t.label_city}</span>
           <select
             value={filters.city}
             onChange={(event) => updateFilters({ city: event.target.value })}
           >
-            <option value="">All cities</option>
+            <option value="">{t.all_cities}</option>
             {cities.map((city) => (
               <option key={city} value={city}>
-                {city}
+                {cityLabel(lang, city)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="control">
-          <span>District</span>
+          <span>{t.label_district}</span>
           <select
             value={filters.district}
             onChange={(event) =>
               updateFilters({ district: event.target.value })
             }
           >
-            <option value="">All districts</option>
+            <option value="">{t.all_districts}</option>
             {districts.map((district) => (
               <option key={district} value={district}>
-                {district}
+                {districtLabel(lang, district)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="control">
-          <span>Cuisine</span>
+          <span>{t.label_cuisine}</span>
           <select
             value={filters.cuisine}
             onChange={(event) =>
               updateFilters({ cuisine: event.target.value })
             }
           >
-            <option value="">All cuisines</option>
+            <option value="">{t.all_cuisines}</option>
             {cuisines.map((cuisine) => (
               <option key={cuisine} value={cuisine}>
-                {cuisine}
+                {cuisineLabel(lang, cuisine)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="control">
-          <span>Sort</span>
+          <span>{t.sort}</span>
           <select
             value={filters.sort}
             onChange={(event) =>
               updateFilters({ sort: event.target.value as SortKey })
             }
           >
-            <option value="recommended">Recommended order</option>
-            <option value="name">Name A–Z</option>
-            <option value="rating">Highest Google rating</option>
+            <option value="recommended">{t.sort_default}</option>
+            <option value="name">{t.sort_az}</option>
+            <option value="rating">{t.sort_rating}</option>
           </select>
         </label>
 
-        <div className="control view-toggle" aria-label="List style">
-          <span>View</span>
+        <div className="control view-toggle" aria-label={t.label_view}>
+          <span>{t.label_view}</span>
           <div className="toggle-buttons">
             <button
               type="button"
@@ -271,7 +376,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
               aria-pressed={view === "cards"}
               onClick={() => chooseView("cards")}
             >
-              Cards
+              {t.view_cards}
             </button>
             <button
               type="button"
@@ -279,22 +384,22 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
               aria-pressed={view === "compact"}
               onClick={() => chooseView("compact")}
             >
-              Compact
+              {t.view_compact}
             </button>
           </div>
         </div>
 
         <button type="button" className="clear-all" onClick={clearAll}>
-          Clear all
+          {t.clear_all}
         </button>
       </div>
 
       <p className="result-count" aria-live="polite">
-        {displayed.length} {displayed.length === 1 ? "place" : "places"}
+        {t.showing(displayed.length)}
       </p>
 
       {displayed.length === 0 ? (
-        <p className="empty">No places match.</p>
+        <p className="empty">{t.empty}</p>
       ) : view === "cards" ? (
         <ul className="place-list cards">
           {visible.map((place) => (
@@ -303,7 +408,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
               className="place card clickable"
               role="button"
               tabIndex={0}
-              aria-label={`View details for ${place.name_en}`}
+              aria-label={detailsLabel(place)}
               onClick={() => openDetails(place)}
               onKeyDown={openOnKeyDown(place)}
             >
@@ -313,7 +418,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
                 </span>
                 <h3 className="place-name-zh">{place.name_zh}</h3>
                 {savedIds.includes(place.legacy_id) ? (
-                  <span className="saved-marker">Saved</span>
+                  <span className="saved-marker">{t.saved}</span>
                 ) : null}
               </div>
               <p className="place-name-en">{place.name_en}</p>
@@ -321,17 +426,12 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
                 <p className="place-gloss">{place.gloss}</p>
               ) : null}
               <p className="place-meta">
-                {[place.cuisine, place.district, place.city]
+                {[place.cuisine, place.district, cityLabel(lang, place.city ?? "")]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
               {place.rating_value != null ? (
-                <p className="place-rating">
-                  Google rating {place.rating_value.toFixed(1)}
-                  {place.rating_count != null
-                    ? ` (${place.rating_count.toLocaleString()})`
-                    : ""}
-                </p>
+                <p className="place-rating">{ratingText(place)}</p>
               ) : null}
             </li>
           ))}
@@ -344,7 +444,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
               className="place row clickable"
               role="button"
               tabIndex={0}
-              aria-label={`View details for ${place.name_en}`}
+              aria-label={detailsLabel(place)}
               onClick={() => openDetails(place)}
               onKeyDown={openOnKeyDown(place)}
             >
@@ -356,7 +456,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
                 <span className="place-name-en">{place.name_en}</span>
               </span>
               {savedIds.includes(place.legacy_id) ? (
-                <span className="saved-marker">Saved</span>
+                <span className="saved-marker">{t.saved}</span>
               ) : null}
               {place.rating_value != null ? (
                 <span className="place-rating">
@@ -368,21 +468,31 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
         </ul>
       )}
 
-      {hasMore ? (
-        <button
-          type="button"
-          className="show-more"
-          onClick={() =>
-            setVisibleCount((count) => count + batchFor(view))
-          }
-        >
-          Show more ({displayed.length - visibleCount} more)
-        </button>
+      {displayed.length > 0 ? (
+        <div className="batch-area">
+          <p className="batch-count">
+            {hasMore
+              ? t.showingOf(visible.length, displayed.length)
+              : t.showingAll(displayed.length)}
+          </p>
+          {hasMore ? (
+            <button
+              type="button"
+              className="show-more"
+              onClick={() =>
+                setVisibleCount((count) => count + batchFor(view))
+              }
+            >
+              {t.show_more}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {selectedPlace ? (
         <PlaceDetails
           place={selectedPlace}
+          lang={lang}
           isSaved={savedIds.includes(selectedPlace.legacy_id)}
           onToggleSave={toggleSave}
           onClose={closeDetails}

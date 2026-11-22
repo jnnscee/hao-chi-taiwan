@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Place } from "@/lib/places";
+import { formatDist, type Place } from "@/lib/places";
 import {
   calendarUrl,
   deepLinkFor,
@@ -15,6 +15,8 @@ type Props = {
   place: Place;
   lang: Lang;
   isSaved: boolean;
+  /** Distance from the visitor in km while a location is known, else null. */
+  distanceKm: number | null;
   onToggleSave: (place: Place) => void;
   onClose: () => void;
 };
@@ -23,6 +25,7 @@ export default function PlaceDetails({
   place,
   lang,
   isSaved,
+  distanceKm,
   onToggleSave,
   onClose,
 }: Props) {
@@ -122,6 +125,12 @@ export default function PlaceDetails({
                   .filter(Boolean)
                   .join(" · ")}
               </dd>
+            </div>
+          ) : null}
+          {distanceKm != null ? (
+            <div className="fact">
+              <dt>{t.f_distance}</dt>
+              <dd>{formatDist(distanceKm)}</dd>
             </div>
           ) : null}
           {place.address_en ? (

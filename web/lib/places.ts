@@ -34,8 +34,11 @@ export type Place = {
 };
 
 export type TabKey = "all" | "recommended" | "want_to_try";
-export type SortKey = "recommended" | "name" | "rating";
+export type SortKey = "recommended" | "name" | "rating" | "nearest";
 export type ViewKey = "cards" | "compact";
+
+/** A latitude/longitude pair — a place's position or the visitor's. */
+export type LatLng = { lat: number; lng: number };
 
 export type ListFilters = {
   tab: TabKey;
@@ -44,6 +47,16 @@ export type ListFilters = {
   district: string; // "" = all
   cuisine: string; // "" = all
   sort: SortKey;
+  /**
+   * The visitor's location while Near me / Nearest sorting is in play.
+   * Held in memory (React state) only: never persisted, never sent
+   * anywhere — the live app's published privacy promise. null = unknown.
+   */
+  origin: LatLng | null;
+  /** True while the Near me radius filter is switched on. */
+  nearActive: boolean;
+  /** Near me range in km; ANY_DISTANCE_KM means "any distance". */
+  radiusKm: number;
 };
 
 export const DEFAULT_FILTERS: ListFilters = {
@@ -53,7 +66,16 @@ export const DEFAULT_FILTERS: ListFilters = {
   district: "",
   cuisine: "",
   sort: "recommended",
+  origin: null,
+  nearActive: false,
+  radiusKm: 5,
 };
+
+/** Near me range choices (km), the live app's set. */
+export const NEAR_RADIUS_OPTIONS: number[] = [1, 3, 5, 10, 25];
+
+/** The radius select's "Any distance" value, as in the live app. */
+export const ANY_DISTANCE_KM = 9999;
 
 export const BATCH_CARDS = 10;
 export const BATCH_COMPACT = 15;
@@ -118,24 +140,96 @@ function byRating(a: Place, b: Place): number {
   return byName(a, b);
 }
 
-const SORTERS: Record<SortKey, (a: Place, b: Place) => number> = {
+const SORTERS: Record<
+  Exclude<SortKey, "nearest">,
+  (a: Place, b: Place) => number
+> = {
   recommended: byRecommendedOrder,
   name: byName,
   rating: byRating,
 };
 
-/** Apply tab, search and dropdown filters, then sort. Pure: input untouched. */
+/**
+ * Great-circle distance in km between two points — the live app's
+ * haversine (Earth radius 6371 km), lifted as-is.
+ */
+export function distanceKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** A place's distance from the visitor, or null when either is unknown. */
+export function placeDistanceKm(place: Place, origin: LatLng | null): number | null {
+  if (!origin || place.lat == null || place.lng == null) return null;
+  return distanceKm(origin.lat, origin.lng, place.lat, place.lng);
+}
+
+/**
+ * The live app's distance format, in both languages: metres under 1 km
+ * ("850 m"), one decimal under 10 km ("1.2 km"), whole km above that.
+ */
+export function formatDist(km: number | null): string {
+  if (km == null || !isFinite(km)) return "";
+  if (km < 1) return Math.round(km * 1000) + " m";
+  return (km < 10 ? km.toFixed(1) : Math.round(km)) + " km";
+}
+
+/**
+ * Apply tab, search, dropdown and Near me radius filters, then sort.
+ * Pure: input untouched. The radius filter layers on top of the other
+ * filters exactly as the live app does, and — also as there — a place
+ * with no coordinates is never dropped by it (its distance is unknown,
+ * not large). "Nearest" needs the visitor's location; without one it
+ * falls back to Recommended order.
+ */
 export function filterAndSortPlaces(
   places: Place[],
   filters: ListFilters
 ): Place[] {
+  const distances = new Map<string, number | null>(
+    places.map((place) => [
+      place.legacy_id,
+      placeDistanceKm(place, filters.origin),
+    ])
+  );
   const filtered = places.filter((place) => {
     if (filters.tab !== "all" && place.list_type !== filters.tab) return false;
     if (filters.city && place.city !== filters.city) return false;
     if (filters.district && place.district !== filters.district) return false;
     if (filters.cuisine && place.cuisine !== filters.cuisine) return false;
-    return matchesQuery(place, filters.query);
+    if (!matchesQuery(place, filters.query)) return false;
+    if (filters.nearActive && filters.radiusKm < ANY_DISTANCE_KM) {
+      const d = distances.get(place.legacy_id);
+      if (d != null && d > filters.radiusKm) return false;
+    }
+    return true;
   });
+  if (filters.sort === "nearest") {
+    if (!filters.origin) return filtered.sort(byRecommendedOrder);
+    return filtered.sort((a, b) => {
+      const da = distances.get(a.legacy_id);
+      const db = distances.get(b.legacy_id);
+      if (da == null && db == null) return byName(a, b);
+      if (da == null) return 1; // unknown distance last
+      if (db == null) return -1;
+      if (da !== db) return da - db;
+      return byName(a, b);
+    });
+  }
   return filtered.sort(SORTERS[filters.sort]);
 }
 

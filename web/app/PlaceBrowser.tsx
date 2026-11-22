@@ -7,7 +7,11 @@ import {
   batchFor,
   distinctValues,
   filterAndSortPlaces,
+  formatDist,
+  placeDistanceKm,
+  ANY_DISTANCE_KM,
   DEFAULT_FILTERS,
+  NEAR_RADIUS_OPTIONS,
   type ListFilters,
   type Place,
   type SortKey,
@@ -45,6 +49,34 @@ const VIEW_STORAGE_KEY = "hao-chi-view-v1"; // same key as the live app
 
 const TAB_KEYS: TabKey[] = ["all", "recommended", "want_to_try"];
 
+/** Near me status errors, as keys into the i18n string table. */
+type NearErrorKey =
+  | "near_error_denied"
+  | "near_error_unavail"
+  | "near_error_timeout"
+  | "near_error_unsupported"
+  | "offline_near";
+
+/** The live app's geolocation options, unchanged. */
+const GEO_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: 12000,
+  maximumAge: 60000,
+};
+
+function geoErrorKey(err: GeolocationPositionError): NearErrorKey {
+  if (err.code === 1) return "near_error_denied"; // permission denied
+  if (err.code === 3) return "near_error_timeout";
+  return "near_error_unavail";
+}
+
+/** Why Near me can't start at all, or null when it can. Live app's order. */
+function locateBlocker(): NearErrorKey | null {
+  if (!navigator.onLine) return "offline_near";
+  if (!("geolocation" in navigator)) return "near_error_unsupported";
+  return null;
+}
+
 export default function PlaceBrowser({ places }: { places: Place[] }) {
   const [filters, setFilters] = useState<ListFilters>(DEFAULT_FILTERS);
   // UI language. Server render and first paint are English; the URL /
@@ -61,6 +93,13 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   // dialog. Both start empty on the server render and fill in on mount.
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Near me transient state. The location itself lives in
+  // filters.origin — React state only, never persisted or sent
+  // anywhere (the live app's privacy promise). These three cover the
+  // in-flight requests and the last error; the status line is derived.
+  const [locating, setLocating] = useState(false);
+  const [sortLocating, setSortLocating] = useState(false);
+  const [nearError, setNearError] = useState<NearErrorKey | null>(null);
 
   // On mount: a saved Cards/Compact choice always wins; otherwise phones
   // (≤640px) default to Compact, matching the live app.
@@ -193,8 +232,88 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   }
 
   function clearAll() {
+    // DEFAULT_FILTERS carries no location, so Clear all also turns
+    // Near me off and drops the visitor's position, as in the live app.
     setFilters(DEFAULT_FILTERS);
+    setNearError(null);
     setVisibleCount(batchFor(view));
+  }
+
+  // Near me: the location is requested ONLY on this tap, held in
+  // filters.origin (memory only), and switching it on also selects
+  // the Nearest sort, mirroring the live app.
+  function startNearMe() {
+    const blocked = locateBlocker();
+    if (blocked) {
+      setNearError(blocked);
+      return;
+    }
+    setNearError(null);
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        updateFilters({
+          origin: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          nearActive: true,
+          sort: "nearest",
+        });
+      },
+      (err) => {
+        setLocating(false);
+        setNearError(geoErrorKey(err));
+      },
+      GEO_OPTIONS
+    );
+  }
+
+  // "Clear location": drops the position entirely. If the sort was
+  // Nearest it falls back to Recommended order, as in the live app.
+  function clearNear() {
+    setNearError(null);
+    setFilters((current) => ({
+      ...current,
+      origin: null,
+      nearActive: false,
+      sort: current.sort === "nearest" ? "recommended" : current.sort,
+    }));
+    setVisibleCount(batchFor(view));
+  }
+
+  function chooseSort(next: SortKey) {
+    if (next !== "nearest" || filters.origin) {
+      updateFilters({ sort: next });
+      return;
+    }
+    // "Nearest" with no location yet: the live app asks for the
+    // location for sorting only — Near me's radius filter stays off,
+    // and a failure puts the sort back to Recommended order.
+    const blocked = locateBlocker();
+    if (blocked) {
+      setNearError(blocked);
+      return;
+    }
+    setNearError(null);
+    updateFilters({ sort: "nearest" });
+    setSortLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setSortLocating(false);
+        updateFilters({
+          origin: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+        });
+      },
+      (err) => {
+        setSortLocating(false);
+        setNearError(geoErrorKey(err));
+        setFilters((current) =>
+          current.sort === "nearest"
+            ? { ...current, sort: "recommended" }
+            : current
+        );
+      },
+      GEO_OPTIONS
+    );
   }
 
   const tabCounts = useMemo(
@@ -222,11 +341,54 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     () => assignDisplayNumbers(displayed),
     [displayed]
   );
-  // The map draws exactly the displayed set, with the same numbers.
-  const markerSet = useMemo(
-    () => buildMapMarkers(displayed, numbers),
-    [displayed, numbers]
+  // Every place's distance from the visitor (null while no location is
+  // known), for the card/row tags and the details dialog.
+  const distances = useMemo(
+    () =>
+      new Map(
+        places.map((place) => [
+          place.legacy_id,
+          placeDistanceKm(place, filters.origin),
+        ])
+      ),
+    [places, filters.origin]
   );
+  // The map draws exactly the displayed set, with the same numbers,
+  // plus the visitor's own marker while a location is known. The
+  // position joins the fitted bounds only while Near me filters by a
+  // real range — see MapUserPoint in lib/map.ts.
+  const markerSet = useMemo(
+    () =>
+      buildMapMarkers(
+        displayed,
+        numbers,
+        filters.origin
+          ? {
+              ...filters.origin,
+              fit: filters.nearActive && filters.radiusKm < ANY_DISTANCE_KM,
+            }
+          : null
+      ),
+    [displayed, numbers, filters.origin, filters.nearActive, filters.radiusKm]
+  );
+
+  // The Near me status line, derived the way the live app maintains
+  // it: locating beats error beats the active found/none message,
+  // and the privacy hint is the resting text.
+  const nearStatus = locating
+    ? { text: t.near_locating, mode: "" }
+    : sortLocating
+      ? { text: `${t.sort_need_loc} ${t.near_locating}`, mode: "" }
+      : nearError
+        ? { text: t[nearError], mode: "error" }
+        : filters.nearActive
+          ? displayed.length === 0 && filters.radiusKm < ANY_DISTANCE_KM
+            ? { text: t.near_none(filters.radiusKm), mode: "on" }
+            : {
+                text: t.near_found(displayed.length, filters.radiusKm),
+                mode: "on",
+              }
+          : { text: t.near_hint, mode: "" };
   const visible = displayed.slice(0, visibleCount);
   const hasMore = visibleCount < displayed.length;
   const selectedPlace =
@@ -372,13 +534,12 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
           <span>{t.sort}</span>
           <select
             value={filters.sort}
-            onChange={(event) =>
-              updateFilters({ sort: event.target.value as SortKey })
-            }
+            onChange={(event) => chooseSort(event.target.value as SortKey)}
           >
             <option value="recommended">{t.sort_default}</option>
             <option value="name">{t.sort_az}</option>
             <option value="rating">{t.sort_rating}</option>
+            <option value="nearest">{t.sort_nearest}</option>
           </select>
         </label>
 
@@ -409,6 +570,51 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
         </button>
       </div>
 
+      <div className="near-bar">
+        <button
+          type="button"
+          className={filters.nearActive ? "near-btn active" : "near-btn"}
+          aria-pressed={filters.nearActive}
+          disabled={locating}
+          onClick={startNearMe}
+        >
+          {locating ? t.near_locating : t.near_me}
+        </button>
+        {filters.nearActive ? (
+          <>
+            <label className="near-radius">
+              <span>{t.near_within}</span>
+              <select
+                aria-label={t.near_within}
+                value={filters.radiusKm}
+                onChange={(event) =>
+                  updateFilters({ radiusKm: Number(event.target.value) })
+                }
+              >
+                {NEAR_RADIUS_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r} km
+                  </option>
+                ))}
+                <option value={ANY_DISTANCE_KM}>{t.near_any}</option>
+              </select>
+            </label>
+            <button type="button" className="near-clear" onClick={clearNear}>
+              {t.near_clear}
+            </button>
+          </>
+        ) : null}
+      </div>
+      <p
+        className={
+          nearStatus.mode ? `near-status is-${nearStatus.mode}` : "near-status"
+        }
+        role="status"
+        aria-live="polite"
+      >
+        {nearStatus.text}
+      </p>
+
       <p className="result-count" aria-live="polite">
         {t.showing(displayed.length)}
       </p>
@@ -420,7 +626,11 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
       </section>
 
       {displayed.length === 0 ? (
-        <p className="empty">{t.empty}</p>
+        <p className="empty">
+          {filters.nearActive && filters.radiusKm < ANY_DISTANCE_KM
+            ? t.near_none(filters.radiusKm)
+            : t.empty}
+        </p>
       ) : view === "cards" ? (
         <ul className="place-list cards">
           {visible.map((place) => (
@@ -454,6 +664,13 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
               {place.rating_value != null ? (
                 <p className="place-rating">{ratingText(place)}</p>
               ) : null}
+              {distances.get(place.legacy_id) != null ? (
+                <p className="place-dist">
+                  <span className="dist-tag">
+                    {formatDist(distances.get(place.legacy_id) ?? null)}
+                  </span>
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -476,6 +693,11 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
                 <span className="place-name-zh">{place.name_zh}</span>
                 <span className="place-name-en">{place.name_en}</span>
               </span>
+              {distances.get(place.legacy_id) != null ? (
+                <span className="dist-tag">
+                  {formatDist(distances.get(place.legacy_id) ?? null)}
+                </span>
+              ) : null}
               {savedIds.includes(place.legacy_id) ? (
                 <span className="saved-marker">{t.saved}</span>
               ) : null}
@@ -515,6 +737,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
           place={selectedPlace}
           lang={lang}
           isSaved={savedIds.includes(selectedPlace.legacy_id)}
+          distanceKm={distances.get(selectedPlace.legacy_id) ?? null}
           onToggleSave={toggleSave}
           onClose={closeDetails}
         />

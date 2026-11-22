@@ -34,6 +34,7 @@ export type Strings = {
   sort_default: string;
   sort_az: string;
   sort_rating: string;
+  sort_nearest: string;
   view_cards: string;
   view_compact: string;
   clear_all: string;
@@ -70,6 +71,25 @@ export type Strings = {
   cal_btn: string;
   cal_view_in: string;
   report_place: string;
+  // Near me (all values lifted verbatim from the live app's table,
+  // under its own key names: near_me, near_locating, near_within,
+  // near_any, near_clear, near_hint, the near_error_* set, near_found,
+  // near_none, offline_near, sort_need_loc, nearest, f_distance).
+  near_me: string;
+  near_locating: string;
+  near_within: string;
+  near_any: string;
+  near_clear: string;
+  near_hint: string;
+  near_error_denied: string;
+  near_error_unavail: string;
+  near_error_timeout: string;
+  near_error_unsupported: string;
+  offline_near: string;
+  sort_need_loc: string;
+  f_distance: string;
+  near_found: (n: number, r: number) => string;
+  near_none: (r: number) => string;
   showing: (n: number) => string;
   showingOf: (shown: number, total: number) => string;
   showingAll: (total: number) => string;
@@ -102,6 +122,7 @@ export const STRINGS: Record<Lang, Strings> = {
     sort_default: "Recommended order",
     sort_az: "Name A–Z",
     sort_rating: "Highest Google rating",
+    sort_nearest: "Nearest",
     view_cards: "Cards",
     view_compact: "Compact list",
     clear_all: "Clear all",
@@ -138,6 +159,30 @@ export const STRINGS: Record<Lang, Strings> = {
     cal_btn: "Add to calendar",
     cal_view_in: "View in Hao Chi Taiwan",
     report_place: "Report a problem with this place",
+    near_me: "Near me",
+    near_locating: "Finding you…",
+    near_within: "Within",
+    near_any: "Any distance",
+    near_clear: "Clear location",
+    near_hint: "Use your location to find places near you — sorted nearest first. Your location stays on your phone and is only used for this search.",
+    near_error_denied: "Location permission was turned down, so Near me can't run. You can allow location for this site in your browser settings, or keep browsing the full list.",
+    near_error_unavail: "Your phone couldn't find your location. Check location is on and try again.",
+    near_error_timeout: "Finding your location took too long. Please try again.",
+    near_error_unsupported: "This browser doesn't support location, so Near me isn't available here.",
+    offline_near: "Near me needs a connection and your location, so it can't run while you're offline. The full list still works below.",
+    sort_need_loc: "Nearest sorting needs your location — allow it and places will sort by distance.",
+    f_distance: "Distance from you",
+    near_found: (n, r) =>
+      r >= 9999
+        ? "Showing all " + n + " places, nearest first."
+        : "Found " +
+          n +
+          (n === 1 ? " place" : " places") +
+          " within " +
+          r +
+          " km of you — nearest first.",
+    near_none: (r) =>
+      "No places within " + r + " km of you. Try a wider range above.",
     showing: (n) => (n === 1 ? "Showing 1 place" : "Showing " + n + " places"),
     showingOf: (shown, total) => "Showing " + shown + " of " + total,
     showingAll: (total) =>
@@ -302,6 +347,7 @@ export const STRINGS: Record<Lang, Strings> = {
     sort_default: "推薦順序",
     sort_az: "依名稱 A–Z",
     sort_rating: "Google 評分最高",
+    sort_nearest: "最近",
     view_cards: "卡片",
     view_compact: "緊湊清單",
     clear_all: "清除全部",
@@ -338,6 +384,24 @@ export const STRINGS: Record<Lang, Strings> = {
     cal_btn: "加到行事曆",
     cal_view_in: "在好吃台灣查看",
     report_place: "回報這家店的問題",
+    near_me: "我附近",
+    near_locating: "定位中…",
+    near_within: "範圍",
+    near_any: "不限距離",
+    near_clear: "清除定位",
+    near_hint: "用你的位置找附近的店 — 由近到遠排列。你的位置只留在手機上，只用於這次搜尋。",
+    near_error_denied: "定位權限被拒絕，無法使用「我附近」。你可以在瀏覽器設定中允許此網站使用定位，或繼續瀏覽完整清單。",
+    near_error_unavail: "手機無法取得你的位置，請確認定位已開啟後再試一次。",
+    near_error_timeout: "定位花太久了，請再試一次。",
+    near_error_unsupported: "這個瀏覽器不支援定位，無法使用「我附近」。",
+    offline_near: "「我附近」需要網路連線和你的位置，離線時無法使用。下面的完整清單還能用。",
+    sort_need_loc: "「最近」排序需要你的位置 — 允許定位後就會依距離排列。",
+    f_distance: "距離你",
+    near_found: (n, r) =>
+      r >= 9999
+        ? "共 " + n + " 家店，由近到遠排列。"
+        : "在你 " + r + " 公里內找到 " + n + " 家店 — 由近到遠排列。",
+    near_none: (r) => "你 " + r + " 公里內沒有店 — 試試上面的更大範圍。",
     showing: (n) => "共 " + n + " 家店",
     showingOf: (shown, total) => "顯示 " + shown + " 家 · 共 " + total + " 家",
     showingAll: (total) => "已顯示全部 " + total + " 家",

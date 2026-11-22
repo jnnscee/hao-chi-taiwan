@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import {
   FIT_MAX_ZOOM,
   TAIWAN_BOUNDS,
-  markerBounds,
+  fitBounds,
   markerSetSignature,
   type MapMarkerSet,
 } from "@/lib/map";
@@ -79,11 +79,27 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
           .addTo(layer);
       }
     }
+    // The visitor's own position, when known: a distinct blue dot,
+    // drawn last so it sits above the place markers. Not interactive —
+    // it is not a place.
+    if (set.user) {
+      const icon = L.divIcon({
+        className: "map-you-wrap",
+        html: '<span class="map-you"></span>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+      L.marker([set.user.lat, set.user.lng], {
+        icon,
+        keyboard: false,
+        interactive: false,
+      }).addTo(layer);
+    }
     // Refit only when the set's identity actually changed.
     const signature = markerSetSignature(set);
     if (signature !== fittedSignatureRef.current) {
       fittedSignatureRef.current = signature;
-      const bounds = markerBounds(set.markers);
+      const bounds = fitBounds(set);
       if (bounds) {
         map.fitBounds(
           [

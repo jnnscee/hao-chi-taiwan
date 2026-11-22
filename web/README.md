@@ -58,6 +58,29 @@ served from the repo root until the rebuild is ready to take over.
   keeps the visitor's view. Wheel/drag/pinch zoom runs to street
   level. The marker logic is pure functions in `lib/map.ts`,
   unit-checked against the real data.
+- **Near me**, mirroring the live app: the Near me button asks for the
+  visitor's location only when tapped (`navigator.geolocation`, the
+  live app's options). The position is held in memory (filter state)
+  only — never written to localStorage, never sent anywhere — and is
+  dropped by "Clear location" or Clear all. While on, a "Within"
+  range select (1 / 3 / 5 / 10 / 25 km or Any distance, default 5 km)
+  filters the set by haversine distance on top of the tab/search/
+  dropdown filters, the sort switches to Nearest, and every card and
+  row shows a distance tag ("850 m" / "1.2 km" — the live format);
+  the details dialog gains a "Distance from you" fact row. A status
+  line under the controls carries the live app's own strings (privacy
+  hint at rest, "Found N places within R km of you — nearest first."
+  while on, its message when none are in range, and its denied /
+  unavailable / timeout / unsupported / offline errors). Choosing
+  "Nearest" in the Sort dropdown without a known location asks for
+  the location for sorting only (the radius filter stays off), as the
+  live app does; a failure restores Recommended order. On the map, a
+  blue "you are here" dot marks the visitor, and while Near me
+  filters by a real range the fitted bounds include the visitor's
+  position alongside the nearby set. All distance/range logic is
+  pure functions in `lib/places.ts` (with the fit logic in
+  `lib/map.ts`), unit-checked against the real data from a Zuoying
+  reference point.
 - The filtering/sorting/numbering logic lives in `lib/places.ts` and the
   details link/saved-set logic in `lib/details.ts`, both as pure
   functions, unit-checked against the real data.
@@ -79,6 +102,6 @@ npm start
 
 ## Not yet
 
-No Near me, contact form, place pages, admin login or PWA — those
-are the later Phase 2 steps. There is also no `/zh/` route yet; the
+No contact form, place pages, admin login or PWA — those are the
+later Phase 2 steps. There is also no `/zh/` route yet; the
 language lives in state + the `?lang=` parameter for now.

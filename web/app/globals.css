@@ -176,6 +176,98 @@ body {
   text-align: center;
 }
 
+/* --- Near me --- */
+
+.near-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.near-btn {
+  border: 1px solid #7a4a12;
+  background: #fff;
+  color: #7a4a12;
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.near-btn.active {
+  background: #7a4a12;
+  color: #fff;
+}
+
+.near-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.near-radius {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.near-radius select {
+  padding: 0.45rem 0.5rem;
+  font-size: 0.95rem;
+  border: 1px solid #cfc6a8;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.near-clear {
+  border: none;
+  background: none;
+  color: #7a4a12;
+  font-size: 0.95rem;
+  padding: 0.45rem 0.25rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.near-status {
+  margin: 0 0 1rem;
+  color: #666;
+  font-size: 0.92rem;
+}
+
+.near-status.is-on {
+  color: #7a4a12;
+}
+
+.near-status.is-error {
+  color: #a33b2e;
+}
+
+/* Distance tag on cards and compact rows while a location is known. */
+
+.dist-tag {
+  display: inline-block;
+  background: #7a4a12;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.place-dist {
+  margin: 0.35rem 0 0;
+}
+
+.place-list.compact .dist-tag {
+  flex: none;
+}
+
 /* --- Interactive map (Leaflet) --- */
 
 .map-section {
@@ -234,6 +326,26 @@ body {
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* The visitor's own position: a blue "you are here" dot, deliberately
+   unlike the brown place pins. */
+.map-you-wrap {
+  background: transparent;
+  border: none;
+}
+
+.map-you {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 3px;
+  border-radius: 999px;
+  background: #1a73e8;
+  border: 2.5px solid #fff;
+  box-shadow:
+    0 0 0 3px rgba(26, 115, 232, 0.35),
+    0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* --- Place lists --- */

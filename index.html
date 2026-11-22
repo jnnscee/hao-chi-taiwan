@@ -1108,6 +1108,7 @@
           f_address: "Address", f_address_zh: "地址 (driver)", f_hours: "Hours", f_phone: "Phone",
           f_website: "Website", f_instagram: "Instagram", f_facebook: "Facebook", f_area: "Area",
           city_names: { "Kaohsiung": "Kaohsiung", "Chiayi County": "Chiayi", "Tainan City": "Tainan", "Pingtung County": "Pingtung", "Taipei": "Taipei", "New Taipei": "New Taipei", "Yilan": "Yilan", "Taichung": "Taichung", "Changhua": "Changhua", "Yunlin": "Yunlin", "Tainan": "Tainan" },
+          district_names: { "Anping": "Anping", "Banqiao": "Banqiao", "Chaozhou Township": "Chaozhou Township", "Cianjhen": "Cianjhen", "Da'an": "Da'an", "Datong": "Datong", "Dongshi Township": "Dongshi Township", "Douliu": "Douliu", "Fangshan Township": "Fangshan Township", "Fengshan": "Fengshan", "Gushan": "Gushan", "Hengchun Township": "Hengchun Township", "Lingya": "Lingya", "Liuqiu Township": "Liuqiu Township", "Lukang": "Lukang", "Manzhou Township": "Manzhou Township", "Nantun": "Nantun", "Niaosong": "Niaosong", "North District": "North District", "Qianjin": "Qianjin", "Qijin": "Qijin", "Sanmin": "Sanmin", "Sinsing": "Sinsing", "Tamsui": "Tamsui", "Wanhua": "Wanhua", "West District": "West District", "Xinyi": "Xinyi", "Xitun": "Xitun", "Yancheng": "Yancheng", "Yilan City": "Yilan City", "Zhongshan": "Zhongshan", "Zhongzheng": "Zhongzheng", "Zuoying": "Zuoying" },
           list_label: "List", list_all: "All places", list_recommended: "Recommended", list_want: "Want to Try",
           want_note: "Listed in no particular order — places I want to try.",
           temp_closed: "Temporarily closed",
@@ -1282,6 +1283,7 @@
           f_address: "地址（英文）", f_address_zh: "中文地址", f_hours: "營業時間", f_phone: "電話",
           f_website: "網站", f_instagram: "Instagram", f_facebook: "Facebook", f_area: "地區",
           city_names: { "Kaohsiung": "高雄", "Chiayi County": "嘉義", "Tainan City": "台南", "Pingtung County": "屏東", "Taipei": "台北", "New Taipei": "新北", "Yilan": "宜蘭", "Taichung": "台中", "Changhua": "彰化", "Yunlin": "雲林", "Tainan": "台南" },
+          district_names: { "Anping": "安平區", "Banqiao": "板橋區", "Chaozhou Township": "潮州鎮", "Cianjhen": "前鎮區", "Da'an": "大安區", "Datong": "大同區", "Dongshi Township": "東石鄉", "Douliu": "斗六市", "Fangshan Township": "枋山鄉", "Fengshan": "鳳山區", "Gushan": "鼓山區", "Hengchun Township": "恆春鎮", "Lingya": "苓雅區", "Liuqiu Township": "琉球鄉", "Lukang": "鹿港鎮", "Manzhou Township": "滿州鄉", "Nantun": "南屯區", "Niaosong": "鳥松區", "North District": "北區", "Qianjin": "前金區", "Qijin": "旗津區", "Sanmin": "三民區", "Sinsing": "新興區", "Tamsui": "淡水區", "Wanhua": "萬華區", "West District": "西區", "Xinyi": "信義區", "Xitun": "西屯區", "Yancheng": "鹽埕區", "Yilan City": "宜蘭市", "Zhongshan": "中山區", "Zhongzheng": "中正區", "Zuoying": "左營區" },
           list_label: "清單", list_all: "全部", list_recommended: "推薦", list_want: "想去",
           want_note: "順序不代表排名，這些是我想去的地方。",
           temp_closed: "暫時停業",
@@ -2716,7 +2718,7 @@
         const districts = [...new Set(PLACES.map((p) => p.district))].sort();
         const cuisines = [...new Set(PLACES.map((p) => p.cuisine))].sort();
         $("districtSel").innerHTML = '<option value="All">' + esc(t().all_districts) + "</option>" +
-          districts.map((d) => '<option value="' + esc(d) + '">' + esc(d) + "</option>").join("");
+          districts.map((d) => '<option value="' + esc(d) + '">' + esc(t().district_names ? (t().district_names[d] || d) : d) + "</option>").join("");
         $("cuisineSel").innerHTML = '<option value="All">' + esc(t().all_cuisines) + "</option>" +
           cuisines.map((c) => '<option value="' + esc(c) + '">' + esc(c) + "</option>").join("");
         const cities = ["All", ...new Set(PLACES.map((p) => p.city))];

@@ -1,0 +1,64 @@
+/* Skeleton styling only — readable list, not the final design. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+  background: #fffdf8;
+  line-height: 1.45;
+}
+
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.hero h1 {
+  margin: 0 0 0.25rem;
+  font-size: 2rem;
+}
+
+.counts {
+  margin: 0 0 2rem;
+  color: #666;
+}
+
+section h2 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.35rem;
+  border-bottom: 2px solid #e8e0cf;
+  padding-bottom: 0.35rem;
+}
+
+.place-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.place {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #f0ead9;
+}
+
+.place-name-zh {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.place-name-en {
+  margin: 0.1rem 0 0;
+  color: #777;
+  font-size: 0.95rem;
+}
+
+.place-gloss {
+  margin: 0.15rem 0 0;
+  font-size: 0.95rem;
+}

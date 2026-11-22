@@ -11,6 +11,10 @@ import PlaceBrowser from "./PlaceBrowser";
 
 export const metadata: Metadata = homeMetadata("en");
 
+// ISR: regenerate at most every 60 s so edits Jenny makes in
+// /admin reach the public list without a redeploy.
+export const revalidate = 60;
+
 export default async function HomePage() {
   const places = await getPlaces();
 

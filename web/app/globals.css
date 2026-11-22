@@ -1239,3 +1239,271 @@ a.foot-link {
     margin-top: 0;
   }
 }
+
+/* --- Admin (/admin) — Jenny's place manager --- */
+/* Plain and functional on purpose: this is a private tool, not
+   part of the visitor design. Palette follows the site's. */
+
+.admin-wrap {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.admin-title {
+  font-size: 1.6rem;
+  margin: 0 0 1rem;
+}
+
+.admin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.admin-head-right {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.admin-who {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.admin-card {
+  border: 1px solid #e5dcc3;
+  border-radius: 0.75rem;
+  background: #fffdf6;
+  padding: 1.1rem 1.2rem;
+  max-width: 480px;
+}
+
+.admin-btn {
+  border: 1px solid #d8cfb4;
+  background: #fff;
+  color: #7a4a12;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.admin-btn-primary {
+  border-color: #7a4a12;
+  background: #7a4a12;
+  color: #fff;
+}
+
+.admin-btn-danger {
+  border-color: #a33b2e;
+  background: #a33b2e;
+  color: #fff;
+}
+
+.admin-banner {
+  border: 1px solid #b9cf9e;
+  background: #f2f8e9;
+  color: #33511a;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.93rem;
+}
+
+.admin-error {
+  color: #a33b2e;
+  font-size: 0.93rem;
+}
+
+.admin-listbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.admin-search {
+  flex: 1 1 260px;
+  padding: 0.55rem 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #cfc6a8;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: inherit;
+}
+
+.admin-count {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.2rem 0 0.6rem;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid #eee5cb;
+  border-radius: 0.6rem;
+  background: #fff;
+  padding: 0.55rem 0.8rem;
+}
+
+.admin-row-id {
+  font-variant-numeric: tabular-nums;
+  color: #7a4a12;
+  font-weight: 600;
+  min-width: 3.2rem;
+}
+
+.admin-row-names {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-row-en {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.admin-row-meta {
+  color: #888;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.admin-form-title {
+  font-size: 1.25rem;
+  margin: 0 0 0.8rem;
+}
+
+.admin-section {
+  border: 1px solid #e5dcc3;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.9rem 1rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.admin-section legend {
+  font-weight: 600;
+  color: #7a4a12;
+  padding: 0 0.35rem;
+}
+
+/* The working-notes section is visually set apart so it never
+   reads as part of the public place data. */
+.admin-internal {
+  background: #f4f1e6;
+  border-style: dashed;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.7rem 1rem;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.88rem;
+  color: #666;
+}
+
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+  padding: 0.55rem 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #cfc6a8;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: inherit;
+}
+
+.admin-field textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.admin-check {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+  padding-top: 1.2rem;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.admin-danger {
+  margin-top: 2rem;
+  border: 1px solid #e3b7b0;
+  border-radius: 0.75rem;
+  background: #fdf3f1;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.admin-danger h3 {
+  margin: 0 0 0.4rem;
+  color: #a33b2e;
+  font-size: 1.05rem;
+}
+
+.admin-danger p {
+  margin: 0 0 0.7rem;
+  font-size: 0.93rem;
+}
+
+.admin-danger-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.admin-danger-row input {
+  flex: 1 1 220px;
+  padding: 0.55rem 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #d9a49b;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: inherit;
+}
+
+@media (max-width: 640px) {
+  .admin-row {
+    flex-wrap: wrap;
+  }
+
+  .admin-row-meta {
+    white-space: normal;
+  }
+}

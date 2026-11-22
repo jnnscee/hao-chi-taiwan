@@ -5,10 +5,13 @@ import { placeMetadata } from "@/lib/routes";
 import PlacePageClient from "../../PlacePageClient";
 
 // A place's own page, English. Statically generated for every
-// legacy_id in the data; an unknown id is a proper 404
-// (dynamicParams off, plus notFound() as a belt-and-braces).
+// legacy_id in the data at build time; a place Jenny adds later
+// in /admin renders on its first visit instead (dynamicParams
+// stays at its default), and an unknown id is a proper 404 via
+// notFound(). ISR revalidation keeps edits fresh: a save in
+// /admin shows up here within about a minute, no redeploy.
 
-export const dynamicParams = false;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const places = await getPlaces();

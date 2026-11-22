@@ -5,9 +5,12 @@ import { placeMetadata } from "@/lib/routes";
 import PlacePageClient from "../../../PlacePageClient";
 
 // A place's own page, Chinese — the /zh/ twin of /place/<id>,
-// statically generated for every legacy_id; unknown ids 404.
+// statically generated for every legacy_id at build time; ids
+// added later in /admin render on first visit, unknown ids 404,
+// and ISR keeps the page fresh after admin edits (see the
+// English twin).
 
-export const dynamicParams = false;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const places = await getPlaces();

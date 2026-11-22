@@ -11,6 +11,9 @@ import PlaceBrowser from "../PlaceBrowser";
 
 export const metadata: Metadata = homeMetadata("zh");
 
+// ISR, as on /: admin edits show up within about a minute.
+export const revalidate = 60;
+
 export default async function ZhHomePage() {
   const places = await getPlaces();
 

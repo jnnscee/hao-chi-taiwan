@@ -28,6 +28,13 @@ export default function SiteFooter({ lang }: { lang: Lang }) {
         <a className="foot-link" href={contactPath(lang)}>
           {t.contact_h}
         </a>
+        {/* The one public trace of the admin area: a discreet link
+            to Jenny's sign-in. Visitors gain nothing from it —
+            /admin asks for an email code and only her account
+            gets in. */}
+        <a className="foot-link" href="/admin">
+          Admin
+        </a>
       </nav>
     </footer>
   );

@@ -156,8 +156,29 @@ served from the repo root until the rebuild is ready to take over.
   functions, unit-checked against the real data.
 - Data comes from the Supabase project `hao-chi-taiwan` via
   `lib/supabase.ts`, using only the publishable (anon) key. Row Level
-  Security guards the data: `places` is read-only for the public and
-  `place_internal` is never touched by this app.
+  Security guards the data: `places` is read-only for the public,
+  and `place_internal` (Jenny's working notes) is readable only
+  inside her admin session.
+- Admin: `/admin` is Jenny's place manager (English only — her own
+  tool). Sign-in is passwordless email code (Supabase Auth
+  `signInWithOtp` + `verifyOtp`); the app never creates accounts
+  (`shouldCreateUser: false`) and the single admin user lives in
+  Supabase Auth. The emailed message also carries a sign-in link
+  that lands back on `/admin`. Only `jnnscee@gmail.com` gets the
+  manager — any other signed-in account sees "not authorized" and
+  no data — and the database enforces the same rule: the
+  `admin_jenny_write_policies` migration gives that email, and
+  only that email, INSERT/UPDATE/DELETE on `places` and full
+  access to `place_internal`. From the manager Jenny can add,
+  edit and delete places (delete needs the place's Chinese name
+  typed back) and keep the `place_internal` working notes beside
+  each place. The form<->row mapping lives in `lib/admin.ts`,
+  unit-checked. Public freshness after a save is ISR: `/`, `/zh/`
+  and the place pages revalidate every 60 s (and `lib/data.ts`
+  caches its fetch for 30 s), so an edit shows up on the public
+  pages within about a minute with no redeploy; a brand-new
+  place's page renders on its first visit. The only public trace
+  of all this is a discreet "Admin" link in the footer.
 - The committed `.env` holds `NEXT_PUBLIC_SUPABASE_URL` and
   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Both are public values by design;
   no secret or service-role key must ever be added here.
@@ -172,7 +193,12 @@ npm start
 
 ## Not yet
 
-No admin login or PWA — those are the later Phase 2 steps.
+No PWA yet — that is a later Phase 2 step. Admin login is done
+(see above); two Auth settings live only in the Supabase
+dashboard and are still Jenny's to flip there: disabling public
+sign-ups, and adding the 6-digit code (`{{ .Token }}`) to the
+Magic Link email template so the login email shows the code as
+well as the link.
 `app/InfoOverlay.tsx` is a retired stub (the info overlays were
 replaced by real pages); it stays only because the GitHub snapshot
 push cannot delete files.

@@ -26,23 +26,12 @@ export function directionsUrl(place: Place): string {
 }
 
 /**
- * The shareable deep link for a place, carrying the sender's language so
- * the recipient lands in the same language, e.g.
- * "https://host/?place=r12&lang=zh" (mirrors the live app, whose share
- * links point at the language variant matching the current toggle).
+ * Extract the ?place= id from a query string ("?place=r12&x=1"), or
+ * null. Kept for backwards compatibility: share links used to point
+ * at "/?place=<id>&lang=<lang>", and the home pages still honour
+ * them by opening that place's details dialog. New links are the
+ * place's own page — see placeUrl in lib/routes.ts.
  */
-export function deepLinkFor(
-  origin: string,
-  legacyId: string,
-  lang: Lang
-): string {
-  return (
-    `${origin}/?place=${encodeURIComponent(legacyId)}` +
-    `&lang=${encodeURIComponent(lang)}`
-  );
-}
-
-/** Extract the ?place= id from a query string ("?place=r12&x=1"), or null. */
 export function placeIdFromSearch(search: string): string | null {
   try {
     const id = new URLSearchParams(search).get("place");
@@ -128,7 +117,8 @@ function formatTaipei(date: Date): string {
 /**
  * Google Calendar "add event" template link: a 1-hour event starting at
  * the next whole hour after `now`, titled with the place name, located at
- * the English address, in Asia/Taipei, with the deep link in the details.
+ * the English address, in Asia/Taipei, with the place's own page
+ * link (placeUrl, lib/routes.ts) in the details.
  */
 export function calendarUrl(
   place: Place,

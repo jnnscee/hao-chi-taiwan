@@ -73,6 +73,10 @@ export type Strings = {
   cal_btn: string;
   cal_view_in: string;
   report_place: string;
+  // Real-addresses slice: the place / info pages' way back to the
+  // list. NEW string (the live app has no place pages) — plain
+  // wording, flagged in the slice report for Jenny's review.
+  back_to_list: string;
   // Contact section, footer and contact form (all values lifted
   // verbatim from the live app's table, under its own key names:
   // contact_h, contact_sub, contact_btn, contact_email_label, foot1,
@@ -198,6 +202,7 @@ export const STRINGS: Record<Lang, Strings> = {
     cal_btn: "Add to calendar",
     cal_view_in: "View in Hao Chi Taiwan",
     report_place: "Report a problem with this place",
+    back_to_list: "Back to all places",
     contact_h: "Contact & feedback",
     contact_sub: "Spotted a place that's closed, a broken Google Maps or Instagram link, or wrong hours? Want to suggest a place Jenny should try, or just share feedback? Send a note — problem reports get checked and fixed.",
     contact_btn: "Write to us",
@@ -456,6 +461,7 @@ export const STRINGS: Record<Lang, Strings> = {
     cal_btn: "加到行事曆",
     cal_view_in: "在好吃台灣查看",
     report_place: "回報這家店的問題",
+    back_to_list: "回到所有店家",
     contact_h: "聯絡與意見回饋",
     contact_sub: "發現某家店已經歇業、Google Maps 或 Instagram 連結壞了，或營業時間不對？想推薦 Jenny 去試的店，或單純分享意見？歡迎來信 — 問題回報都會逐一確認並修正。",
     contact_btn: "寫信給我們",

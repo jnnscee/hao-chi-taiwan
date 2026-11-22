@@ -26,12 +26,13 @@ served from the repo root until the rebuild is ready to take over.
   app's own string table, including its district (33), cuisine (86) and
   city label tables: in Chinese mode the District and Cuisine dropdowns
   show the Chinese labels while option values and filtering are
-  unchanged. The choice persists in localStorage under
-  `hao-chi-lang-v1`; a `?lang=zh` / `?lang=en` URL parameter wins over
-  the stored choice for that visit, switching the toggle rewrites the
-  URL parameter in place (keeping any `?place=`), and Share links carry
-  the current language. Place names keep the Chinese heading with the
-  English sub-line in both languages.
+  unchanged. Language lives in the path (see **Real web addresses**
+  below): the toggle navigates between a page's two language twins
+  and records the choice in localStorage under `hao-chi-lang-v1`.
+  On the English home page only, a `?lang=zh` / `?lang=en` URL
+  parameter still wins over the stored choice for that visit (the
+  old share-link form), without overwriting it. Place names keep
+  the Chinese heading with the English sub-line in both languages.
 - Clicking or tapping any card or row opens the details dialog
   (`app/PlaceDetails.tsx`): names and gloss, temporarily-closed and list
   badges, cuisine, area, both addresses, the muted Google rating, hours
@@ -41,8 +42,8 @@ served from the repo root until the rebuild is ready to take over.
   never on cards. Actions: Open in Google Maps (with the Save hint),
   Get directions, Show driver (full-screen large Chinese name + address),
   Save (device-local, `hao-chi-saved-v1`, with a "Saved" marker on the
-  list), Share (Web Share or copy the `?place=<legacy_id>` deep link —
-  opening such a link opens that place's details), Add to calendar
+  list), Share (Web Share or copy the place's own page URL — see
+  **Real web addresses**), Add to calendar
   (1-hour Google Calendar template, Asia/Taipei) and a quiet
   "Report a problem with this place" button that opens the contact
   form pre-filled for the place. The dialog closes via
@@ -100,16 +101,44 @@ served from the repo root until the rebuild is ready to take over.
   reopens at its top next time — otherwise closing changes no scroll
   position and the panel reopens where it was left. The badge and
   close rules are pure functions in `lib/floating.ts`, unit-checked.
+- **Real web addresses** (`lib/routes.ts`): every place has its own
+  page — `/place/<legacy_id>` and `/zh/place/<legacy_id>`, statically
+  generated for all 242 places × 2 languages (unknown ids get a
+  proper bilingual 404) — rendering the same details and actions as
+  the dialog (one shared `app/PlaceDetailView.tsx`), plus the site
+  header and a back-to-the-list link. About / Privacy / Terms /
+  Contact are real routes too (`/about`, `/privacy`, `/terms`,
+  `/contact` and their `/zh/` twins): the footer links and the info
+  pages' cross-links navigate to them, and the About/Privacy/Terms
+  overlays are retired. `/zh/` is the home page in Chinese — the
+  path is authoritative for language on every `/zh/` page and
+  records Chinese as the stored preference; `/` keeps its
+  `?lang=` → stored → English resolution. One `placeUrl` helper
+  produces the language-matched place-page URL used by Share, the
+  calendar event's "View in Hao Chi Taiwan" line and the contact
+  form's "Place page:" line; the home pages still honour the old
+  `?place=<legacy_id>` links by opening that place's dialog.
+  Metadata (share previews) is per page: the home pages carry the
+  live site's two established variants verbatim (EN on `/`, ZH on
+  `/zh/`), place pages get their names as title and gloss · cuisine
+  · location as description, and the info pages get plain summary
+  descriptions. `og:image` everywhere is the default banner, for now
+  referenced at the live site's absolute URL
+  (https://hao-chi-taiwan.vercel.app/og-image.jpg) because the
+  GitHub snapshot push cannot carry the binary — self-host it at
+  launch.
 - A **Contact & feedback** section and footer close the page, as on
   the live app. The footer's About · Privacy · Terms · Contact &
-  feedback links open overlays: the three info pages carry the live
+  feedback links navigate to the real routes above. The three info
+  pages carry the live
   app's own bilingual texts (`lib/pages.ts`; the Privacy text is
   minimally adapted to stay true of the rebuild — no Google Fonts is
   loaded, there is no offline copy yet, the language choice is also
   stored on the device, directions never reads the visitor's
   location, and Vercel's basic server logs are noted), cross-linked
   to each other and to the form. The one contact form
-  (`app/ContactForm.tsx`) composes an email in the visitor's own app
+  (`app/ContactForm.tsx`) — also the body of the `/contact` page —
+  composes an email in the visitor's own app
   — it sends nothing itself: category (Feedback / Report a problem /
   Suggest a place / Other), optional place, name and reply email,
   and a required message, with "Open in email app" (mailto) and
@@ -143,8 +172,7 @@ npm start
 
 ## Not yet
 
-No place pages, real `/about` / `/privacy` / `/terms` routes (the
-pages are overlays for now, as on the live app), admin login or
-PWA — those are the later Phase 2 steps. There is also no `/zh/`
-route yet; the language lives in state + the `?lang=` parameter
-for now.
+No admin login or PWA — those are the later Phase 2 steps.
+`app/InfoOverlay.tsx` is a retired stub (the info overlays were
+replaced by real pages); it stays only because the GitHub snapshot
+push cannot delete files.

@@ -44,11 +44,11 @@ export type ContactPlaceRef = {
   mapsUrl: string | null;
 };
 
-/** Build the ContactPlaceRef for a place, given its deep link. */
-export function reportPlaceRef(place: Place, deepLink: string): ContactPlaceRef {
+/** Build the ContactPlaceRef for a place, given its page URL. */
+export function reportPlaceRef(place: Place, placePageUrl: string): ContactPlaceRef {
   return {
     nameEn: place.name_en || place.name_zh,
-    placePageUrl: deepLink,
+    placePageUrl,
     // The live app prefers the short Maps link, falling back to the full one.
     mapsUrl: place.maps_short_url || place.maps_url,
   };

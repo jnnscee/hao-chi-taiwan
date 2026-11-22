@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Place } from "@/lib/places";
-import { CONTACT_EMAIL, deepLinkFor } from "@/lib/details";
+import { CONTACT_EMAIL } from "@/lib/details";
+import { placeUrl } from "@/lib/routes";
 import {
   CONTACT_CATEGORIES,
   copyMessageText,
@@ -36,9 +37,21 @@ type Props = {
    *  overlay keeps its field values. */
   request: ContactOpenRequest | null;
   onClose: () => void;
+  /**
+   * "overlay" (default): the form floats over the page in a dialog,
+   * as it has since the contact slice. "page": the same form is the
+   * body of the /contact page itself — no backdrop, no close
+   * button, no Escape handling; it is simply always shown.
+   */
+  variant?: "overlay" | "page";
 };
 
-export default function ContactForm({ lang, request, onClose }: Props) {
+export default function ContactForm({
+  lang,
+  request,
+  onClose,
+  variant = "overlay",
+}: Props) {
   const t = STRINGS[lang];
   const [category, setCategory] = useState<ContactCategoryKey>("feedback");
   const [placeText, setPlaceText] = useState("");
@@ -66,7 +79,7 @@ export default function ContactForm({ lang, request, onClose }: Props) {
       request.place
         ? reportPlaceRef(
             request.place,
-            deepLinkFor(window.location.origin, request.place.legacy_id, lang)
+            placeUrl(window.location.origin, lang, request.place.legacy_id)
           )
         : null
     );
@@ -78,15 +91,16 @@ export default function ContactForm({ lang, request, onClose }: Props) {
   }, [request]);
 
   // Escape closes this overlay (the ✕-only rule applies only to the
-  // search panel, not to the app's content overlays).
+  // search panel, not to the app's content overlays). The page
+  // variant has nothing to close.
   useEffect(() => {
-    if (!request) return;
+    if (!request || variant === "page") return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [request, onClose]);
+  }, [request, onClose, variant]);
 
   if (!request) return null;
 
@@ -136,14 +150,9 @@ export default function ContactForm({ lang, request, onClose }: Props) {
     }
   }
 
-  return (
-    <div className="dialog-backdrop overlay-top">
-      <div
-        className="dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="cfTitle"
-      >
+  const formBody = (
+    <>
+      {variant === "overlay" ? (
         <button
           type="button"
           ref={closeRef}
@@ -153,100 +162,117 @@ export default function ContactForm({ lang, request, onClose }: Props) {
         >
           ✕
         </button>
+      ) : null}
 
-        <h2 id="cfTitle" className="dialog-title">
-          {t.cf_title}
-        </h2>
-        <p className="cf-intro">{t.cf_intro}</p>
+      <h2 id="cfTitle" className="dialog-title">
+        {t.cf_title}
+      </h2>
+      <p className="cf-intro">{t.cf_intro}</p>
 
-        <div className="cf-fields">
-          <label>
-            <span>{t.cf_category}</span>
-            <select
-              value={category}
-              onChange={(event) =>
-                setCategory(event.target.value as ContactCategoryKey)
-              }
-            >
-              {CONTACT_CATEGORIES.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {categoryLabels[c.key]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>{t.cf_place}</span>
-            <input
-              type="text"
-              value={placeText}
-              placeholder={t.cf_place_ph}
-              autoComplete="off"
-              onChange={(event) => setPlaceText(event.target.value)}
-            />
-          </label>
-          <label>
-            <span>{t.cf_name}</span>
-            <input
-              type="text"
-              value={name}
-              placeholder={t.cf_name_ph}
-              autoComplete="name"
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-          <label>
-            <span>{t.cf_email}</span>
-            <input
-              type="email"
-              value={email}
-              placeholder={t.cf_email_ph}
-              autoComplete="email"
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-          <label>
-            <span>{t.cf_message}</span>
-            <textarea
-              ref={messageRef}
-              value={message}
-              placeholder={t.cf_message_ph}
-              onChange={(event) => setMessage(event.target.value)}
-            />
-          </label>
-        </div>
-
-        <p className="cf-note">{t.cf_shot}</p>
-        <p className="cf-status" role="status" aria-live="polite">
-          {status}
-        </p>
-
-        <div className="cf-actions">
-          <a className="action primary" href={sendHref} onClick={onSendClick}>
-            {t.cf_send}
-          </a>
-          <a
-            className="action"
-            href={gmail.href}
-            {...(gmail.targetBlank
-              ? { target: "_blank", rel: "noopener" }
-              : {})}
-            onClick={onSendClick}
+      <div className="cf-fields">
+        <label>
+          <span>{t.cf_category}</span>
+          <select
+            value={category}
+            onChange={(event) =>
+              setCategory(event.target.value as ContactCategoryKey)
+            }
           >
-            {t.cf_gmail}
-          </a>
-        </div>
+            {CONTACT_CATEGORIES.map((c) => (
+              <option key={c.key} value={c.key}>
+                {categoryLabels[c.key]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>{t.cf_place}</span>
+          <input
+            type="text"
+            value={placeText}
+            placeholder={t.cf_place_ph}
+            autoComplete="off"
+            onChange={(event) => setPlaceText(event.target.value)}
+          />
+        </label>
+        <label>
+          <span>{t.cf_name}</span>
+          <input
+            type="text"
+            value={name}
+            placeholder={t.cf_name_ph}
+            autoComplete="name"
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+        <label>
+          <span>{t.cf_email}</span>
+          <input
+            type="email"
+            value={email}
+            placeholder={t.cf_email_ph}
+            autoComplete="email"
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </label>
+        <label>
+          <span>{t.cf_message}</span>
+          <textarea
+            ref={messageRef}
+            value={message}
+            placeholder={t.cf_message_ph}
+            onChange={(event) => setMessage(event.target.value)}
+          />
+        </label>
+      </div>
 
-        <div className="cf-fallback">
-          <p>
-            {t.cf_fallback_a}{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{" "}
-            {t.cf_fallback_b}
-          </p>
-          <button type="button" className="cf-copy-btn" onClick={onCopy}>
-            {t.cf_copy}
-          </button>
-        </div>
+      <p className="cf-note">{t.cf_shot}</p>
+      <p className="cf-status" role="status" aria-live="polite">
+        {status}
+      </p>
+
+      <div className="cf-actions">
+        <a className="action primary" href={sendHref} onClick={onSendClick}>
+          {t.cf_send}
+        </a>
+        <a
+          className="action"
+          href={gmail.href}
+          {...(gmail.targetBlank
+            ? { target: "_blank", rel: "noopener" }
+            : {})}
+          onClick={onSendClick}
+        >
+          {t.cf_gmail}
+        </a>
+      </div>
+
+      <div className="cf-fallback">
+        <p>
+          {t.cf_fallback_a}{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{" "}
+          {t.cf_fallback_b}
+        </p>
+        <button type="button" className="cf-copy-btn" onClick={onCopy}>
+          {t.cf_copy}
+        </button>
+      </div>
+    </>
+  );
+
+  if (variant === "page") {
+    return <div className="contact-page-form">{formBody}</div>;
+  }
+
+  return (
+    <div className="dialog-backdrop overlay-top">
+      <div
+        className="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cfTitle"
+      >
+        {formBody}
       </div>
     </div>
   );

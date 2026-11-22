@@ -32,7 +32,6 @@ import {
   toggleSavedId,
 } from "@/lib/details";
 import type { ContactCategoryKey } from "@/lib/contact";
-import { INFO_PAGES, type InfoPageKey } from "@/lib/pages";
 import {
   LANG_STORAGE_KEY,
   STRINGS,
@@ -45,7 +44,8 @@ import {
 } from "@/lib/i18n";
 import PlaceDetails from "./PlaceDetails";
 import ContactForm, { type ContactOpenRequest } from "./ContactForm";
-import InfoOverlay from "./InfoOverlay";
+import LangSwitch from "./LangSwitch";
+import SiteFooter from "./SiteFooter";
 
 // The interactive map is client-only: Leaflet needs `window`, so it is
 // dynamically imported with ssr:false and hydrates after the static
@@ -87,11 +87,20 @@ function locateBlocker(): NearErrorKey | null {
   return null;
 }
 
-export default function PlaceBrowser({ places }: { places: Place[] }) {
+export default function PlaceBrowser({
+  places,
+  routeLang,
+}: {
+  places: Place[];
+  /** The language of the page this browser is mounted on: "zh" on
+   *  /zh/ (authoritative — the page boots Chinese), "en" on /. */
+  routeLang: Lang;
+}) {
   const [filters, setFilters] = useState<ListFilters>(DEFAULT_FILTERS);
-  // UI language. Server render and first paint are English; the URL /
-  // stored choice is applied on mount, like the view default below.
-  const [lang, setLang] = useState<Lang>("en");
+  // UI language. On /zh/ the server render is already Chinese and
+  // stays so; on / the server render is English and the ?lang= /
+  // stored choice is applied on mount, as before.
+  const [lang, setLang] = useState<Lang>(routeLang);
   const t = STRINGS[lang];
   // Server render and first paint use Cards; the saved/phone default is
   // applied on mount to avoid a hydration mismatch.
@@ -120,11 +129,11 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   // and restored on open so it survives the panel being display:none.
   const [panelOpen, setPanelOpen] = useState(false);
   const [floatVisible, setFloatVisible] = useState(false);
-  // About / Privacy / Terms overlays and the Contact & feedback form.
-  // contactRequest carries the prefill (category + reported place);
-  // its nonce bumps on every open so the form re-applies the prefill
-  // even when reopened for the same place.
-  const [infoPage, setInfoPage] = useState<InfoPageKey | null>(null);
+  // The Contact & feedback form overlay. contactRequest carries
+  // the prefill (category + reported place); its nonce bumps on
+  // every open so the form re-applies the prefill even when
+  // reopened for the same place. (About / Privacy / Terms are real
+  // pages now — the footer links navigate to them.)
   const [contactRequest, setContactRequest] =
     useState<ContactOpenRequest | null>(null);
   const contactNonceRef = useRef(0);
@@ -157,11 +166,22 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     }
   }, []);
 
-  // On mount: resolve the language — a ?lang= URL parameter wins over
-  // the stored toggle choice (hao-chi-lang-v1), which wins over the
-  // English default. The URL parameter applies to this visit only; it
-  // does not overwrite the stored choice.
+  // On mount: resolve the language. On /zh/ the path is
+  // authoritative — the page booted Chinese (routeLang) and Chinese
+  // is recorded as the stored preference. On / the existing
+  // resolution applies: a ?lang= URL parameter wins over the stored
+  // toggle choice (hao-chi-lang-v1), which wins over the English
+  // default; the URL parameter applies to this visit only and does
+  // not overwrite the stored choice.
   useEffect(() => {
+    if (routeLang === "zh") {
+      try {
+        window.localStorage.setItem(LANG_STORAGE_KEY, "zh");
+      } catch {
+        // storage unavailable: the page is still Chinese
+      }
+      return;
+    }
     let initial: Lang = "en";
     try {
       initial =
@@ -172,7 +192,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
       // storage/URL unavailable: keep the English default
     }
     if (initial !== "en") setLang(initial);
-  }, []);
+  }, [routeLang]);
 
   // Keep the html lang attribute in step with the toggle (the live app
   // uses zh-Hant for Chinese).
@@ -196,16 +216,16 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     }
   }, [places]);
 
-  // Rewrite the URL in place, preserving whichever of ?place= / ?lang=
-  // is not being changed.
-  function syncUrl(patch: { place?: string | null; lang?: Lang }) {
+  // Rewrite the URL in place when the details dialog opens/closes
+  // (the ?place= deep-link form, kept for backwards compatibility —
+  // opening such a link opens the dialog; see the mount effect).
+  // The language no longer lives in the query string: it is the
+  // path, and the toggle navigates (see LangSwitch).
+  function syncUrl(place: string | null) {
     try {
       const params = new URLSearchParams(window.location.search);
-      if (patch.place !== undefined) {
-        if (patch.place) params.set("place", patch.place);
-        else params.delete("place");
-      }
-      if (patch.lang !== undefined) params.set("lang", patch.lang);
+      if (place) params.set("place", place);
+      else params.delete("place");
       const qs = params.toString();
       window.history.replaceState(
         null,
@@ -217,29 +237,20 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     }
   }
 
-  function chooseLang(next: Lang) {
-    setLang(next);
-    try {
-      window.localStorage.setItem(LANG_STORAGE_KEY, next);
-    } catch {
-      // storage unavailable: the choice just won't persist
-    }
-    syncUrl({ lang: next });
-  }
-
   function openDetails(place: Place) {
     setSelectedId(place.legacy_id);
-    syncUrl({ place: place.legacy_id });
+    syncUrl(place.legacy_id);
   }
 
   function closeDetails() {
     setSelectedId(null);
-    syncUrl({ place: null });
+    syncUrl(null);
   }
 
-  // Open the one contact form: generally (footer, contact section,
-  // info pages — category Feedback, no place) or pre-filled from a
+  // Open the one contact form overlay: generally (the contact
+  // section — category Feedback, no place) or pre-filled from a
   // place's "Report a problem" (category Report a problem + place).
+  // (The footer and info pages link to the /contact page instead.)
   function openContact(category: ContactCategoryKey, place: Place | null) {
     contactNonceRef.current += 1;
     setContactRequest({
@@ -573,26 +584,9 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   const badge = badgeCountFor(displayed.length, tabCounts[filters.tab]);
 
   function renderLangToggle() {
-    return (
-      <div className="langtoggle" role="group" aria-label="Language / 語言">
-        <button
-          type="button"
-          aria-pressed={lang === "en"}
-          className={lang === "en" ? "lang-btn active" : "lang-btn"}
-          onClick={() => chooseLang("en")}
-        >
-          EN
-        </button>
-        <button
-          type="button"
-          aria-pressed={lang === "zh"}
-          className={lang === "zh" ? "lang-btn active" : "lang-btn"}
-          onClick={() => chooseLang("zh")}
-        >
-          中文
-        </button>
-      </div>
-    );
+    // The toggle navigates between the path twins of the current
+    // page now (LangSwitch); it no longer flips state in place.
+    return <LangSwitch lang={lang} />;
   }
 
   function renderViewButtons() {
@@ -952,40 +946,7 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
         </div>
       </section>
 
-      <footer className="site-footer">
-        <p>{t.foot1}</p>
-        <p>{t.foot2}</p>
-        <div className="foot-links">
-          <button
-            type="button"
-            className="foot-link"
-            onClick={() => setInfoPage("about")}
-          >
-            {INFO_PAGES[lang].about_btn}
-          </button>
-          <button
-            type="button"
-            className="foot-link"
-            onClick={() => setInfoPage("privacy")}
-          >
-            {INFO_PAGES[lang].privacy_btn}
-          </button>
-          <button
-            type="button"
-            className="foot-link"
-            onClick={() => setInfoPage("terms")}
-          >
-            {INFO_PAGES[lang].terms_btn}
-          </button>
-          <button
-            type="button"
-            className="foot-link"
-            onClick={() => openContact("feedback", null)}
-          >
-            {t.contact_h}
-          </button>
-        </div>
-      </footer>
+      <SiteFooter lang={lang} />
 
       {selectedPlace ? (
         <PlaceDetails
@@ -995,21 +956,10 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
           distanceKm={distances.get(selectedPlace.legacy_id) ?? null}
           onToggleSave={toggleSave}
           onReport={(place) => openContact("problem", place)}
-          suspended={contactRequest != null || infoPage != null}
+          suspended={contactRequest != null}
           onClose={closeDetails}
         />
       ) : null}
-
-      <InfoOverlay
-        lang={lang}
-        page={infoPage}
-        onOpenPage={setInfoPage}
-        onOpenContact={() => {
-          setInfoPage(null);
-          openContact("feedback", null);
-        }}
-        onClose={() => setInfoPage(null)}
-      />
 
       <ContactForm
         lang={lang}

@@ -1124,6 +1124,72 @@ body {
   cursor: pointer;
 }
 
+/* --- Standalone pages (place / info / contact) --- */
+
+/* The slim header on non-home pages: site name + language toggle. */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.page-header .langtoggle {
+  margin-top: 0;
+}
+
+.site-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+span.site-name {
+  display: inline-block;
+  margin-top: 0.15rem;
+}
+
+/* The language toggle's links wear the old buttons' clothes. */
+a.lang-btn {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.back-row {
+  margin: 0 0 1rem;
+}
+
+.back-link {
+  color: #7a4a12;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Links inside the shared details view (the dialog styles its own
+   anchors via .dialog a; the place page needs the same colour). */
+.place-detail a {
+  color: #7a4a12;
+}
+
+/* Footer links are anchors now, not buttons. */
+a.foot-link {
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* The contact form as a page body: no card chrome, the form simply
+   sits in the page flow under its heading. */
+.contact-page-form .dialog-title {
+  padding-right: 0;
+}
+
 /* The details report control is a <button> wearing the old link's
    clothes (it opens the contact form now instead of a mailto). */
 .report-row button.report-link {

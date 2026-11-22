@@ -8,7 +8,10 @@ import PlaceBrowser from "./PlaceBrowser";
 
 const PLACE_COLUMNS =
   "legacy_id, list_type, name_zh, name_en, name_rom, gloss, cuisine, " +
-  "rating_value, rating_count, city, district, address_en, address_zh";
+  "rating_value, rating_count, city, district, address_en, address_zh, " +
+  "lat, lng, maps_url, maps_short_url, phone, website, instagram, " +
+  "instagram_handle, facebook, hours, hours_note, hours_checked_on, " +
+  "visitor_notes, cash_only, temporarily_closed";
 
 async function getPlaces(): Promise<Place[]> {
   const { data, error } = await supabase

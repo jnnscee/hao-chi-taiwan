@@ -252,3 +252,285 @@ body {
   font-size: 0.95rem;
   cursor: pointer;
 }
+
+/* --- Clickable entries + saved marker --- */
+
+.place.clickable {
+  cursor: pointer;
+}
+
+.place.clickable:hover,
+.place.clickable:focus-visible {
+  background: #faf5e9;
+  outline: none;
+}
+
+.saved-marker {
+  flex: none;
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7a4a12;
+  background: #f0ead9;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
+
+.place-list.compact .saved-marker {
+  margin-left: 0;
+}
+
+/* --- Details dialog --- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.55);
+  overflow-y: auto;
+  z-index: 40;
+  padding: 1rem;
+}
+
+.dialog {
+  position: relative;
+  max-width: 36rem;
+  margin: 2rem auto;
+  background: #fffdf8;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+}
+
+.dialog-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #d8cfb4;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #1a1a1a;
+}
+
+.dialog-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+  padding-right: 2.5rem;
+}
+
+.badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+}
+
+.list-badge {
+  background: #f0ead9;
+  color: #7a4a12;
+}
+
+.closed-badge {
+  background: #a33b2e;
+  color: #fff;
+}
+
+.dialog-name-zh {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+
+.dialog-name-en {
+  margin: 0.15rem 0 0;
+  color: #777;
+  font-size: 1rem;
+}
+
+.dialog-gloss {
+  margin: 0.3rem 0 0;
+  font-size: 1rem;
+}
+
+.dialog-facts {
+  margin: 1rem 0 0;
+}
+
+.dialog-facts .fact {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f0ead9;
+}
+
+.dialog-facts dt {
+  flex: 0 0 6.5rem;
+  color: #666;
+  font-size: 0.88rem;
+}
+
+.dialog-facts dd {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.dialog-rating {
+  color: #999;
+}
+
+.dialog-section {
+  margin-top: 1.1rem;
+}
+
+.dialog-section h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a4a12;
+}
+
+.dialog-section p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+.hours-text {
+  white-space: pre-line;
+}
+
+.hours-note,
+.hours-checked {
+  color: #666;
+  font-size: 0.88rem;
+}
+
+.link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.link-list li {
+  padding: 0.2rem 0;
+}
+
+.dialog a {
+  color: #7a4a12;
+}
+
+.good-to-know {
+  background: #faf5e9;
+  border: 1px solid #f0ead9;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.good-to-know h3 {
+  margin-top: 0;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-top: 1.25rem;
+}
+
+.action {
+  border: 1px solid #7a4a12;
+  background: #fff;
+  color: #7a4a12;
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.action.primary {
+  background: #7a4a12;
+  color: #fff;
+}
+
+.action[aria-pressed="true"] {
+  background: #f0ead9;
+}
+
+.maps-action {
+  flex: 1 1 100%;
+}
+
+.maps-action .hint {
+  margin: 0.35rem 0 0;
+  color: #666;
+  font-size: 0.88rem;
+}
+
+.share-note {
+  flex: 1 1 100%;
+  margin: 0;
+  color: #666;
+  font-size: 0.88rem;
+  word-break: break-all;
+}
+
+.report-row {
+  margin: 1.25rem 0 0;
+  text-align: center;
+}
+
+.report-link {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+/* --- Show driver overlay --- */
+
+.driver-overlay {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  color: #000;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.driver-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid #000;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 1.15rem;
+  cursor: pointer;
+  color: #000;
+}
+
+.driver-name {
+  margin: 0;
+  font-size: clamp(2.5rem, 11vw, 5rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.driver-address {
+  margin: 1.5rem 0 0;
+  font-size: clamp(1.5rem, 6.5vw, 2.75rem);
+  line-height: 1.4;
+}

@@ -13,6 +13,13 @@ import {
   type TabKey,
   type ViewKey,
 } from "@/lib/places";
+import {
+  SAVED_STORAGE_KEY,
+  parseSavedIds,
+  placeIdFromSearch,
+  toggleSavedId,
+} from "@/lib/details";
+import PlaceDetails from "./PlaceDetails";
 
 const VIEW_STORAGE_KEY = "hao-chi-view-v1"; // same key as the live app
 
@@ -30,6 +37,10 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   const [visibleCount, setVisibleCount] = useState<number>(() =>
     batchFor("cards")
   );
+  // Saved places (device-local, hao-chi-saved-v1) and the open details
+  // dialog. Both start empty on the server render and fill in on mount.
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // On mount: a saved Cards/Compact choice always wins; otherwise phones
   // (≤640px) default to Compact, matching the live app.
@@ -50,6 +61,56 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
       setVisibleCount((count) => Math.max(count, batchFor(initial)));
     }
   }, []);
+
+  // On mount: load the saved set, and open the details dialog when the
+  // URL carries a ?place=<legacy_id> deep link for a known place.
+  useEffect(() => {
+    try {
+      setSavedIds(
+        parseSavedIds(window.localStorage.getItem(SAVED_STORAGE_KEY))
+      );
+    } catch {
+      // storage unavailable: no saved places
+    }
+    const linkedId = placeIdFromSearch(window.location.search);
+    if (linkedId && places.some((p) => p.legacy_id === linkedId)) {
+      setSelectedId(linkedId);
+    }
+  }, [places]);
+
+  function openDetails(place: Place) {
+    setSelectedId(place.legacy_id);
+    try {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}?place=${encodeURIComponent(place.legacy_id)}`
+      );
+    } catch {
+      // history unavailable: the dialog still opens
+    }
+  }
+
+  function closeDetails() {
+    setSelectedId(null);
+    try {
+      window.history.replaceState(null, "", window.location.pathname);
+    } catch {
+      // history unavailable: nothing to clean up
+    }
+  }
+
+  function toggleSave(place: Place) {
+    setSavedIds((current) => {
+      const next = toggleSavedId(current, place.legacy_id);
+      try {
+        window.localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // storage unavailable: the choice just won't persist
+      }
+      return next;
+    });
+  }
 
   function chooseView(next: ViewKey) {
     setView(next);
@@ -97,6 +158,19 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   );
   const visible = displayed.slice(0, visibleCount);
   const hasMore = visibleCount < displayed.length;
+  const selectedPlace =
+    selectedId != null
+      ? (places.find((p) => p.legacy_id === selectedId) ?? null)
+      : null;
+
+  function openOnKeyDown(place: Place) {
+    return (event: React.KeyboardEvent) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openDetails(place);
+      }
+    };
+  }
 
   return (
     <div className="browser">
@@ -224,12 +298,23 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
       ) : view === "cards" ? (
         <ul className="place-list cards">
           {visible.map((place) => (
-            <li key={place.legacy_id} className="place card">
+            <li
+              key={place.legacy_id}
+              className="place card clickable"
+              role="button"
+              tabIndex={0}
+              aria-label={`View details for ${place.name_en}`}
+              onClick={() => openDetails(place)}
+              onKeyDown={openOnKeyDown(place)}
+            >
               <div className="place-head">
                 <span className="place-number">
                   {numbers.get(place.legacy_id)}
                 </span>
                 <h3 className="place-name-zh">{place.name_zh}</h3>
+                {savedIds.includes(place.legacy_id) ? (
+                  <span className="saved-marker">Saved</span>
+                ) : null}
               </div>
               <p className="place-name-en">{place.name_en}</p>
               {place.gloss ? (
@@ -254,7 +339,15 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
       ) : (
         <ul className="place-list compact">
           {visible.map((place) => (
-            <li key={place.legacy_id} className="place row">
+            <li
+              key={place.legacy_id}
+              className="place row clickable"
+              role="button"
+              tabIndex={0}
+              aria-label={`View details for ${place.name_en}`}
+              onClick={() => openDetails(place)}
+              onKeyDown={openOnKeyDown(place)}
+            >
               <span className="place-number">
                 {numbers.get(place.legacy_id)}
               </span>
@@ -262,6 +355,9 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
                 <span className="place-name-zh">{place.name_zh}</span>
                 <span className="place-name-en">{place.name_en}</span>
               </span>
+              {savedIds.includes(place.legacy_id) ? (
+                <span className="saved-marker">Saved</span>
+              ) : null}
               {place.rating_value != null ? (
                 <span className="place-rating">
                   {place.rating_value.toFixed(1)}
@@ -282,6 +378,15 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
         >
           Show more ({displayed.length - visibleCount} more)
         </button>
+      ) : null}
+
+      {selectedPlace ? (
+        <PlaceDetails
+          place={selectedPlace}
+          isSaved={savedIds.includes(selectedPlace.legacy_id)}
+          onToggleSave={toggleSave}
+          onClose={closeDetails}
+        />
       ) : null}
     </div>
   );

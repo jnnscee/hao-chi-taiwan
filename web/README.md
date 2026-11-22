@@ -19,7 +19,22 @@ served from the repo root until the rebuild is ready to take over.
   localStorage under `hao-chi-view-v1` with Compact as the phone default;
   per-place numbers (legacy numbers for Recommended, 1..N in displayed
   order for Want to Try); a live result count and Clear all.
-- The filtering/sorting/numbering logic lives in `lib/places.ts` as pure
+- Clicking or tapping any card or row opens the details dialog
+  (`app/PlaceDetails.tsx`): names and gloss, temporarily-closed and list
+  badges, cuisine, area, both addresses, the muted Google rating, hours
+  with the note, "Last checked" month and a "Check today's hours" link,
+  phone / website / Instagram / Facebook links when present, and a
+  "Good to know" block (visitor notes, cash-only) that appears only here,
+  never on cards. Actions: Open in Google Maps (with the Save hint),
+  Get directions, Show driver (full-screen large Chinese name + address),
+  Save (device-local, `hao-chi-saved-v1`, with a "Saved" marker on the
+  list), Share (Web Share or copy the `?place=<legacy_id>` deep link —
+  opening such a link opens that place's details), Add to calendar
+  (1-hour Google Calendar template, Asia/Taipei) and a quiet
+  "Report a problem with this place" mailto link. The dialog closes via
+  its ✕ or Escape and leaves the list state untouched.
+- The filtering/sorting/numbering logic lives in `lib/places.ts` and the
+  details link/saved-set logic in `lib/details.ts`, both as pure
   functions, unit-checked against the real data.
 - Data comes from the Supabase project `hao-chi-taiwan` via
   `lib/supabase.ts`, using only the publishable (anon) key. Row Level
@@ -39,5 +54,5 @@ npm start
 
 ## Not yet
 
-No place details, language toggle, map, Save/Share, Show driver, Near me,
-place pages, admin login or PWA — those are the later Phase 2 steps.
+No language toggle, map, Near me, contact form, place pages, admin login
+or PWA — those are the later Phase 2 steps.

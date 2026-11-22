@@ -16,6 +16,21 @@ export type Place = {
   district: string | null;
   address_en: string | null;
   address_zh: string | null;
+  lat: number | null;
+  lng: number | null;
+  maps_url: string | null;
+  maps_short_url: string | null;
+  phone: string | null;
+  website: string | null;
+  instagram: string | null;
+  instagram_handle: string | null;
+  facebook: string | null;
+  hours: string | null;
+  hours_note: string | null;
+  hours_checked_on: string | null; // ISO date, e.g. "2026-11-20"
+  visitor_notes: string | null;
+  cash_only: boolean;
+  temporarily_closed: boolean;
 };
 
 export type TabKey = "all" | "recommended" | "want_to_try";

@@ -44,7 +44,8 @@ served from the repo root until the rebuild is ready to take over.
   list), Share (Web Share or copy the `?place=<legacy_id>` deep link —
   opening such a link opens that place's details), Add to calendar
   (1-hour Google Calendar template, Asia/Taipei) and a quiet
-  "Report a problem with this place" mailto link. The dialog closes via
+  "Report a problem with this place" button that opens the contact
+  form pre-filled for the place. The dialog closes via
   its ✕ or Escape and leaves the list state untouched.
 - A **real interactive map** (`app/PlaceMap.tsx`, Leaflet with
   OpenStreetMap tiles, loaded client-side only) sits between the
@@ -99,6 +100,28 @@ served from the repo root until the rebuild is ready to take over.
   reopens at its top next time — otherwise closing changes no scroll
   position and the panel reopens where it was left. The badge and
   close rules are pure functions in `lib/floating.ts`, unit-checked.
+- A **Contact & feedback** section and footer close the page, as on
+  the live app. The footer's About · Privacy · Terms · Contact &
+  feedback links open overlays: the three info pages carry the live
+  app's own bilingual texts (`lib/pages.ts`; the Privacy text is
+  minimally adapted to stay true of the rebuild — no Google Fonts is
+  loaded, there is no offline copy yet, the language choice is also
+  stored on the device, directions never reads the visitor's
+  location, and Vercel's basic server logs are noted), cross-linked
+  to each other and to the form. The one contact form
+  (`app/ContactForm.tsx`) composes an email in the visitor's own app
+  — it sends nothing itself: category (Feedback / Report a problem /
+  Suggest a place / Other), optional place, name and reply email,
+  and a required message, with "Open in email app" (mailto) and
+  "Open in Gmail" (the Gmail app scheme on phones, a pre-filled web
+  compose in a new tab on desktop) as real anchors whose hrefs are
+  composed live from the fields, plus a Copy message fallback — all
+  addressed to the single `CONTACT_EMAIL` constant
+  (haochitaiwan@muse.ai). A place's "Report a problem with this
+  place" in its details opens the same form pre-filled (category,
+  the place field, and its deep link + Maps link in the composed
+  body). The composition logic is pure functions in `lib/contact.ts`,
+  unit-checked.
 - The filtering/sorting/numbering logic lives in `lib/places.ts` and the
   details link/saved-set logic in `lib/details.ts`, both as pure
   functions, unit-checked against the real data.
@@ -120,6 +143,8 @@ npm start
 
 ## Not yet
 
-No contact form, place pages, admin login or PWA — those are the
-later Phase 2 steps. There is also no `/zh/` route yet; the
-language lives in state + the `?lang=` parameter for now.
+No place pages, real `/about` / `/privacy` / `/terms` routes (the
+pages are overlays for now, as on the live app), admin login or
+PWA — those are the later Phase 2 steps. There is also no `/zh/`
+route yet; the language lives in state + the `?lang=` parameter
+for now.

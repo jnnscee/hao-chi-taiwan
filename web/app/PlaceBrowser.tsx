@@ -25,11 +25,14 @@ import {
   sessionClearedOnClearAll,
 } from "@/lib/floating";
 import {
+  CONTACT_EMAIL,
   SAVED_STORAGE_KEY,
   parseSavedIds,
   placeIdFromSearch,
   toggleSavedId,
 } from "@/lib/details";
+import type { ContactCategoryKey } from "@/lib/contact";
+import { INFO_PAGES, type InfoPageKey } from "@/lib/pages";
 import {
   LANG_STORAGE_KEY,
   STRINGS,
@@ -41,6 +44,8 @@ import {
   type Lang,
 } from "@/lib/i18n";
 import PlaceDetails from "./PlaceDetails";
+import ContactForm, { type ContactOpenRequest } from "./ContactForm";
+import InfoOverlay from "./InfoOverlay";
 
 // The interactive map is client-only: Leaflet needs `window`, so it is
 // dynamically imported with ssr:false and hydrates after the static
@@ -115,6 +120,14 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   // and restored on open so it survives the panel being display:none.
   const [panelOpen, setPanelOpen] = useState(false);
   const [floatVisible, setFloatVisible] = useState(false);
+  // About / Privacy / Terms overlays and the Contact & feedback form.
+  // contactRequest carries the prefill (category + reported place);
+  // its nonce bumps on every open so the form re-applies the prefill
+  // even when reopened for the same place.
+  const [infoPage, setInfoPage] = useState<InfoPageKey | null>(null);
+  const [contactRequest, setContactRequest] =
+    useState<ContactOpenRequest | null>(null);
+  const contactNonceRef = useRef(0);
   const panelClearedRef = useRef(false);
   const panelReopenAtTopRef = useRef(false);
   const savedSheetScrollRef = useRef(0);
@@ -222,6 +235,18 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   function closeDetails() {
     setSelectedId(null);
     syncUrl({ place: null });
+  }
+
+  // Open the one contact form: generally (footer, contact section,
+  // info pages — category Feedback, no place) or pre-filled from a
+  // place's "Report a problem" (category Report a problem + place).
+  function openContact(category: ContactCategoryKey, place: Place | null) {
+    contactNonceRef.current += 1;
+    setContactRequest({
+      category,
+      place,
+      nonce: contactNonceRef.current,
+    });
   }
 
   function toggleSave(place: Place) {
@@ -906,6 +931,62 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
         </div>
       ) : null}
 
+      {/* Contact & feedback section, as on the live app: a heading,
+          the invitation text, and the button that opens the form
+          (plus the plain email line beside it). */}
+      <section className="contact-section" aria-labelledby="contactH">
+        <h2 id="contactH">{t.contact_h}</h2>
+        <p className="contact-sub">{t.contact_sub}</p>
+        <div className="contact-card">
+          <button
+            type="button"
+            className="contact-open-btn"
+            onClick={() => openContact("feedback", null)}
+          >
+            {t.contact_btn}
+          </button>
+          <span className="contact-email-line">
+            <span>{t.contact_email_label}</span>{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+          </span>
+        </div>
+      </section>
+
+      <footer className="site-footer">
+        <p>{t.foot1}</p>
+        <p>{t.foot2}</p>
+        <div className="foot-links">
+          <button
+            type="button"
+            className="foot-link"
+            onClick={() => setInfoPage("about")}
+          >
+            {INFO_PAGES[lang].about_btn}
+          </button>
+          <button
+            type="button"
+            className="foot-link"
+            onClick={() => setInfoPage("privacy")}
+          >
+            {INFO_PAGES[lang].privacy_btn}
+          </button>
+          <button
+            type="button"
+            className="foot-link"
+            onClick={() => setInfoPage("terms")}
+          >
+            {INFO_PAGES[lang].terms_btn}
+          </button>
+          <button
+            type="button"
+            className="foot-link"
+            onClick={() => openContact("feedback", null)}
+          >
+            {t.contact_h}
+          </button>
+        </div>
+      </footer>
+
       {selectedPlace ? (
         <PlaceDetails
           place={selectedPlace}
@@ -913,9 +994,28 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
           isSaved={savedIds.includes(selectedPlace.legacy_id)}
           distanceKm={distances.get(selectedPlace.legacy_id) ?? null}
           onToggleSave={toggleSave}
+          onReport={(place) => openContact("problem", place)}
+          suspended={contactRequest != null || infoPage != null}
           onClose={closeDetails}
         />
       ) : null}
+
+      <InfoOverlay
+        lang={lang}
+        page={infoPage}
+        onOpenPage={setInfoPage}
+        onOpenContact={() => {
+          setInfoPage(null);
+          openContact("feedback", null);
+        }}
+        onClose={() => setInfoPage(null)}
+      />
+
+      <ContactForm
+        lang={lang}
+        request={contactRequest}
+        onClose={() => setContactRequest(null)}
+      />
 
       {/* Floating search button (Jenny's design): the one floating
           control over the list. On desktop it appears once the

@@ -73,6 +73,41 @@ export type Strings = {
   cal_btn: string;
   cal_view_in: string;
   report_place: string;
+  // Contact section, footer and contact form (all values lifted
+  // verbatim from the live app's table, under its own key names:
+  // contact_h, contact_sub, contact_btn, contact_email_label, foot1,
+  // foot2 and the cf_* set).
+  contact_h: string;
+  contact_sub: string;
+  contact_btn: string;
+  contact_email_label: string;
+  foot1: string;
+  foot2: string;
+  cf_title: string;
+  cf_intro: string;
+  cf_category: string;
+  cf_cat_feedback: string;
+  cf_cat_problem: string;
+  cf_cat_suggest: string;
+  cf_cat_other: string;
+  cf_place: string;
+  cf_place_ph: string;
+  cf_name: string;
+  cf_name_ph: string;
+  cf_email: string;
+  cf_email_ph: string;
+  cf_message: string;
+  cf_message_ph: string;
+  cf_shot: string;
+  cf_send: string;
+  cf_gmail: string;
+  cf_need: string;
+  cf_opened: string;
+  cf_fallback_a: string;
+  cf_fallback_b: string;
+  cf_copy: string;
+  cf_copied: string;
+  cf_copy_fail: string;
   // Near me (all values lifted verbatim from the live app's table,
   // under its own key names: near_me, near_locating, near_within,
   // near_any, near_clear, near_hint, the near_error_* set, near_found,
@@ -163,6 +198,37 @@ export const STRINGS: Record<Lang, Strings> = {
     cal_btn: "Add to calendar",
     cal_view_in: "View in Hao Chi Taiwan",
     report_place: "Report a problem with this place",
+    contact_h: "Contact & feedback",
+    contact_sub: "Spotted a place that's closed, a broken Google Maps or Instagram link, or wrong hours? Want to suggest a place Jenny should try, or just share feedback? Send a note — problem reports get checked and fixed.",
+    contact_btn: "Write to us",
+    contact_email_label: "Email us at",
+    foot1: "Places come from Jenny's Google Maps lists “Taiwan - Tried & Tested” (Recommended) and “Taiwan - On My Radar” (Want to Try). Ratings are the Google ratings captured with the lists in Nov 2026.",
+    foot2: "Hours and phone numbers for the first ten places (Zuoying) are provisional, from shop listings, last checked Nov 2026, and are being checked before the real launch — use “Check today's hours” in a place's details to see its current hours on Google Maps. Chinese addresses are drafts awaiting Jenny's check.",
+    cf_title: "Contact & feedback",
+    cf_intro: "Tell us what's on your mind. When you tap the send button, your email app opens with everything filled in, addressed to haochitaiwan@muse.ai — nothing is sent until you press Send there, and you can attach a screenshot in your email app.",
+    cf_category: "What is this about?",
+    cf_cat_feedback: "Feedback",
+    cf_cat_problem: "Report a problem",
+    cf_cat_suggest: "Suggest a place",
+    cf_cat_other: "Other",
+    cf_place: "Place (if it's about one place)",
+    cf_place_ph: "Place name (optional)",
+    cf_name: "Your name (optional)",
+    cf_name_ph: "What should we call you?",
+    cf_email: "Your email (optional — add it if you'd like a reply)",
+    cf_email_ph: "you@example.com",
+    cf_message: "Your message",
+    cf_message_ph: "Write what you'd like us to know…",
+    cf_shot: "Reporting a broken link, wrong hours or a place that's closed? Say which link or detail is wrong — a screenshot helps, and you can attach it in your email app after it opens.",
+    cf_send: "Open in email app",
+    cf_gmail: "Open in Gmail",
+    cf_need: "Write a short message first, so we know how to help.",
+    cf_opened: "Your email app should open with your message ready — just press Send there. If nothing opens, email haochitaiwan@muse.ai directly.",
+    cf_fallback_a: "If your email app doesn't open, email us at",
+    cf_fallback_b: "— or copy your message:",
+    cf_copy: "Copy message",
+    cf_copied: "Message copied — paste it into an email to haochitaiwan@muse.ai and send it from there.",
+    cf_copy_fail: "Copy didn't work here — select the text in the message box above and copy it yourself, then paste it into an email.",
     near_me: "Near me",
     near_locating: "Finding you…",
     near_within: "Within",
@@ -390,6 +456,37 @@ export const STRINGS: Record<Lang, Strings> = {
     cal_btn: "加到行事曆",
     cal_view_in: "在好吃台灣查看",
     report_place: "回報這家店的問題",
+    contact_h: "聯絡與意見回饋",
+    contact_sub: "發現某家店已經歇業、Google Maps 或 Instagram 連結壞了，或營業時間不對？想推薦 Jenny 去試的店，或單純分享意見？歡迎來信 — 問題回報都會逐一確認並修正。",
+    contact_btn: "寫信給我們",
+    contact_email_label: "Email：",
+    foot1: "店家來自 Jenny 的 Google Maps 清單「Taiwan - Tried & Tested」（推薦）和「Taiwan - On My Radar」（想去）。評分是 2026 年 11 月擷取清單時的 Google 評分。",
+    foot2: "前十家（左營）的營業時間和電話是暫定的，來自店家刊登資訊，最後確認於 2026 年 11 月，正式上線前還在確認中 — 在店家詳情點「查看今日營業時間」可在 Google Maps 看目前時間。中文地址是草稿，等 Jenny 檢查。",
+    cf_title: "聯絡與意見回饋",
+    cf_intro: "告訴我們你的想法。點下傳送按鈕後，你的郵件 App 會開啟並自動填好內容，收件人是 haochitaiwan@muse.ai — 在那邊按下傳送之前，這裡不會寄出任何東西；你也可以在郵件 App 裡附上截圖。",
+    cf_category: "這封信是關於什麼？",
+    cf_cat_feedback: "意見回饋",
+    cf_cat_problem: "回報問題",
+    cf_cat_suggest: "推薦一家店",
+    cf_cat_other: "其他",
+    cf_place: "店家（如果是關於某一家店）",
+    cf_place_ph: "店名（可留空）",
+    cf_name: "你的名字（可留空）",
+    cf_name_ph: "我們可以怎麼稱呼你",
+    cf_email: "你的 Email（可留空，填了我們才能回覆你）",
+    cf_email_ph: "you@example.com",
+    cf_message: "訊息",
+    cf_message_ph: "寫下你想告訴我們的事…",
+    cf_shot: "要回報連結壞掉、營業時間錯誤或店家歇業嗎？請說明是哪個連結或哪項資訊有問題 — 附上截圖會很有幫助，你可以在郵件 App 裡加上附件。",
+    cf_send: "開啟郵件 App",
+    cf_gmail: "用 Gmail 開啟",
+    cf_need: "請先寫一點訊息，我們才知道怎麼幫忙。",
+    cf_opened: "你的郵件 App 應該已經開啟並填好訊息 — 在那邊按傳送就可以。如果沒有開啟，請直接寄信到 haochitaiwan@muse.ai。",
+    cf_fallback_a: "如果你的郵件 App 沒有開啟，請直接寄信到",
+    cf_fallback_b: "，或複製你的訊息：",
+    cf_copy: "複製訊息",
+    cf_copied: "訊息已複製 — 把它貼到寄給 haochitaiwan@muse.ai 的郵件裡，再從那邊寄出就可以。",
+    cf_copy_fail: "這裡無法自動複製 — 請選取上方訊息欄裡的文字自己複製，再貼到郵件裡。",
     near_me: "我附近",
     near_locating: "定位中…",
     near_within: "範圍",

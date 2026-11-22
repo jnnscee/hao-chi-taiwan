@@ -903,6 +903,240 @@ body {
   text-decoration: none;
 }
 
+/* --- Contact section + footer --- */
+
+.contact-section {
+  margin-top: 3rem;
+}
+
+.contact-section h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}
+
+.contact-sub {
+  margin: 0 0 0.9rem;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.contact-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.contact-open-btn {
+  border: 1px solid #7a4a12;
+  background: #7a4a12;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.contact-email-line {
+  color: #666;
+  font-size: 0.92rem;
+}
+
+.contact-email-line a {
+  color: #7a4a12;
+}
+
+.site-footer {
+  margin-top: 2.5rem;
+  border-top: 1px solid #f0ead9;
+  padding-top: 1rem;
+  color: #666;
+  font-size: 0.88rem;
+}
+
+.site-footer p {
+  margin: 0.35rem 0;
+}
+
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.foot-link {
+  border: 1px solid #d8cfb4;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #7a4a12;
+}
+
+/* --- Info + contact overlays --- */
+
+/* Above the details dialog (40), the driver card (50) and the
+   search panel (60): a report tap in the details opens the contact
+   form over it, and the details stay underneath. */
+.overlay-top {
+  z-index: 70;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.25;
+  padding-right: 2.5rem;
+}
+
+.info-updated {
+  margin: 0.3rem 0 0;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.info-body {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.info-body h3 {
+  margin: 1.1rem 0 0.35rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a4a12;
+}
+
+.info-body h3:first-child {
+  margin-top: 0;
+}
+
+.info-body p {
+  margin: 0.3rem 0;
+}
+
+.info-body ul {
+  margin: 0.3rem 0;
+  padding-left: 1.25rem;
+}
+
+.info-body li {
+  margin: 0.25rem 0;
+}
+
+.info-body a {
+  color: #7a4a12;
+}
+
+.info-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  border-top: 1px solid #f0ead9;
+  padding-top: 1rem;
+}
+
+/* --- Contact form --- */
+
+.cf-intro {
+  margin: 0.5rem 0 0;
+  color: #444;
+  font-size: 0.95rem;
+}
+
+.cf-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.cf-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.88rem;
+  color: #666;
+}
+
+.cf-fields input,
+.cf-fields select,
+.cf-fields textarea {
+  padding: 0.55rem 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #cfc6a8;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: inherit;
+}
+
+.cf-fields textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.cf-note {
+  margin: 0.9rem 0 0;
+  color: #666;
+  font-size: 0.88rem;
+}
+
+.cf-status {
+  margin: 0.5rem 0 0;
+  color: #7a4a12;
+  font-size: 0.9rem;
+  min-height: 1.25em;
+}
+
+.cf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.cf-fallback {
+  margin-top: 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.cf-fallback p {
+  margin: 0.25rem 0;
+}
+
+.cf-fallback a {
+  color: #7a4a12;
+}
+
+.cf-copy-btn {
+  border: 1px solid #cfc6a8;
+  background: #fff;
+  color: #7a4a12;
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* The details report control is a <button> wearing the old link's
+   clothes (it opens the contact form now instead of a mailto). */
+.report-row button.report-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #999;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* --- Phone layout (≤640px) --- */
 
 /* The phone toolbar (view + language toggles beside the count line)

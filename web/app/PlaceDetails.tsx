@@ -7,7 +7,6 @@ import {
   deepLinkFor,
   directionsUrl,
   lastCheckedText,
-  reportMailto,
 } from "@/lib/details";
 import { STRINGS, cityLabel, type Lang } from "@/lib/i18n";
 
@@ -18,6 +17,11 @@ type Props = {
   /** Distance from the visitor in km while a location is known, else null. */
   distanceKm: number | null;
   onToggleSave: (place: Place) => void;
+  /** Opens the Contact & feedback form pre-filled for this place. */
+  onReport: (place: Place) => void;
+  /** True while the contact form is open above this dialog: Escape
+   *  then belongs to the form, not to this dialog. */
+  suspended: boolean;
   onClose: () => void;
 };
 
@@ -27,6 +31,8 @@ export default function PlaceDetails({
   isSaved,
   distanceKm,
   onToggleSave,
+  onReport,
+  suspended,
   onClose,
 }: Props) {
   const t = STRINGS[lang];
@@ -39,16 +45,18 @@ export default function PlaceDetails({
     closeRef.current?.focus();
   }, []);
 
-  // Escape closes the driver card first, then the dialog.
+  // Escape closes the driver card first, then the dialog — but not
+  // while the contact form is open above this dialog (its own
+  // Escape handling closes it, and this dialog stays underneath).
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || suspended) return;
       if (driverOpen) setDriverOpen(false);
       else onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [driverOpen, onClose]);
+  }, [driverOpen, suspended, onClose]);
 
   const deepLink = deepLinkFor(window.location.origin, place.legacy_id, lang);
   const checkedText = lastCheckedText(place.hours_checked_on, lang);
@@ -288,9 +296,13 @@ export default function PlaceDetails({
         </div>
 
         <p className="report-row">
-          <a className="report-link" href={reportMailto(place, deepLink)}>
+          <button
+            type="button"
+            className="report-link"
+            onClick={() => onReport(place)}
+          >
             {t.report_place}
-          </a>
+          </button>
         </p>
       </div>
 

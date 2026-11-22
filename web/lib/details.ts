@@ -1,7 +1,9 @@
-// Pure helpers for the place details view: directions / calendar / report
+// Pure helpers for the place details view: directions / calendar
 // links, deep-link parsing, the saved-places set and the hours-checked
 // label. Kept free of React and browser globals (origin and "now" are
 // passed in) so the behaviour can be unit-checked in plain node.
+// (The "report a problem" flow lives in lib/contact.ts: it opens the
+// Contact & feedback form pre-filled for the place.)
 
 import type { Place } from "./places";
 import type { Lang } from "./i18n";
@@ -150,24 +152,4 @@ export function calendarUrl(
     details,
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-/** Interim "report a problem" mailto (the full contact form is a later slice). */
-export function reportMailto(place: Place, deepLink: string): string {
-  const subject = `Problem report: ${place.name_en || place.name_zh}`;
-  const body = [
-    `Place: ${place.name_zh} (${place.name_en})`,
-    `In Hao Chi Taiwan: ${deepLink}`,
-    place.maps_url ? `On Google Maps: ${place.maps_url}` : null,
-    "",
-    "What's wrong?",
-    "",
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
-  return (
-    `mailto:${CONTACT_EMAIL}` +
-    `?subject=${encodeURIComponent(subject)}` +
-    `&body=${encodeURIComponent(body)}`
-  );
 }

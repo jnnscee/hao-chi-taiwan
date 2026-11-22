@@ -2075,7 +2075,22 @@
         const m = contactCompose();
         const q = "?subject=" + encodeURIComponent(m.subject) + "&body=" + encodeURIComponent(m.body);
         const a = $("cfSend"); if (a) a.href = "mailto:" + CONTACT_EMAIL + q;
-        const g = $("cfGmail"); if (g) g.href = "googlegmail://co?to=" + CONTACT_EMAIL + "&" + q.slice(1);
+        /* The Gmail link is platform-dependent: the googlegmail:// app
+           scheme only resolves where the Gmail app is installed (phones);
+           on desktop browsers that click would do nothing, so desktop gets
+           Gmail on the web instead, opened in a new tab. */
+        const g = $("cfGmail");
+        if (g) {
+          if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            g.href = "googlegmail://co?to=" + CONTACT_EMAIL + "&" + q.slice(1);
+            g.removeAttribute("target");
+            g.removeAttribute("rel");
+          } else {
+            g.href = "https://mail.google.com/mail/?view=cm&fs=1&to=" + CONTACT_EMAIL + "&su=" + encodeURIComponent(m.subject) + "&body=" + encodeURIComponent(m.body);
+            g.setAttribute("target", "_blank");
+            g.setAttribute("rel", "noopener");
+          }
+        }
       }
       /* Empty-message guard for both send links: the tap is stopped, the
          inline prompt shows, and focus moves to the message box. With a

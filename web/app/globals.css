@@ -1,4 +1,4 @@
-/* Skeleton styling only — readable list, not the final design. */
+/* Rebuild styling: clean and readable; design polish comes in a later slice. */
 
 * {
   box-sizing: border-box;
@@ -24,16 +24,120 @@ body {
 }
 
 .counts {
-  margin: 0 0 2rem;
+  margin: 0 0 1.5rem;
   color: #666;
 }
 
-section h2 {
-  margin: 2rem 0 0.75rem;
-  font-size: 1.35rem;
-  border-bottom: 2px solid #e8e0cf;
-  padding-bottom: 0.35rem;
+/* --- List controls --- */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
+
+.tab {
+  border: 1px solid #d8cfb4;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: #7a4a12;
+  border-color: #7a4a12;
+  color: #fff;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.search {
+  flex: 1 1 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #cfc6a8;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.control select {
+  padding: 0.45rem 0.5rem;
+  font-size: 0.95rem;
+  border: 1px solid #cfc6a8;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1a1a1a;
+  max-width: 11rem;
+}
+
+.toggle-buttons {
+  display: flex;
+}
+
+.toggle {
+  border: 1px solid #cfc6a8;
+  background: #fff;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: #1a1a1a;
+}
+
+.toggle:first-child {
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.toggle:last-child {
+  border-radius: 0 0.5rem 0.5rem 0;
+  border-left: none;
+}
+
+.toggle.active {
+  background: #7a4a12;
+  border-color: #7a4a12;
+  color: #fff;
+}
+
+.clear-all {
+  border: none;
+  background: none;
+  color: #7a4a12;
+  font-size: 0.95rem;
+  padding: 0.45rem 0.25rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.result-count {
+  margin: 0.25rem 0 1rem;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.empty {
+  padding: 2rem 0;
+  color: #666;
+  text-align: center;
+}
+
+/* --- Place lists --- */
 
 .place-list {
   list-style: none;
@@ -41,9 +145,32 @@ section h2 {
   padding: 0;
 }
 
-.place {
-  padding: 0.65rem 0;
+.place-number {
+  flex: none;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: #f0ead9;
+  color: #7a4a12;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cards view */
+
+.place-list.cards .place {
+  padding: 0.85rem 0;
   border-bottom: 1px solid #f0ead9;
+}
+
+.place-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .place-name-zh {
@@ -61,4 +188,67 @@ section h2 {
 .place-gloss {
   margin: 0.15rem 0 0;
   font-size: 0.95rem;
+}
+
+.place-meta {
+  margin: 0.25rem 0 0;
+  color: #666;
+  font-size: 0.88rem;
+}
+
+.place-rating {
+  margin: 0.15rem 0 0;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+/* Compact view */
+
+.place-list.compact .place {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #f0ead9;
+}
+
+.place-list.compact .place-number {
+  min-width: 1.6rem;
+  height: 1.6rem;
+  font-size: 0.78rem;
+}
+
+.row-names {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.place-list.compact .place-name-zh {
+  font-size: 1rem;
+}
+
+.place-list.compact .place-name-en {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.place-list.compact .place-rating {
+  margin: 0;
+  flex: none;
+}
+
+.show-more {
+  display: block;
+  margin: 1.25rem auto 0;
+  border: 1px solid #7a4a12;
+  background: #fff;
+  color: #7a4a12;
+  border-radius: 999px;
+  padding: 0.55rem 1.4rem;
+  font-size: 0.95rem;
+  cursor: pointer;
 }

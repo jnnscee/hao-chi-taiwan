@@ -81,6 +81,24 @@ served from the repo root until the rebuild is ready to take over.
   pure functions in `lib/places.ts` (with the fit logic in
   `lib/map.ts`), unit-checked against the real data from a Zuoying
   reference point.
+- **Jenny's floating search button**, as on the live app: a circular
+  button fixed bottom-right (bilingual aria-label "Search & filters /
+  搜尋與篩選") whose badge shows the result count whenever the set is
+  narrowed below the current tab's full set. On desktop it appears
+  only once the in-page search area has scrolled off screen; on phone
+  (≤640px) it is always visible and the in-page search area leaves the
+  page flow entirely — the list starts under the hero with the result
+  count and a small toolbar carrying the Cards/Compact and EN/中文
+  toggles. Tapping the button opens a panel holding the same controls
+  bound to the same state (tabs, search, dropdowns, sort, view, Near
+  me), so nothing resets on open/close. The panel closes ONLY via its
+  ✕ — scrolling, backdrop taps and Escape do not dismiss it. Clear all
+  inside the panel resets everything without closing it; if Clear all
+  was pressed during a panel session, closing scrolls the page back
+  to the search area (on phone, the result-count line) and the panel
+  reopens at its top next time — otherwise closing changes no scroll
+  position and the panel reopens where it was left. The badge and
+  close rules are pure functions in `lib/floating.ts`, unit-checked.
 - The filtering/sorting/numbering logic lives in `lib/places.ts` and the
   details link/saved-set logic in `lib/details.ts`, both as pure
   functions, unit-checked against the real data.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   assignDisplayNumbers,
@@ -19,6 +19,11 @@ import {
   type ViewKey,
 } from "@/lib/places";
 import { buildMapMarkers } from "@/lib/map";
+import {
+  badgeCountFor,
+  planPanelClose,
+  sessionClearedOnClearAll,
+} from "@/lib/floating";
 import {
   SAVED_STORAGE_KEY,
   parseSavedIds,
@@ -100,6 +105,24 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
   const [locating, setLocating] = useState(false);
   const [sortLocating, setSortLocating] = useState(false);
   const [nearError, setNearError] = useState<NearErrorKey | null>(null);
+
+  // Floating search button + panel (Jenny's design, as on the live
+  // app). The panel is always mounted and renders the SAME controls
+  // bound to the SAME state as the in-page set, so nothing resets on
+  // open/close. panelCleared is per-session (reset on every open);
+  // panelReopenAtTop carries the "reopen at the top" half across the
+  // close → open gap; the sheet's scroll position is saved on close
+  // and restored on open so it survives the panel being display:none.
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [floatVisible, setFloatVisible] = useState(false);
+  const panelClearedRef = useRef(false);
+  const panelReopenAtTopRef = useRef(false);
+  const savedSheetScrollRef = useRef(0);
+  const searchAreaRef = useRef<HTMLDivElement | null>(null);
+  const listTopRef = useRef<HTMLParagraphElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const panelSearchRef = useRef<HTMLInputElement | null>(null);
 
   // On mount: a saved Cards/Compact choice always wins; otherwise phones
   // (≤640px) default to Compact, matching the live app.
@@ -231,13 +254,108 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     setVisibleCount(batchFor(view));
   }
 
-  function clearAll() {
+  function clearAll(fromPanel: boolean) {
+    // A Clear all pressed while the panel is open marks this panel
+    // session as cleared — the ✕ close then becomes a fresh start
+    // (see planPanelClose). The in-page press never marks anything.
+    if (fromPanel) {
+      panelClearedRef.current = sessionClearedOnClearAll(
+        panelOpen,
+        panelClearedRef.current
+      );
+    }
     // DEFAULT_FILTERS carries no location, so Clear all also turns
     // Near me off and drops the visitor's position, as in the live app.
     setFilters(DEFAULT_FILTERS);
     setNearError(null);
     setVisibleCount(batchFor(view));
   }
+
+  function openPanel() {
+    if (panelOpen) return;
+    panelClearedRef.current = false;
+    setPanelOpen(true);
+  }
+
+  // Called ONLY from the panel's ✕ button — the panel has no other
+  // close path (no backdrop tap, no Escape, no "See results").
+  function closePanel() {
+    if (!panelOpen) return;
+    const plan = planPanelClose(panelClearedRef.current);
+    panelClearedRef.current = false;
+    if (plan.reopenAtTop) panelReopenAtTopRef.current = true;
+    // Remember where the sheet was left, and blur anything focused
+    // inside the panel before it hides, so the browser cannot yank
+    // the page scroll toward a hidden input.
+    savedSheetScrollRef.current = sheetRef.current?.scrollTop ?? 0;
+    const ae = document.activeElement;
+    if (
+      ae instanceof HTMLElement &&
+      panelRef.current?.contains(ae)
+    ) {
+      ae.blur();
+    }
+    setPanelOpen(false);
+    if (plan.scrollOnClose) {
+      // Fresh start: land back at the search area on desktop; on
+      // phone there is no in-page search area in the flow, so land
+      // on the result-count line above the results instead.
+      const phone = window.matchMedia("(max-width: 640px)").matches;
+      const target = phone
+        ? listTopRef.current
+        : (searchAreaRef.current ?? listTopRef.current);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  // Floating button visibility, mirroring the live app's
+  // syncFloatBtn: hidden while the panel or the details dialog is
+  // open; on phone (≤640px) otherwise always visible; on desktop
+  // only once the in-page search area has scrolled fully off the
+  // top of the screen (fallback: 700px of scroll, as there).
+  useEffect(() => {
+    function sync() {
+      if (panelOpen || selectedId != null) {
+        setFloatVisible(false);
+        return;
+      }
+      if (window.matchMedia("(max-width: 640px)").matches) {
+        setFloatVisible(true);
+        return;
+      }
+      const el = searchAreaRef.current;
+      const past = el
+        ? el.getBoundingClientRect().bottom <= 4
+        : window.scrollY > 700;
+      setFloatVisible(past);
+    }
+    sync();
+    window.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    return () => {
+      window.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, [panelOpen, selectedId]);
+
+  // On panel open: restore the sheet's scroll position (or start at
+  // the top when the previous session ended with Clear all + ✕),
+  // then focus the panel's search box, as the live app does.
+  useEffect(() => {
+    if (!panelOpen) return;
+    const sheet = sheetRef.current;
+    if (sheet) {
+      sheet.scrollTop = panelReopenAtTopRef.current
+        ? 0
+        : savedSheetScrollRef.current;
+    }
+    panelReopenAtTopRef.current = false;
+    try {
+      panelSearchRef.current?.focus({ preventScroll: true });
+    } catch {
+      // focus is a nicety, never required
+    }
+  }, [panelOpen]);
 
   // Near me: the location is requested ONLY on this tap, held in
   // filters.origin (memory only), and switching it on also selects
@@ -425,29 +543,226 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
     };
   }
 
+  // The floating button's badge: the result count while the set is
+  // narrowed below the current tab's full set, hidden otherwise.
+  const badge = badgeCountFor(displayed.length, tabCounts[filters.tab]);
+
+  function renderLangToggle() {
+    return (
+      <div className="langtoggle" role="group" aria-label="Language / 語言">
+        <button
+          type="button"
+          aria-pressed={lang === "en"}
+          className={lang === "en" ? "lang-btn active" : "lang-btn"}
+          onClick={() => chooseLang("en")}
+        >
+          EN
+        </button>
+        <button
+          type="button"
+          aria-pressed={lang === "zh"}
+          className={lang === "zh" ? "lang-btn active" : "lang-btn"}
+          onClick={() => chooseLang("zh")}
+        >
+          中文
+        </button>
+      </div>
+    );
+  }
+
+  function renderViewButtons() {
+    return (
+      <div className="toggle-buttons">
+        <button
+          type="button"
+          className={view === "cards" ? "toggle active" : "toggle"}
+          aria-pressed={view === "cards"}
+          onClick={() => chooseView("cards")}
+        >
+          {t.view_cards}
+        </button>
+        <button
+          type="button"
+          className={view === "compact" ? "toggle active" : "toggle"}
+          aria-pressed={view === "compact"}
+          onClick={() => chooseView("compact")}
+        >
+          {t.view_compact}
+        </button>
+      </div>
+    );
+  }
+
+  // The full search & filter control set: tabs, search box, the
+  // City/District/Cuisine/Sort selects, the view toggle and Near me.
+  // Rendered twice — once in the page flow and once inside the
+  // floating button's panel — both bound to the same state, exactly
+  // as the live app's panel and in-page controls are two views of
+  // one state. The panel copy omits the in-controls Clear all: the
+  // panel's own actions row carries it, as on the live app.
+  function renderControlSet(inPanel: boolean) {
+    return (
+      <>
+        <div className="tabs" role="tablist" aria-label={t.list_label}>
+          {TAB_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={filters.tab === key}
+              className={filters.tab === key ? "tab active" : "tab"}
+              onClick={() => updateFilters({ tab: key })}
+            >
+              {tabLabels[key]} ({tabCounts[key]})
+            </button>
+          ))}
+        </div>
+
+        <div className="controls">
+          <input
+            type="search"
+            className="search"
+            placeholder={t.search_ph}
+            aria-label={t.search_ph}
+            value={filters.query}
+            ref={inPanel ? panelSearchRef : undefined}
+            onChange={(event) => updateFilters({ query: event.target.value })}
+          />
+
+          <label className="control">
+            <span>{t.label_city}</span>
+            <select
+              value={filters.city}
+              onChange={(event) => updateFilters({ city: event.target.value })}
+            >
+              <option value="">{t.all_cities}</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {cityLabel(lang, city)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="control">
+            <span>{t.label_district}</span>
+            <select
+              value={filters.district}
+              onChange={(event) =>
+                updateFilters({ district: event.target.value })
+              }
+            >
+              <option value="">{t.all_districts}</option>
+              {districts.map((district) => (
+                <option key={district} value={district}>
+                  {districtLabel(lang, district)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="control">
+            <span>{t.label_cuisine}</span>
+            <select
+              value={filters.cuisine}
+              onChange={(event) =>
+                updateFilters({ cuisine: event.target.value })
+              }
+            >
+              <option value="">{t.all_cuisines}</option>
+              {cuisines.map((cuisine) => (
+                <option key={cuisine} value={cuisine}>
+                  {cuisineLabel(lang, cuisine)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="control">
+            <span>{t.sort}</span>
+            <select
+              value={filters.sort}
+              onChange={(event) => chooseSort(event.target.value as SortKey)}
+            >
+              <option value="recommended">{t.sort_default}</option>
+              <option value="name">{t.sort_az}</option>
+              <option value="rating">{t.sort_rating}</option>
+              <option value="nearest">{t.sort_nearest}</option>
+            </select>
+          </label>
+
+          <div className="control view-toggle" aria-label={t.label_view}>
+            <span>{t.label_view}</span>
+            {renderViewButtons()}
+          </div>
+
+          {inPanel ? null : (
+            <button
+              type="button"
+              className="clear-all"
+              onClick={() => clearAll(false)}
+            >
+              {t.clear_all}
+            </button>
+          )}
+        </div>
+
+        <div className="near-bar">
+          <button
+            type="button"
+            className={filters.nearActive ? "near-btn active" : "near-btn"}
+            aria-pressed={filters.nearActive}
+            disabled={locating}
+            onClick={startNearMe}
+          >
+            {locating ? t.near_locating : t.near_me}
+          </button>
+          {filters.nearActive ? (
+            <>
+              <label className="near-radius">
+                <span>{t.near_within}</span>
+                <select
+                  aria-label={t.near_within}
+                  value={filters.radiusKm}
+                  onChange={(event) =>
+                    updateFilters({ radiusKm: Number(event.target.value) })
+                  }
+                >
+                  {NEAR_RADIUS_OPTIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r} km
+                    </option>
+                  ))}
+                  <option value={ANY_DISTANCE_KM}>{t.near_any}</option>
+                </select>
+              </label>
+              <button type="button" className="near-clear" onClick={clearNear}>
+                {t.near_clear}
+              </button>
+            </>
+          ) : null}
+        </div>
+        <p
+          className={
+            nearStatus.mode
+              ? `near-status is-${nearStatus.mode}`
+              : "near-status"
+          }
+          role="status"
+          aria-live="polite"
+        >
+          {nearStatus.text}
+        </p>
+      </>
+    );
+  }
+
   return (
     <div className="browser">
       <header className="hero">
         <div className="hero-top">
           <h1>Hao Chi Taiwan 好吃台灣</h1>
-          <div className="langtoggle" role="group" aria-label="Language / 語言">
-            <button
-              type="button"
-              aria-pressed={lang === "en"}
-              className={lang === "en" ? "lang-btn active" : "lang-btn"}
-              onClick={() => chooseLang("en")}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              aria-pressed={lang === "zh"}
-              className={lang === "zh" ? "lang-btn active" : "lang-btn"}
-              onClick={() => chooseLang("zh")}
-            >
-              中文
-            </button>
-          </div>
+          {renderLangToggle()}
         </div>
         <p className="counts">
           {places.length} {t.stat_total} · {tabCounts.recommended}{" "}
@@ -456,168 +771,27 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
         </p>
       </header>
 
-      <div className="tabs" role="tablist" aria-label={t.list_label}>
-        {TAB_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={filters.tab === key}
-            className={filters.tab === key ? "tab active" : "tab"}
-            onClick={() => updateFilters({ tab: key })}
-          >
-            {tabLabels[key]} ({tabCounts[key]})
-          </button>
-        ))}
+      {/* The in-page search area. On phone (≤640px) it leaves the
+          page flow entirely (CSS) and lives only in the floating
+          button's panel; on desktop it stays visible and the
+          floating button is scroll-gated on this block. */}
+      <div className="search-area in-page" ref={searchAreaRef}>
+        {renderControlSet(false)}
       </div>
 
-      <div className="controls">
-        <input
-          type="search"
-          className="search"
-          placeholder={t.search_ph}
-          aria-label={t.search_ph}
-          value={filters.query}
-          onChange={(event) => updateFilters({ query: event.target.value })}
-        />
-
-        <label className="control">
-          <span>{t.label_city}</span>
-          <select
-            value={filters.city}
-            onChange={(event) => updateFilters({ city: event.target.value })}
-          >
-            <option value="">{t.all_cities}</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>
-                {cityLabel(lang, city)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="control">
-          <span>{t.label_district}</span>
-          <select
-            value={filters.district}
-            onChange={(event) =>
-              updateFilters({ district: event.target.value })
-            }
-          >
-            <option value="">{t.all_districts}</option>
-            {districts.map((district) => (
-              <option key={district} value={district}>
-                {districtLabel(lang, district)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="control">
-          <span>{t.label_cuisine}</span>
-          <select
-            value={filters.cuisine}
-            onChange={(event) =>
-              updateFilters({ cuisine: event.target.value })
-            }
-          >
-            <option value="">{t.all_cuisines}</option>
-            {cuisines.map((cuisine) => (
-              <option key={cuisine} value={cuisine}>
-                {cuisineLabel(lang, cuisine)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="control">
-          <span>{t.sort}</span>
-          <select
-            value={filters.sort}
-            onChange={(event) => chooseSort(event.target.value as SortKey)}
-          >
-            <option value="recommended">{t.sort_default}</option>
-            <option value="name">{t.sort_az}</option>
-            <option value="rating">{t.sort_rating}</option>
-            <option value="nearest">{t.sort_nearest}</option>
-          </select>
-        </label>
-
-        <div className="control view-toggle" aria-label={t.label_view}>
-          <span>{t.label_view}</span>
-          <div className="toggle-buttons">
-            <button
-              type="button"
-              className={view === "cards" ? "toggle active" : "toggle"}
-              aria-pressed={view === "cards"}
-              onClick={() => chooseView("cards")}
-            >
-              {t.view_cards}
-            </button>
-            <button
-              type="button"
-              className={view === "compact" ? "toggle active" : "toggle"}
-              aria-pressed={view === "compact"}
-              onClick={() => chooseView("compact")}
-            >
-              {t.view_compact}
-            </button>
-          </div>
-        </div>
-
-        <button type="button" className="clear-all" onClick={clearAll}>
-          {t.clear_all}
-        </button>
-      </div>
-
-      <div className="near-bar">
-        <button
-          type="button"
-          className={filters.nearActive ? "near-btn active" : "near-btn"}
-          aria-pressed={filters.nearActive}
-          disabled={locating}
-          onClick={startNearMe}
-        >
-          {locating ? t.near_locating : t.near_me}
-        </button>
-        {filters.nearActive ? (
-          <>
-            <label className="near-radius">
-              <span>{t.near_within}</span>
-              <select
-                aria-label={t.near_within}
-                value={filters.radiusKm}
-                onChange={(event) =>
-                  updateFilters({ radiusKm: Number(event.target.value) })
-                }
-              >
-                {NEAR_RADIUS_OPTIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r} km
-                  </option>
-                ))}
-                <option value={ANY_DISTANCE_KM}>{t.near_any}</option>
-              </select>
-            </label>
-            <button type="button" className="near-clear" onClick={clearNear}>
-              {t.near_clear}
-            </button>
-          </>
-        ) : null}
-      </div>
-      <p
-        className={
-          nearStatus.mode ? `near-status is-${nearStatus.mode}` : "near-status"
-        }
-        role="status"
-        aria-live="polite"
-      >
-        {nearStatus.text}
-      </p>
-
-      <p className="result-count" aria-live="polite">
+      <p className="result-count" aria-live="polite" ref={listTopRef}>
         {t.showing(displayed.length)}
       </p>
+
+      {/* Phone only (≤640px, CSS): the view and language toggles stay
+          reachable beside the count line while the search area lives
+          in the panel. Bound to the same state as everywhere else. */}
+      <div className="phone-toolbar">
+        <div className="view-toggle" aria-label={t.label_view}>
+          {renderViewButtons()}
+        </div>
+        {renderLangToggle()}
+      </div>
 
       <section className="map-section" aria-label={t.map_h}>
         <h2 className="map-heading">{t.map_h}</h2>
@@ -742,6 +916,76 @@ export default function PlaceBrowser({ places }: { places: Place[] }) {
           onClose={closeDetails}
         />
       ) : null}
+
+      {/* Floating search button (Jenny's design): the one floating
+          control over the list. On desktop it appears once the
+          in-page search area has scrolled off screen; on phone it is
+          always visible. The badge carries the result count while
+          the set is narrowed, so an active filter is never invisible
+          while the panel is closed. */}
+      <button
+        type="button"
+        className="float-search"
+        hidden={!floatVisible}
+        aria-label="Search & filters / 搜尋與篩選"
+        onClick={openPanel}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.6"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.8-3.8" />
+        </svg>
+        {badge != null ? <span className="float-badge">{badge}</span> : null}
+      </button>
+
+      {/* Search & filter panel: the same controls, bound to the same
+          state, so the panel always shows the search exactly as the
+          visitor last left it. The ✕ is the ONLY way to close it —
+          scrolling, tapping the backdrop and pressing Escape do not
+          dismiss it (deliberately no handlers for those here). The ✕
+          sits outside the scrolling sheet, pinned in the corner. */}
+      <div
+        className={panelOpen ? "spanel open" : "spanel"}
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="searchPanelTitle"
+        aria-hidden={!panelOpen}
+        ref={panelRef}
+      >
+        <div className="sheetwrap searchpanelwrap">
+          <button
+            type="button"
+            className="panel-close"
+            aria-label={t.close}
+            onClick={closePanel}
+          >
+            ✕
+          </button>
+          <div className="sheet search-sheet" ref={sheetRef}>
+            <h2 id="searchPanelTitle">{t.search_filters}</h2>
+            <p className="panel-count" role="status">
+              {t.panel_showing(displayed.length, places.length)}
+            </p>
+            <div className="search-panel-body">{renderControlSet(true)}</div>
+            <div className="search-panel-actions">
+              <button
+                type="button"
+                className="clear-all panel-clear"
+                onClick={() => clearAll(true)}
+              >
+                {t.clear_all}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

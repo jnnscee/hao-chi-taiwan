@@ -231,6 +231,7 @@
       .crow-main{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:stretch; gap:3px; background:none; border:0; text-align:left; color:var(--ink); padding:2px 0; min-height:2.25rem; }
       .crow-name{ font-weight:700; font-size:1rem; line-height:1.3; white-space:normal; overflow:visible; overflow-wrap:anywhere; }
       .crow-food{ display:block; font-size:.88rem; line-height:1.35; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+      .crow-alt{ display:block; font-size:.84rem; line-height:1.3; color:var(--muted); overflow-wrap:anywhere; }
       .crow-meta{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; font-size:.84rem; line-height:1.35; color:var(--muted); }
       .crow-dist{ color:var(--muted); font-size:.84rem; }
       .crow-meta .tag{ flex:none; }
@@ -1604,6 +1605,13 @@
 
       function primaryName(p) { return lang === "zh" ? p.zh : p.en; }
       function secondaryName(p) { return lang === "zh" ? p.rom : p.zh; }
+      /* Display names for cards / compact rows / details: the Chinese name
+         leads as the heading in BOTH languages (it is the name on the shop
+         sign); in English mode the English name drops to the sub-line. In
+         Chinese mode this matches primaryName/secondaryName exactly.
+         primaryName stays as-is for sorting (Name A–Z order is unchanged). */
+      function headName(p) { return lang === "zh" ? p.zh : (p.zh || p.en); }
+      function subName(p) { return lang === "zh" ? p.rom : p.en; }
 
       function distanceKm(lat1, lng1, lat2, lng2) {
         const R = 6371, toRad = (d) => d * Math.PI / 180;
@@ -2686,8 +2694,9 @@
             row.id = "card-" + p.id;
             const foodText = (p.gloss && String(p.gloss).trim()) ? String(p.gloss).trim() : ((p.cuisine && String(p.cuisine).trim()) ? String(p.cuisine).trim() : "");
             row.innerHTML =
-              '<button type="button" class="crow-main" data-act="details" data-id="' + p.id + '" aria-label="' + esc(t().details) + ': ' + esc(primaryName(p)) + (foodText ? " — " + esc(foodText) : "") + '">' +
-              '<span class="crow-name">' + esc(primaryName(p)) + "</span>" +
+              '<button type="button" class="crow-main" data-act="details" data-id="' + p.id + '" aria-label="' + esc(t().details) + ': ' + esc(headName(p)) + (foodText ? " — " + esc(foodText) : "") + '">' +
+              '<span class="crow-name">' + esc(headName(p)) + "</span>" +
+              (lang === "en" ? '<span class="crow-alt">' + esc(subName(p)) + "</span>" : "") +
               (foodText ? '<span class="crow-food">' + esc(foodText) + "</span>" : "") +
               '<span class="crow-meta"><span class="crow-dist">' + esc(p.district) + " · " + esc(t().city_names[p.city] || p.city) + "</span>" +
               (it.d != null ? '<span class="tag dist">' + esc(formatDist(it.d)) + "</span>" : "") +
@@ -2695,7 +2704,7 @@
               openTagHTML(p) +
               googleRatingHTML(p) +
               "</span></button>" +
-              '<button type="button" class="card-save' + (saved ? " is-saved" : "") + '" data-act="save" data-id="' + p.id + '" aria-pressed="' + saved + '" aria-label="' + esc(saved ? t().saved : t().save) + ': ' + esc(primaryName(p)) + '" title="' + esc(saved ? t().saved : t().save) + '">' + (saved ? "♥" : "♡") + "</button>";
+              '<button type="button" class="card-save' + (saved ? " is-saved" : "") + '" data-act="save" data-id="' + p.id + '" aria-pressed="' + saved + '" aria-label="' + esc(saved ? t().saved : t().save) + ': ' + esc(headName(p)) + '" title="' + esc(saved ? t().saved : t().save) + '">' + (saved ? "♥" : "♡") + "</button>";
             grid.appendChild(row);
             return;
           }
@@ -2704,9 +2713,9 @@
           card.id = "card-" + p.id;
           card.innerHTML =
             '<div class="card-top"><span class="num">' + (listOf(p) === "Want to Try" ? (wantDisplayNum.get(String(p.id)) || "") : (typeof p.id === "number" ? p.id : String(p.id).replace(/^r/, ""))) + '</span><div style="flex:1;min-width:0">' +
-            "<h3>" + esc(primaryName(p)) + "</h3>" +
-            '<p class="altname">' + esc(secondaryName(p)) + "</p></div>" +
-            '<button type="button" class="card-save' + (saved ? " is-saved" : "") + '" data-act="save" data-id="' + p.id + '" aria-pressed="' + saved + '" aria-label="' + esc(saved ? t().saved : t().save) + ': ' + esc(primaryName(p)) + '" title="' + esc(saved ? t().saved : t().save) + '">' + (saved ? "♥" : "♡") + "</button></div>" +
+            "<h3>" + esc(headName(p)) + "</h3>" +
+            '<p class="altname">' + esc(subName(p)) + "</p></div>" +
+            '<button type="button" class="card-save' + (saved ? " is-saved" : "") + '" data-act="save" data-id="' + p.id + '" aria-pressed="' + saved + '" aria-label="' + esc(saved ? t().saved : t().save) + ': ' + esc(headName(p)) + '" title="' + esc(saved ? t().saved : t().save) + '">' + (saved ? "♥" : "♡") + "</button></div>" +
             '<p class="gloss">' + esc(p.gloss) + "</p>" +
             '<div class="meta"><span class="tag">' + esc(p.cuisine) + '</span>' +
             googleRatingHTML(p) +
@@ -2815,8 +2824,8 @@
       function openDetails(p) {
         noteOpenedPlace(p);
         current = p;
-        $("dName").textContent = primaryName(p);
-        $("dAlt").textContent = secondaryName(p) + (lang === "en" && p.rom !== p.en ? " · " + p.rom : "");
+        $("dName").textContent = headName(p);
+        $("dAlt").textContent = subName(p) + (lang === "en" && p.rom !== p.en ? " · " + p.rom : "");
         $("dGloss").textContent = p.gloss;
         const jl = $("dJennyLabel"); if (jl) jl.textContent = t().jenny_pick;
         $("dMeta").innerHTML = '<span class="tag">' + esc(p.cuisine) + '</span>' + googleRatingHTML(p) + tempClosedHTML(p) +

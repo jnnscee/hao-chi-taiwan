@@ -3086,6 +3086,14 @@
       });
 
       fillSelects();
+      /* Apply the boot language to the static page text: everything rendered
+         through t() above already follows `lang`, but the [data-i18n] hero,
+         headings and section copy, the search placeholder and the EN / 中文
+         toggle's pressed state are only rewritten by applyLang() — without
+         this call a /zh/ boot left them in the authored English until the
+         visitor touched the toggle. Runs after fillSelects() so applyLang()
+         reads and preserves the selects' initial values. */
+      applyLang();
       syncNearUI();
       syncDirUI();
       syncReserveUI();

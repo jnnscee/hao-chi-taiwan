@@ -40,6 +40,18 @@ import type { Place } from "@/lib/places";
 // exactly once — when the size corrects. A fit computed against an
 // unsettled size zooms to an extreme and strands the map there,
 // because Leaflet's own size corrections only pan, never refit.
+//
+// Wheel zoom is click-to-activate: with Leaflet's default
+// scrollWheelZoom, a desktop visitor scrolling down the page with
+// the pointer over the map has the wheel captured by the map — the
+// page scroll stalls and the map zooms itself away from its framing
+// (the confirmed cause of the 2026-11-23 live failure; programmatic
+// test scrolls never produce wheel events, which is why the sandbox
+// could not see it). So the map is created with scrollWheelZoom off,
+// a click/tap into the map (or keyboard focus) turns it on, and the
+// pointer leaving the map (or the map losing focus) turns it off
+// again. Touch pinch zoom and drag pan are separate Leaflet
+// handlers and are never gated.
 
 type PlaceMapProps = {
   markerSet: MapMarkerSet;
@@ -262,6 +274,8 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
   useEffect(() => {
     let cancelled = false;
     let map: Leaflet.Map | null = null;
+    let containerEl: HTMLDivElement | null = null;
+    let onContainerLeave: (() => void) | null = null;
     let observer: IntersectionObserver | null = null;
     let resizeObserver: ResizeObserver | null = null;
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -277,7 +291,12 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current) return;
       leafletRef.current = L;
-      map = L.map(containerRef.current);
+      containerEl = containerRef.current;
+      // scrollWheelZoom off at creation (see the header note): page
+      // scrolling must never be captured by the map. It is switched
+      // on only while the visitor is deliberately engaged with the
+      // map, by the activation wiring right below.
+      map = L.map(containerEl, { scrollWheelZoom: false });
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution:
@@ -318,6 +337,25 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
           userMovedRef.current = true;
         }
       });
+      // Click-to-activate wheel zoom: a click/tap into the map (the
+      // map click also fires for badge taps, which is fine — that is
+      // deliberate engagement) or keyboard focus on the map turns
+      // wheel zoom on; the pointer leaving the container or the map
+      // losing focus turns it off again, so a wheel that merely
+      // passes over the map while page-scrolling can never zoom it.
+      // Only the wheel handler is gated — touchZoom and dragging
+      // stay enabled throughout.
+      const activateWheel = () => {
+        map?.scrollWheelZoom.enable();
+      };
+      const deactivateWheel = () => {
+        map?.scrollWheelZoom.disable();
+      };
+      map.on("click", activateWheel);
+      map.on("focus", activateWheel);
+      map.on("blur", deactivateWheel);
+      onContainerLeave = deactivateWheel;
+      containerEl.addEventListener("mouseleave", onContainerLeave);
       // Pre-frame Taiwan only if the size is already settled; the
       // draw below applies the real (gated) set fit either way, and a
       // queued fit lands via the remedies below once the size settles.
@@ -372,6 +410,9 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     return () => {
       cancelled = true;
       if (settleTimer) clearTimeout(settleTimer);
+      if (containerEl && onContainerLeave) {
+        containerEl.removeEventListener("mouseleave", onContainerLeave);
+      }
       window.removeEventListener("load", onWindowLoad);
       if (observer) observer.disconnect();
       if (resizeObserver) resizeObserver.disconnect();

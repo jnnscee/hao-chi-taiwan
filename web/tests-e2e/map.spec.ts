@@ -457,6 +457,96 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
     expect(view.total).toBe(242);
   });
 
+  test("(i) wheel over the map without a prior click scrolls the page and never zooms the map", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    const before = await viewFromTiles(page);
+    expect(before.centre).not.toBeNull();
+    expect(before.total).toBe(242);
+    const box = (await map.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+    // Real wheel events with the pointer over the map — the exact
+    // input the confirmed live failure came from. With the wheel
+    // handler gated off until a click, the page must scroll and the
+    // map's framing must not move.
+    await page.mouse.wheel(0, 400);
+    await page.mouse.wheel(0, 400);
+    await expect
+      .poll(async () => page.evaluate(() => window.scrollY), {
+        timeout: 10_000,
+      })
+      .toBeGreaterThan(scrollBefore + 200);
+    await page.waitForTimeout(600);
+    const after = await viewFromTiles(page);
+    expect(after.centre).not.toBeNull();
+    expect(after.centre!.z).toBe(before.centre!.z);
+    expect(after.centre!.lat).toBeGreaterThanOrEqual(21.5);
+    expect(after.centre!.lat).toBeLessThanOrEqual(25.6);
+    expect(after.centre!.lng).toBeGreaterThanOrEqual(119.0);
+    expect(after.centre!.lng).toBeLessThanOrEqual(122.3);
+    expect(after.total).toBe(242);
+  });
+
+  test("(j) after clicking into the map, the wheel zooms it", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    const before = await viewFromTiles(page);
+    expect(before.centre).not.toBeNull();
+    const box = (await map.boundingBox())!;
+    // Click a bare patch of map (top-right: open sea at the Taiwan
+    // framing, no markers, no controls) to activate wheel zoom.
+    await page.mouse.click(box.x + box.width - 60, box.y + 50);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    // Wheel down — the page-scroll direction, which Leaflet reads
+    // as zoom OUT (wheel up zooms in).
+    await page.mouse.wheel(0, 360);
+    await expect
+      .poll(
+        async () => {
+          const v = await viewFromTiles(page);
+          return v.centre?.z ?? -1;
+        },
+        { timeout: 15_000 }
+      )
+      .toBeLessThan(before.centre!.z);
+  });
+
+  test("(k) after the pointer leaves the map, the wheel scrolls the page again instead of zooming", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    const box = (await map.boundingBox())!;
+    // Activate wheel zoom with a click, then move the pointer off
+    // the map (mouseleave must switch it back off).
+    await page.mouse.click(box.x + box.width - 60, box.y + 50);
+    await page.mouse.move(box.x + box.width / 2, Math.max(10, box.y - 120), {
+      steps: 10,
+    });
+    const before = await viewFromTiles(page);
+    expect(before.centre).not.toBeNull();
+    // Back over the map and wheel down: no zoom, the page scrolls.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 400);
+    await page.mouse.wheel(0, 400);
+    await expect
+      .poll(async () => page.evaluate(() => window.scrollY), {
+        timeout: 10_000,
+      })
+      .toBeGreaterThan(scrollBefore + 200);
+    await page.waitForTimeout(600);
+    const after = await viewFromTiles(page);
+    expect(after.centre).not.toBeNull();
+    expect(after.centre!.z).toBe(before.centre!.z);
+    expect(after.total).toBe(242);
+  });
+
   test("(h) a visitor's own zoom survives a later size correction", async ({
     page,
   }) => {

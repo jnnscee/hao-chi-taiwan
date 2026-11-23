@@ -212,10 +212,12 @@ Taiwan — cream `#fffdf8` base and sand `#f0ead9` (kept), brown
 `#1f6f96` for links and travel actions, red `#a33b2e` for
 semantic alerts and the saved heart. The home hero is the old site's signature
 banner photo (the `OG_IMAGE_URL` banner at its interim absolute
-URL) over a deep green→blue "mountains → sea" gradient band,
-which also closes the footer and rules the standalone-page
-headers; cards borrow the old site's white-surface / hairline /
-soft-shadow treatment. All colour pairings pass WCAG AA (white
+URL) carrying the band on its own — the title and counts sit on
+the photo over a soft green→blue "mountains → sea" scrim, and
+the band's bottom edge fades into the cream; the footer is a
+plain sand tint, and the standalone-page headers close with a
+soft sand rule. Cards borrow the old site's white-surface /
+soft-shadow treatment, edged with the sand line. All colour pairings pass WCAG AA (white
 on green 5.99:1, on blue 5.57:1, on deep green 9.25:1). No
 behaviour changed. Because the banner photo now loads from the
 guide's main Vercel address, the Privacy page's Vercel bullet
@@ -232,6 +234,17 @@ with it — adaptation 5 in `lib/pages.ts`); and the proportions
 were aligned to the old site's measures (card padding/density,
 sheet and button sizes, section rhythm, heading weights) with
 the palette unchanged.
+
+A second fix batch followed: the Compact rows gained the food
+line they were missing (the English gloss, falling back to the
+cuisine — the old app's rows always carried it, and the Cards
+view already did; the phone's Compact default is why its
+absence read as the whole app missing the gloss), and the
+design was softened where it felt boxy: the hero's flat
+gradient block under the photo and the footer's deep-green
+band went, the card, row and map edges eased to the soft sand
+line at rounder radii, and the section headings lost their
+short gradient underline bars.
 
 ## Run it
 

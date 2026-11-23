@@ -808,14 +808,16 @@ export default function PlaceBrowser({
   return (
     <div className="browser">
       <header className="hero">
-        {/* The old site's signature banner photo, with the title on
-            a deep green-to-blue band beneath it — Taiwan's mountains
-            running down to the sea. The photo is the share-preview
-            banner at its interim absolute URL (see OG_IMAGE_URL in
-            lib/routes.ts: self-host at launch). Decorative: the
-            title text beside it names the guide. If it cannot load
-            (offline before a first online visit, say), the band's
-            gradient simply fills the frame. */}
+        {/* The old site's signature banner photo, carrying the
+            band the way the old site's top does: the title and
+            counts sit on the photo itself, over a soft green→blue
+            scrim, and the band's bottom edge fades into the page.
+            The photo is the share-preview banner at its interim
+            absolute URL (see OG_IMAGE_URL in lib/routes.ts:
+            self-host at launch). Decorative: the title text beside
+            it names the guide. If it cannot load (offline before a
+            first online visit, say), the frame's gradient simply
+            fills the band. */}
         <div className="hero-media" aria-hidden="true">
           <img className="hero-photo" src={OG_IMAGE_URL} alt="" />
         </div>
@@ -925,6 +927,15 @@ export default function PlaceBrowser({
               <span className="row-names">
                 <span className="place-name-zh">{place.name_zh}</span>
                 <span className="place-name-en">{place.name_en}</span>
+                {/* The food line under the names, as on the old
+                    app's rows: the English gloss when the place
+                    has one, otherwise its cuisine (the same
+                    fallback detailsLabel uses). */}
+                {place.gloss || place.cuisine ? (
+                  <span className="row-food">
+                    {place.gloss || place.cuisine}
+                  </span>
+                ) : null}
               </span>
               {distances.get(place.legacy_id) != null ? (
                 <span className="dist-tag">

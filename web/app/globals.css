@@ -19,11 +19,17 @@
    Contrast (WCAG ratios, computed): white on green 5.99:1, white
    on blue 5.57:1, white on the deep green 9.25:1, green text on
    cream 5.89:1, blue text on cream 5.48:1, brown on cream 7.34:1.
-   Borrowed from the old (live) site's stylesheet: the deep green
-   hero band with a big display title, cards as white surfaces with
-   a 1px line border, 16px radii and soft shadows
-   (0 2px 10px / 0 10px 30px rgba(33,38,31,…)), the muted sage
-   text colour and the #ddd8c9 line colour. */
+   Borrowed from the old (live) site's stylesheet: the photo-led
+   hero with a big display title, cards as white surfaces with
+   soft shadows (0 2px 10px / 0 10px 30px rgba(33,38,31,…)), the
+   muted sage text colour and the #ddd8c9 line colour.
+   Softening pass (Jenny's feedback, same day): the flat colour
+   blocks and hard edges went — the hero is the photo itself,
+   with a soft scrim behind the title and a bottom edge that
+   fades into the cream; the footer is a plain sand tint; the
+   card, row and map edges are the soft sand line at generous
+   radii; the gradient survives as the hero's scrim tint, the
+   frame's fallback, and the dialog/driver accent strips. */
 
 :root {
   --cream: #fffdf8;
@@ -78,36 +84,46 @@ body {
 
 /* --- Hero: the old site's banner, mountains → sea --- */
 
-/* A rounded band: the banner photo on top, the title and counts on
-   a deep green-to-blue gradient beneath it. The media frame keeps
-   the same gradient behind the photo, so if the photo cannot load
-   (it is served from the guide's main address — see OG_IMAGE_URL)
+/* Photo-led, the way the old site's top is: the banner photo
+   carries the whole band, and the title and counts sit on the
+   photo over a soft scrim — no flat colour block beneath it.
+   The band's bottom edge fades into the cream page instead of
+   ending in a straight line. The frame keeps the green→blue
+   gradient behind the photo, so if the photo cannot load (it
+   is served from the guide's main address — see OG_IMAGE_URL)
    the band still reads as designed. */
 .hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 21rem;
   border-radius: 1.25rem;
   overflow: hidden;
   background: var(--gradient-sea);
-  box-shadow: var(--shadow-lift);
   margin-bottom: 1.75rem;
 }
 
 .hero-media {
-  position: relative;
-  height: 230px;
+  position: absolute;
+  inset: 0;
   background: var(--gradient-sea);
 }
 
+/* The scrim: the mountains→sea gradient as a soft shadow behind
+   the text — deep green low over the title, a hint of sea blue
+   above it, gone before the photo's top — so the white title
+   stays readable without a colour block under it. */
 .hero-media::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 55%;
+  inset: 0;
   background: linear-gradient(
-    to bottom,
-    rgba(32, 80, 58, 0),
-    rgba(32, 80, 58, 0.42)
+    to top,
+    rgba(23, 61, 44, 0.8) 0%,
+    rgba(32, 80, 58, 0.5) 36%,
+    rgba(31, 111, 150, 0.22) 64%,
+    rgba(31, 111, 150, 0) 86%
   );
 }
 
@@ -118,9 +134,29 @@ body {
   object-fit: cover;
 }
 
+/* The bottom edge melts into the page: a short fade from the
+   band to the cream ground. It sits over the photo only — the
+   body's bottom padding keeps the counts clear of it. */
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2rem;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 253, 248, 0),
+    var(--cream)
+  );
+  pointer-events: none;
+}
+
 .hero-body {
-  padding: 1.4rem 1.5rem 1.5rem;
+  position: relative;
+  padding: 1.4rem 1.5rem 2.6rem;
   color: #fff;
+  text-shadow: 0 1px 14px rgba(23, 61, 44, 0.45);
 }
 
 .hero-top {
@@ -157,9 +193,10 @@ body {
   font-size: 1.05rem;
 }
 
-/* The language toggle sits on the hero's dark band, so on the home
-   pages it wears glass clothes; on the standalone pages (PageHeader,
-   cream background) it keeps the light clothes below. */
+/* The language toggle sits on the hero's photo (over the scrim),
+   so on the home pages it wears glass clothes; on the standalone
+   pages (PageHeader, cream background) it keeps the light clothes
+   below. */
 .hero .lang-btn {
   border-color: rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.12);
@@ -447,25 +484,15 @@ body {
   margin: 2.6rem 0 0;
 }
 
-/* Section headings carry the mountains→sea rule: a short gradient
-   underline, green running into blue. Their size and weight are
-   the old site's section measure: 1.45rem, weight 800. */
+/* Section headings are plain brown: the short gradient
+   underline bars they briefly wore read as little cuts against
+   the cream, so they are gone. Their size and weight are the
+   old site's section measure: 1.45rem, weight 800. */
 .map-heading {
   margin: 0 0 0.3rem;
   font-size: 1.45rem;
   font-weight: 800;
   color: var(--brown-deep);
-}
-
-.map-heading::after,
-.contact-section h2::after {
-  content: "";
-  display: block;
-  width: 3.5rem;
-  height: 4px;
-  border-radius: 999px;
-  margin-top: 0.35rem;
-  background: var(--gradient-rule);
 }
 
 .map-sub {
@@ -481,7 +508,7 @@ body {
   position: relative;
   z-index: 0;
   height: 420px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--sand);
   border-radius: 1rem;
   overflow: hidden;
   background: #eef2ea;
@@ -562,7 +589,10 @@ body {
 }
 
 /* Cards view: true cards now, in the old site's treatment — a white
-   surface, a hairline border, a soft shadow that deepens on hover. */
+   surface, a soft shadow that deepens on hover. Their edge is the
+   soft sand line rather than the crisper hairline, and the radius
+   is a generous 20px, so the cards read as soft shapes on the
+   cream rather than boxes. */
 
 /* The old site's card rhythm: 16px between cards, 18px of
    padding inside them. */
@@ -574,8 +604,8 @@ body {
 
 .place-list.cards .place {
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 1rem;
+  border: 1px solid var(--sand);
+  border-radius: 1.25rem;
   padding: 1.125rem;
   box-shadow: var(--shadow-card);
   transition:
@@ -623,8 +653,10 @@ body {
 /* Compact view */
 
 /* Compact rows wear the old site's row (.crow) treatment: a
-   bordered white card of their own, radius 12px, padding
-   10px 12px 10px 14px, 8px between rows. */
+   bordered white card of their own, padding 10px 12px 10px 14px,
+   8px between rows — softened since: the edge is the soft sand
+   line and the radius a rounder 16px, so the rows sit as gently
+   as the cards do. */
 .place-list.compact {
   display: flex;
   flex-direction: column;
@@ -637,8 +669,8 @@ body {
   gap: 0.6rem;
   padding: 0.625rem 0.75rem 0.625rem 0.875rem;
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 0.75rem;
+  border: 1px solid var(--sand);
+  border-radius: 1rem;
 }
 
 .place-list.compact .place-number {
@@ -663,6 +695,16 @@ body {
 .place-list.compact .place-name-en {
   margin: 0;
   font-size: 0.88rem;
+}
+
+/* The row's food line (the gloss, or the cuisine in its place)
+   takes its own line under the names, quietly: muted, a touch
+   smaller than the names. */
+.place-list.compact .row-food {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
 }
 
 .place-list.compact .place-rating {
@@ -1316,21 +1358,24 @@ body {
   color: var(--blue);
 }
 
-/* The footer is a deep band — the mountains at the bottom of the
-   page — with cream text and glass pills, echoing the hero. */
+/* The footer ends the page gently, on the page's own ground —
+   like the old site's plain footer: a soft sand tint, brown
+   text, and the pill links as soft outlines on white. (It wore
+   a deep-green band for one slice; the second dark block cut
+   the page in two, so it went.) */
 .site-footer {
   margin-top: 2.5rem;
-  background: linear-gradient(140deg, var(--green-deep) 0%, #173d2c 100%);
-  color: #f5f2e7;
+  background: var(--sand-soft);
+  border: 1px solid var(--sand);
+  color: var(--ink);
   border-radius: 1.25rem;
   padding: 1.5rem 1.3rem 1.75rem;
   font-size: 0.9rem;
-  box-shadow: var(--shadow-card);
 }
 
 .site-footer p {
   margin: 0.35rem 0;
-  color: rgba(255, 253, 248, 0.82);
+  color: var(--muted);
 }
 
 .foot-links {
@@ -1341,18 +1386,18 @@ body {
 }
 
 .foot-link {
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line-strong);
+  background: #fff;
   border-radius: 999px;
   padding: 0.4rem 0.9rem;
   font-size: 0.9rem;
   cursor: pointer;
-  color: #fff;
+  color: var(--brown-deep);
   transition: background 0.15s ease;
 }
 
 .foot-link:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--sand);
 }
 
 /* --- Info + contact overlays --- */
@@ -1513,7 +1558,8 @@ body {
 /* --- Standalone pages (place / info / contact) --- */
 
 /* The slim header on non-home pages: site name + language toggle,
-   closed by the mountains→sea gradient rule. */
+   closed by a soft sand rule (it wore the mountains→sea gradient
+   for one slice; the plain line is gentler). */
 .page-header {
   position: relative;
   display: flex;
@@ -1531,9 +1577,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 3px;
-  border-radius: 999px;
-  background: var(--gradient-rule);
+  height: 1px;
+  background: var(--sand);
 }
 
 .page-header .langtoggle {
@@ -1614,14 +1659,15 @@ a.foot-link {
 }
 
 @media (max-width: 640px) {
-  /* The hero photo crops shorter on phone; the band's gradient
-     keeps the frame full if the photo is missing. */
-  .hero-media {
-    height: 150px;
+  /* The hero band is a touch shorter on phone; the photo fills
+     it edge to edge and crops by cover, and the frame's gradient
+     keeps the band full if the photo is missing. */
+  .hero {
+    min-height: 19rem;
   }
 
   .hero-body {
-    padding: 1rem 1.1rem 1.15rem;
+    padding: 1rem 1.1rem 2.4rem;
   }
 
   .hero h1 {

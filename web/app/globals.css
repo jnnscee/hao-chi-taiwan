@@ -1514,3 +1514,31 @@ a.foot-link {
     white-space: normal;
   }
 }
+
+/* --- Add to Home Screen (footer entry + steps dialog) --- */
+
+/* The footer entry is a <button> wearing the .foot-link pill
+   style; buttons do not inherit the page font by default. */
+button.foot-link {
+  font-family: inherit;
+}
+
+.install-text {
+  margin: 0.75rem 0 0;
+  color: #444;
+}
+
+.install-steps {
+  margin: 1rem 0 0;
+  padding-left: 1.4rem;
+}
+
+.install-steps li {
+  margin: 0.45rem 0;
+}
+
+.install-note {
+  margin: 1rem 0 0;
+  color: #666;
+  font-size: 0.92rem;
+}

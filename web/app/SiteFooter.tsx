@@ -1,6 +1,7 @@
 import { STRINGS, type Lang } from "@/lib/i18n";
 import { INFO_PAGES } from "@/lib/pages";
 import { contactPath, infoPath } from "@/lib/routes";
+import InstallButton from "./InstallButton";
 
 /**
  * The site footer with real links: About · Privacy · Terms ·
@@ -28,6 +29,10 @@ export default function SiteFooter({ lang }: { lang: Lang }) {
         <a className="foot-link" href={contactPath(lang)}>
           {t.contact_h}
         </a>
+        {/* The live app's footer entry: fires the browser's install
+            prompt where one exists, else shows the Add to Home
+            Screen steps. Renders nothing once installed. */}
+        <InstallButton lang={lang} />
         {/* The one public trace of the admin area: a discreet link
             to Jenny's sign-in. Visitors gain nothing from it —
             /admin asks for an email code and only her account

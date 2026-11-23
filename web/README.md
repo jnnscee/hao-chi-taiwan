@@ -182,6 +182,24 @@ served from the repo root until the rebuild is ready to take over.
 - The committed `.env` holds `NEXT_PUBLIC_SUPABASE_URL` and
   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Both are public values by design;
   no secret or service-role key must ever be added here.
+- Offline / installable (PWA): a hand-written service worker
+  (`public/sw.js`, registered in production by
+  `app/ServiceWorkerRegister.tsx`) precaches the home, info and
+  contact pages in both languages, then serves pages
+  network-first (so ISR freshness still wins online) with the
+  cache as the offline fallback and `public/offline.html` for
+  never-visited pages. Static assets are stale-while-revalidate;
+  OpenStreetMap tiles are cache-first in a ~200-entry capped
+  cache. `/admin`, Supabase requests and non-GET requests are
+  never cached. The manifest (`app/manifest.ts`) and the icons
+  (generated routes — `app/icon.tsx`, `app/apple-icon.tsx`,
+  `app/icons/[name]/route.ts` — no binary files) make the guide
+  installable, and the footer's "Add to Home Screen" entry
+  (`app/InstallButton.tsx`, wording in `lib/install.ts` lifted
+  from the live app) fires the browser's install prompt where
+  one exists and otherwise shows the steps for the device. With
+  a real offline copy again, the Privacy page's offline-copy
+  bullet — removed when it wasn't true — is restored.
 
 ## Run it
 
@@ -193,8 +211,7 @@ npm start
 
 ## Not yet
 
-No PWA yet — that is a later Phase 2 step. Admin login is done
-(see above); two Auth settings live only in the Supabase
+Admin login is done (see above); two Auth settings live only in the Supabase
 dashboard and are still Jenny's to flip there: disabling public
 sign-ups, and adding the 6-digit code (`{{ .Token }}`) to the
 Magic Link email template so the login email shows the code as

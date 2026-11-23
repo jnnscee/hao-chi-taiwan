@@ -13,8 +13,11 @@
 //     rebuild actually loads: OpenStreetMap's map service, and the
 //     Supabase database service the place list is kept in.
 //  2. The live text's "offline copy" bullet describes the live app's
-//     service-worker copy. The rebuild has no offline copy yet, so
-//     that bullet is removed rather than claimed.
+//     service-worker copy. The rebuild initially had no offline
+//     copy, so that bullet was removed rather than claimed; the
+//     offline/PWA slice then gave the rebuild a real service
+//     worker, and the bullet is RESTORED, mirroring the live app's
+//     original bullet (see the privacy_html lists below).
 //  3. The rebuild also remembers the visitor's language choice
 //     (hao-chi-lang-v1) on the device, so a language-choice bullet
 //     joins Saved places and the view choice.
@@ -79,7 +82,8 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>What stays on your own device</h3>" +
       "<ul><li><b>Saved places</b> — when you tap Save on a place, that choice is stored in this browser on this device only, so your saved list is there when you come back. It is never sent to us and does not sync to other phones or browsers.</li>" +
       "<li><b>Your view choice</b> — whether you last used Cards or Compact list is also remembered on this device only, so the list opens the way you left it.</li>" +
-      "<li><b>Your language choice</b> — whether you last used English or 中文 is also remembered on this device only, so the guide opens in your language.</li></ul>" +
+      "<li><b>Your language choice</b> — whether you last used English or 中文 is also remembered on this device only, so the guide opens in your language.</li>" +
+      "<li><b>An offline copy</b> — so the guide keeps working with no connection, your browser stores a copy of the app and its place list on your device. That is storage on your device, not tracking.</li></ul>" +
       "<p>You can remove all of it at any time by clearing this site's data in your browser settings.</p>" +
       "<h3>Your location — Near me</h3>" +
       "<p>Your location is used only when you ask for it: tapping “Near me” or choosing “Nearest” sorting. Your browser asks your permission first. Your location is then used inside your own browser to work out distances and order the list — it is not stored, and it is never sent to us.</p>" +
@@ -141,7 +145,8 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>只留在你自己裝置上的東西</h3>" +
       "<ul><li><b>收藏的店</b> — 當你在某家店點「收藏」時，那個選擇只會存在這台裝置的這個瀏覽器裡，讓你下次回來時收藏清單還在。它不會傳送給我們，也不會同步到其他手機或瀏覽器。</li>" +
       "<li><b>你的檢視選擇</b> — 你上次用的是「卡片」還是「緊湊清單」，也只會記在這台裝置上，讓清單以你離開時的樣子開啟。</li>" +
-      "<li><b>你的語言選擇</b> — 你上次用的是 English 還是中文，也只會記在這台裝置上，讓指南以你的語言開啟。</li></ul>" +
+      "<li><b>你的語言選擇</b> — 你上次用的是 English 還是中文，也只會記在這台裝置上，讓指南以你的語言開啟。</li>" +
+      "<li><b>離線副本</b> — 為了讓指南在沒有網路時也能用，你的瀏覽器會在裝置上存一份 App 和店家清單的副本。那是存在你裝置上的資料，不是追蹤。</li></ul>" +
       "<p>你可以隨時在瀏覽器設定中清除此網站的資料，把以上內容全部移除。</p>" +
       "<h3>你的位置 — 「我附近」</h3>" +
       "<p>你的位置只在你主動要求時才會使用：點「我附近」或選擇「最近」排序時。瀏覽器會先徵求你的許可。之後，你的位置只在你自己的瀏覽器裡用來計算距離和排列清單 — 不會被儲存，也不會傳送給我們。</p>" +

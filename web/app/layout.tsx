@@ -1,10 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import ServiceWorkerRegister from "./ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "Hao Chi Taiwan",
   description:
     "Jenny's personal guide to small restaurants, cafés and street-food spots across Taiwan.",
+  appleWebApp: {
+    capable: true,
+    title: "Hao Chi Taiwan",
+    statusBarStyle: "default",
+  },
+};
+
+// The browser chrome colour matches the app's brown; the manifest
+// (app/manifest.ts) carries the same colour for the installed app.
+export const viewport: Viewport = {
+  themeColor: "#7a4a12",
 };
 
 export default function RootLayout({
@@ -14,7 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
   );
 }

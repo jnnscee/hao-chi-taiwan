@@ -73,9 +73,27 @@ export function contactPath(lang: Lang): string {
   return `${lang === "zh" ? "/zh" : ""}/contact`;
 }
 
+/**
+ * The pathname the toggle arithmetic works on. The client router
+ * can report the root route as "/index" — the prerendered root
+ * document's name (the build emits the home page as index.html /
+ * index.rsc) — and LangSwitch feeds that value straight in. That
+ * name is the home page, not a page of its own: left unnormalised
+ * it produced toggle links to /index and /zh/index, and /zh/index
+ * is a 404 (Jenny, on the design-slice check: "the Chinese toggle
+ * doesn't work"). Normalising here, in the one helper every toggle
+ * computes with, fixes every LangSwitch usage at once.
+ */
+export function normalizePathname(pathname: string): string {
+  if (pathname === "/index") return "/";
+  if (pathname === "/zh/index") return "/zh";
+  return pathname;
+}
+
 /** The language a pathname is in: /zh and everything under it is Chinese. */
 export function langFromPathname(pathname: string): Lang {
-  return pathname === "/zh" || pathname.startsWith("/zh/") ? "zh" : "en";
+  const path = normalizePathname(pathname);
+  return path === "/zh" || path.startsWith("/zh/") ? "zh" : "en";
 }
 
 /**
@@ -85,10 +103,11 @@ export function langFromPathname(pathname: string): Lang {
  * carry (list state, query strings) is not preserved.
  */
 export function twinPath(pathname: string, target: Lang): string {
-  const current = langFromPathname(pathname);
-  if (current === target) return pathname;
-  if (target === "zh") return pathname === "/" ? "/zh" : `/zh${pathname}`;
-  const stripped = pathname.slice("/zh".length);
+  const path = normalizePathname(pathname);
+  const current = langFromPathname(path);
+  if (current === target) return path;
+  if (target === "zh") return path === "/" ? "/zh" : `/zh${path}`;
+  const stripped = path.slice("/zh".length);
   return stripped === "" ? "/" : stripped;
 }
 

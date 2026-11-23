@@ -590,6 +590,34 @@ export default function PlaceBrowser({
     return <LangSwitch lang={lang} />;
   }
 
+  // The old app's heart, carried over (Jenny's call): a circular
+  // Save toggle on every card and compact row — outline ♡ until
+  // saved, filled ♥ once it is, with the old app's red saved
+  // treatment. Same hao-chi-saved-v1 behaviour as the details
+  // Save (the one toggleSave); the accessible label is the
+  // Save/Saved word plus the place's name, as on the old app. Its
+  // clicks and keys stop here, so the entry's own open-details
+  // handling never fires for them.
+  function renderSaveHeart(place: Place) {
+    const isSaved = savedIds.includes(place.legacy_id);
+    return (
+      <button
+        type="button"
+        className={isSaved ? "card-save is-saved" : "card-save"}
+        aria-pressed={isSaved}
+        aria-label={`${isSaved ? t.saved : t.save}: ${place.name_zh}`}
+        title={isSaved ? t.saved : t.save}
+        onClick={(event) => {
+          event.stopPropagation();
+          toggleSave(place);
+        }}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        {isSaved ? "♥" : "♡"}
+      </button>
+    );
+  }
+
   function renderViewButtons() {
     return (
       <div className="toggle-buttons">
@@ -793,7 +821,10 @@ export default function PlaceBrowser({
         </div>
         <div className="hero-body">
           <div className="hero-top">
-            <h1>Hao Chi Taiwan 好吃台灣</h1>
+            <h1>
+              Hao Chi Taiwan{" "}
+              <span className="hero-title-zh">好吃台灣</span>
+            </h1>
             {renderLangToggle()}
           </div>
           <p className="counts">
@@ -826,12 +857,6 @@ export default function PlaceBrowser({
         {renderLangToggle()}
       </div>
 
-      <section className="map-section" aria-label={t.map_h}>
-        <h2 className="map-heading">{t.map_h}</h2>
-        <p className="map-sub">{t.map_sub}</p>
-        <PlaceMap markerSet={markerSet} onSelect={openDetails} />
-      </section>
-
       {displayed.length === 0 ? (
         <p className="empty">
           {filters.nearActive && filters.radiusKm < ANY_DISTANCE_KM
@@ -858,6 +883,7 @@ export default function PlaceBrowser({
                 {savedIds.includes(place.legacy_id) ? (
                   <span className="saved-marker">{t.saved}</span>
                 ) : null}
+                {renderSaveHeart(place)}
               </div>
               <p className="place-name-en">{place.name_en}</p>
               {place.gloss ? (
@@ -913,6 +939,7 @@ export default function PlaceBrowser({
                   {place.rating_value.toFixed(1)}
                 </span>
               ) : null}
+              {renderSaveHeart(place)}
             </li>
           ))}
         </ul>
@@ -938,6 +965,16 @@ export default function PlaceBrowser({
           ) : null}
         </div>
       ) : null}
+
+      {/* The map sits BELOW the list, as on the old site (Jenny's
+          arrangement): hero → controls → list → map → contact.
+          Its behaviour is unchanged — pins follow the filtered
+          set, fit on set change only, a pin tap opens details. */}
+      <section className="map-section" aria-label={t.map_h}>
+        <h2 className="map-heading">{t.map_h}</h2>
+        <p className="map-sub">{t.map_sub}</p>
+        <PlaceMap markerSet={markerSet} onSelect={openDetails} />
+      </section>
 
       {/* Contact & feedback section, as on the live app: a heading,
           the invitation text, and the button that opens the form

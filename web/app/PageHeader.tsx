@@ -11,7 +11,7 @@ export default function PageHeader({ lang }: { lang: Lang }) {
   return (
     <header className="page-header">
       <a className="site-name" href={homePath(lang)}>
-        Hao Chi Taiwan 好吃台灣
+        Hao Chi Taiwan <span className="hero-title-zh">好吃台灣</span>
       </a>
       <LangSwitch lang={lang} />
     </header>

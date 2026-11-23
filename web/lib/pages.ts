@@ -26,8 +26,13 @@
 //     Google Maps link that never reads the visitor's location —
 //     only Near me and Nearest sorting do — so that phrase is gone.
 //  5. The live text calls the Save control "(the heart)". The
-//     rebuild's Save is a labelled button, so the parenthetical is
-//     removed.
+//     rebuild's Save was initially a labelled button, so the
+//     parenthetical was removed; the fix batch after the design
+//     slice (Jenny's feedback) then carried the old app's heart
+//     over — a heart toggle on the cards and compact rows and in
+//     the details view — so the parenthetical is RESTORED in both
+//     languages, mirroring the live text exactly (EN "(the
+//     heart)", ZH "（愛心）").
 //  6. A Vercel hosting bullet is added: Vercel keeps basic server
 //     logs, as the audit of the rebuild records.
 //  7. The design-polish slice put the banner photo back on the
@@ -85,7 +90,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>No tracking</h3>" +
       "<p>This page contains no analytics, no advertising trackers and no tracking cookies. We do not build a profile of you, and we cannot see which places you looked at.</p>" +
       "<h3>What stays on your own device</h3>" +
-      "<ul><li><b>Saved places</b> — when you tap Save on a place, that choice is stored in this browser on this device only, so your saved list is there when you come back. It is never sent to us and does not sync to other phones or browsers.</li>" +
+      "<ul><li><b>Saved places</b> — when you tap Save (the heart) on a place, that choice is stored in this browser on this device only, so your saved list is there when you come back. It is never sent to us and does not sync to other phones or browsers.</li>" +
       "<li><b>Your view choice</b> — whether you last used Cards or Compact list is also remembered on this device only, so the list opens the way you left it.</li>" +
       "<li><b>Your language choice</b> — whether you last used English or 中文 is also remembered on this device only, so the guide opens in your language.</li>" +
       "<li><b>An offline copy</b> — so the guide keeps working with no connection, your browser stores a copy of the app and its place list on your device. That is storage on your device, not tracking.</li></ul>" +
@@ -148,7 +153,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>沒有追蹤</h3>" +
       "<p>這個頁面沒有分析工具、沒有廣告追蹤器，也沒有追蹤用的 Cookie。我們不會建立你的個人檔案，也看不到你看過哪些店。</p>" +
       "<h3>只留在你自己裝置上的東西</h3>" +
-      "<ul><li><b>收藏的店</b> — 當你在某家店點「收藏」時，那個選擇只會存在這台裝置的這個瀏覽器裡，讓你下次回來時收藏清單還在。它不會傳送給我們，也不會同步到其他手機或瀏覽器。</li>" +
+      "<ul><li><b>收藏的店</b> — 當你在某家店點「收藏」（愛心）時，那個選擇只會存在這台裝置的這個瀏覽器裡，讓你下次回來時收藏清單還在。它不會傳送給我們，也不會同步到其他手機或瀏覽器。</li>" +
       "<li><b>你的檢視選擇</b> — 你上次用的是「卡片」還是「緊湊清單」，也只會記在這台裝置上，讓清單以你離開時的樣子開啟。</li>" +
       "<li><b>你的語言選擇</b> — 你上次用的是 English 還是中文，也只會記在這台裝置上，讓指南以你的語言開啟。</li>" +
       "<li><b>離線副本</b> — 為了讓指南在沒有網路時也能用，你的瀏覽器會在裝置上存一份 App 和店家清單的副本。那是存在你裝置上的資料，不是追蹤。</li></ul>" +

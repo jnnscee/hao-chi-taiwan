@@ -41,16 +41,17 @@ served from the repo root until the rebuild is ready to take over.
   "Good to know" block (visitor notes, cash-only) that appears only here,
   never on cards. Actions: Open in Google Maps (with the Save hint),
   Get directions, Show driver (full-screen large Chinese name + address),
-  Save (device-local, `hao-chi-saved-v1`, with a "Saved" marker on the
-  list), Share (Web Share or copy the place's own page URL — see
+  Save (device-local, `hao-chi-saved-v1` — the old app's heart:
+  a heart toggle on every card and row and in the details, with a
+  "Saved" marker on the list), Share (Web Share or copy the place's own page URL — see
   **Real web addresses**), Add to calendar
   (1-hour Google Calendar template, Asia/Taipei) and a quiet
   "Report a problem with this place" button that opens the contact
   form pre-filled for the place. The dialog closes via
   its ✕ or Escape and leaves the list state untouched.
 - A **real interactive map** (`app/PlaceMap.tsx`, Leaflet with
-  OpenStreetMap tiles, loaded client-side only) sits between the
-  controls and the list, headed by the live app's own map strings
+  OpenStreetMap tiles, loaded client-side only) sits below the
+  list (the old site's order), headed by the live app's own map strings
   ("Where they are" / 「地圖」 and its tap-a-pin hint, in `lib/i18n.ts`).
   It draws exactly the current filtered set: numbered pins (number =
   the place's list number) at 60 or fewer results, small dot markers
@@ -209,7 +210,7 @@ Taiwan — cream `#fffdf8` base and sand `#f0ead9` (kept), brown
 `#7a4a12` for headings/brand/the list badge, mountain green
 `#2f6f4e` for primary actions and active states, ocean blue
 `#1f6f96` for links and travel actions, red `#a33b2e` for
-semantic alerts only. The home hero is the old site's signature
+semantic alerts and the saved heart. The home hero is the old site's signature
 banner photo (the `OG_IMAGE_URL` banner at its interim absolute
 URL) over a deep green→blue "mountains → sea" gradient band,
 which also closes the footer and rules the standalone-page
@@ -219,6 +220,18 @@ on green 5.99:1, on blue 5.57:1, on deep green 9.25:1). No
 behaviour changed. Because the banner photo now loads from the
 guide's main Vercel address, the Privacy page's Vercel bullet
 says so, in both languages (adaptation 7 in `lib/pages.ts`).
+
+A fix batch followed Jenny's design-slice feedback: the language
+toggle's twin-path helper (`lib/routes.ts`) now normalises the
+client router's "/index" name for the root route, which had made
+the English home's toggle point at /index and /zh/index (a 404);
+the hero title keeps 好吃台灣 unbroken on one desktop line; the
+map moved below the list; the old app's heart came back as the
+Save control (and the Privacy text's "(the heart)" / 「（愛心）」
+with it — adaptation 5 in `lib/pages.ts`); and the proportions
+were aligned to the old site's measures (card padding/density,
+sheet and button sizes, section rhythm, heading weights) with
+the palette unchanged.
 
 ## Run it
 

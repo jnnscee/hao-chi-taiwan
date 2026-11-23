@@ -11,8 +11,11 @@
      blue   #1f6f96  ocean blue: links and travel actions — Open in
                      Google Maps, Get directions, Check today's
                      hours, distance tags, map-section accents
-     red    #a33b2e  semantic alerts ONLY: temporarily closed, the
-                     floating button's count badge
+     red    #a33b2e  semantic alerts: temporarily closed, the
+                     floating button's count badge — and the saved
+                     heart, carried over from the old app, where
+                     red is Save's colour (filled ♥, pale-red
+                     saved treatment)
    Contrast (WCAG ratios, computed): white on green 5.99:1, white
    on blue 5.57:1, white on the deep green 9.25:1, green text on
    cream 5.89:1, blue text on cream 5.48:1, brown on cream 7.34:1.
@@ -55,7 +58,7 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--ink);
   background: var(--cream);
-  line-height: 1.45;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -69,7 +72,8 @@ body {
 .page {
   max-width: 44rem;
   margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
+  /* Side gutters at the old site's .wrap measure (22px). */
+  padding: 1.75rem 1.375rem 4rem;
 }
 
 /* --- Hero: the old site's banner, mountains → sea --- */
@@ -89,7 +93,7 @@ body {
 
 .hero-media {
   position: relative;
-  height: 210px;
+  height: 230px;
   background: var(--gradient-sea);
 }
 
@@ -115,30 +119,42 @@ body {
 }
 
 .hero-body {
-  padding: 1.15rem 1.3rem 1.3rem;
+  padding: 1.4rem 1.5rem 1.5rem;
   color: #fff;
 }
 
 .hero-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
 }
 
-/* The old site's display title: big, tight, confident. */
+/* The old site's display title: big, tight, confident — at its
+   measure (clamp(2.4rem, 5.5vw, …), line-height 1.02). Jenny's
+   rule: the title sits on ONE line on desktop, so the size is
+   capped where the whole title fits the column beside the toggle,
+   and the Chinese name is a nowrap span — it can never strand a
+   character (灣) on a line of its own. On phone the row wraps
+   (toggle drops below) and the Latin words may wrap, but the
+   Chinese name still never breaks. */
 .hero h1 {
   margin: 0 0 0.25rem;
-  font-size: clamp(2rem, 6vw, 2.9rem);
+  font-size: clamp(2rem, 5.5vw, 2.4rem);
   font-weight: 800;
   letter-spacing: -0.01em;
-  line-height: 1.08;
+  line-height: 1.02;
+}
+
+.hero-title-zh {
+  white-space: nowrap;
 }
 
 .counts {
   margin: 0;
   color: rgba(255, 255, 255, 0.88);
-  font-size: 0.98rem;
+  font-size: 1.05rem;
 }
 
 /* The language toggle sits on the hero's dark band, so on the home
@@ -168,21 +184,24 @@ body {
   margin-top: 0.5rem;
 }
 
+/* The segmented toggles (language, Cards/Compact) wear the old
+   site's toggle measure: padding 6px 16px, radius 9px, weight 700. */
 .lang-btn {
   border: 1px solid var(--line-strong);
   background: #fff;
-  padding: 0.4rem 0.75rem;
+  padding: 0.375rem 0.875rem;
   font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
   color: var(--ink);
 }
 
 .lang-btn:first-child {
-  border-radius: 0.5rem 0 0 0.5rem;
+  border-radius: 0.56rem 0 0 0.56rem;
 }
 
 .lang-btn:last-child {
-  border-radius: 0 0.5rem 0.5rem 0;
+  border-radius: 0 0.56rem 0.56rem 0;
   border-left: none;
 }
 
@@ -201,12 +220,14 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Tabs wear the old site's chip measure: padding 7px 16px,
+   0.92rem, pill radius. */
 .tab {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 999px;
-  padding: 0.45rem 0.95rem;
-  font-size: 0.95rem;
+  padding: 0.44rem 1rem;
+  font-size: 0.92rem;
   cursor: pointer;
   color: var(--ink);
   transition:
@@ -224,7 +245,7 @@ body {
   background: var(--green);
   border-color: var(--green);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .tab.active:hover {
@@ -274,18 +295,19 @@ body {
 .toggle {
   border: 1px solid var(--line-strong);
   background: #fff;
-  padding: 0.45rem 0.7rem;
+  padding: 0.375rem 0.875rem;
   font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   color: var(--ink);
 }
 
 .toggle:first-child {
-  border-radius: 0.5rem 0 0 0.5rem;
+  border-radius: 0.56rem 0 0 0.56rem;
 }
 
 .toggle:last-child {
-  border-radius: 0 0.5rem 0.5rem 0;
+  border-radius: 0 0.56rem 0.56rem 0;
   border-left: none;
 }
 
@@ -332,9 +354,10 @@ body {
   background: #fff;
   color: var(--green-deep);
   border-radius: 999px;
-  padding: 0.5rem 1.1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 0.55rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  min-height: 2.5rem;
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -418,16 +441,19 @@ body {
 
 /* --- Interactive map (Leaflet) --- */
 
+/* The map section now sits below the list (the old site's order);
+   the gap above it follows the old sections' rhythm. */
 .map-section {
-  margin: 0 0 1.5rem;
+  margin: 2.6rem 0 0;
 }
 
 /* Section headings carry the mountains→sea rule: a short gradient
-   underline, green running into blue. */
+   underline, green running into blue. Their size and weight are
+   the old site's section measure: 1.45rem, weight 800. */
 .map-heading {
   margin: 0 0 0.3rem;
-  font-size: 1.5rem;
-  font-weight: 750;
+  font-size: 1.45rem;
+  font-weight: 800;
   color: var(--brown-deep);
 }
 
@@ -443,9 +469,9 @@ body {
 }
 
 .map-sub {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.875rem;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
 }
 
 /* position + z-index make the container a stacking context, so
@@ -538,17 +564,19 @@ body {
 /* Cards view: true cards now, in the old site's treatment — a white
    surface, a hairline border, a soft shadow that deepens on hover. */
 
+/* The old site's card rhythm: 16px between cards, 18px of
+   padding inside them. */
 .place-list.cards {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
 }
 
 .place-list.cards .place {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 1rem;
-  padding: 1rem 1.1rem;
+  padding: 1.125rem;
   box-shadow: var(--shadow-card);
   transition:
     box-shadow 0.18s ease,
@@ -565,7 +593,8 @@ body {
 .place-name-zh {
   margin: 0;
   font-size: 1.18rem;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .place-name-en {
@@ -593,13 +622,23 @@ body {
 
 /* Compact view */
 
+/* Compact rows wear the old site's row (.crow) treatment: a
+   bordered white card of their own, radius 12px, padding
+   10px 12px 10px 14px, 8px between rows. */
+.place-list.compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .place-list.compact .place {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.45rem 0.5rem;
-  border-bottom: 1px solid var(--sand);
-  border-radius: 0.6rem;
+  padding: 0.625rem 0.75rem 0.625rem 0.875rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
 }
 
 .place-list.compact .place-number {
@@ -649,9 +688,10 @@ body {
   background: #fff;
   color: var(--green-deep);
   border-radius: 999px;
-  padding: 0.55rem 1.4rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 0.55rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  min-height: 2.5rem;
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -696,6 +736,53 @@ body {
   margin-left: 0;
 }
 
+/* The old app's heart (carried over at Jenny's call): a 40px
+   circular Save toggle at the card's top-right and the row's
+   right end — transparent with a hairline border and a muted
+   outline heart; saved turns it the old app's red on pale red
+   with a filled heart. (The glyphs ♡/♥ are the old app's own.)
+   In a card head the heart takes the auto margin that pushes it
+   right; when the Saved marker precedes it, the marker keeps
+   that job and the heart sits beside it. Compact rows use the
+   old app's smaller 36px heart. */
+.card-save {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--line);
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--muted);
+  flex: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.card-save.is-saved {
+  color: var(--alert);
+  border-color: var(--alert);
+  background: #fdf0ec;
+}
+
+.place-head .saved-marker + .card-save {
+  margin-left: 0;
+}
+
+.place-list.compact .card-save {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  font-size: 0.95rem;
+  margin-left: 0;
+}
+
 /* --- Details dialog --- */
 
 .dialog-backdrop {
@@ -707,13 +794,15 @@ body {
   padding: 1rem;
 }
 
+/* The dialog wears the old site's sheet measure: radius 20px,
+   padding 26px 24px 30px. */
 .dialog {
   position: relative;
   max-width: 36rem;
   margin: 2rem auto;
   background: var(--cream);
-  border-radius: 1rem;
-  padding: 1.5rem;
+  border-radius: 1.25rem;
+  padding: 1.6rem 1.5rem 1.9rem;
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
 }
 
@@ -725,7 +814,7 @@ body {
   left: 0;
   right: 0;
   height: 6px;
-  border-radius: 1rem 1rem 0 0;
+  border-radius: 1.25rem 1.25rem 0 0;
   background: var(--gradient-rule);
 }
 
@@ -769,10 +858,12 @@ body {
   color: #fff;
 }
 
+/* The place's name is the sheet's title: the old site's sheet
+   heading measure, 1.5rem at line-height 1.2. */
 .dialog-name-zh {
   margin: 0;
-  font-size: 1.7rem;
-  line-height: 1.25;
+  font-size: 1.5rem;
+  line-height: 1.2;
   color: var(--brown-deep);
 }
 
@@ -874,16 +965,25 @@ body {
   margin-top: 1.25rem;
 }
 
+/* The dialog's action buttons wear the old site's details-button
+   (.ss-btn) measure: radius 12px, padding 11px 12px, 0.94rem at
+   weight 700, min-height 2.9rem, a 1.5px border, centred content
+   with an 8px gap (the Save heart sits in that gap). */
 .action {
-  border: 1px solid var(--line-strong);
+  border: 1.5px solid var(--line);
   background: #fff;
   color: var(--ink);
-  border-radius: 999px;
-  padding: 0.55rem 1.1rem;
-  font-size: 0.95rem;
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.94rem;
+  font-weight: 700;
+  min-height: 2.9rem;
   cursor: pointer;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
@@ -899,18 +999,23 @@ body {
   background: var(--blue);
   border-color: var(--blue);
   color: #fff;
-  font-weight: 600;
 }
 
 .action.primary:hover {
   background: var(--blue-deep);
 }
 
-/* Save, pressed: a quiet green "on" state. */
+/* Save, pressed: the old app's saved treatment — pale red ground,
+   red border and text, and the heart filled (the fill itself is
+   set on the SVG in PlaceDetailView). */
 .action[aria-pressed="true"] {
-  background: var(--green-tint);
-  border-color: var(--green);
-  color: var(--green-deep);
+  background: #fdf0ec;
+  border-color: var(--alert);
+  color: var(--alert);
+}
+
+.save-action svg {
+  flex: none;
 }
 
 .maps-action {
@@ -1122,8 +1227,8 @@ body {
 
 .search-sheet h2 {
   margin: 0;
-  font-size: 1.45rem;
-  font-weight: 750;
+  font-size: 1.5rem;
+  font-weight: 800;
   line-height: 1.2;
   padding-right: 44px;
   color: var(--brown-deep);
@@ -1161,18 +1266,18 @@ body {
 /* --- Contact section + footer --- */
 
 .contact-section {
-  margin-top: 3rem;
+  margin-top: 2.6rem;
 }
 
 .contact-section h2 {
   margin: 0 0 0.35rem;
-  font-size: 1.5rem;
-  font-weight: 750;
+  font-size: 1.45rem;
+  font-weight: 800;
   color: var(--brown-deep);
 }
 
 .contact-sub {
-  margin: 0.6rem 0 0.9rem;
+  margin: 0.25rem 0 0.875rem;
   color: var(--muted);
   font-size: 0.95rem;
 }
@@ -1190,9 +1295,10 @@ body {
   background: var(--green);
   color: #fff;
   border-radius: 999px;
-  padding: 0.55rem 1.1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 0.55rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  min-height: 2.5rem;
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -1260,9 +1366,9 @@ body {
 
 .dialog-title {
   margin: 0;
-  font-size: 1.45rem;
-  font-weight: 750;
-  line-height: 1.25;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
   padding-right: 2.5rem;
   color: var(--brown-deep);
 }
@@ -1273,34 +1379,38 @@ body {
   font-size: 0.85rem;
 }
 
+/* The info pages' body text wears the old site's measure:
+   0.98rem at line-height 1.65, headings 1.08rem/800 set plainly,
+   22px above each heading, 8px paragraph rhythm. */
 .info-body {
   margin-top: 0.75rem;
-  font-size: 0.95rem;
+  font-size: 0.98rem;
+  line-height: 1.65;
 }
 
 .info-body h3 {
-  margin: 1.1rem 0 0.35rem;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--brown);
+  margin: 1.4rem 0 0.35rem;
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--brown-deep);
 }
 
 .info-body h3:first-child {
-  margin-top: 0;
+  margin-top: 0.25rem;
 }
 
 .info-body p {
-  margin: 0.3rem 0;
+  margin: 0.5rem 0;
 }
 
 .info-body ul {
-  margin: 0.3rem 0;
+  margin: 0.5rem 0;
   padding-left: 1.25rem;
 }
 
 .info-body li {
-  margin: 0.25rem 0;
+  margin: 0.35rem 0;
 }
 
 .info-body a {
@@ -1407,6 +1517,7 @@ body {
 .page-header {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
@@ -1518,7 +1629,7 @@ a.foot-link {
   }
 
   .page {
-    padding-top: 1rem;
+    padding-top: 1.25rem;
   }
 
   /* Comfortable tap targets for the pill controls. */

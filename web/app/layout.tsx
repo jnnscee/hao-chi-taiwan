@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 // The browser chrome colour matches the app's brown; the manifest
 // (app/manifest.ts) carries the same colour for the installed app.
 export const viewport: Viewport = {
-  themeColor: "#7a4a12",
+  themeColor: "#131715",
 };
 
 export default function RootLayout({

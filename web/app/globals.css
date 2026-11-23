@@ -1,55 +1,88 @@
 /* Design polish (Jenny's direction, 2026-11-22): Taiwan is nature
    — mountains running down to the sea. The palette gives each
-   colour a job, never confetti:
-     cream  #fffdf8  the base (kept from the earlier rebuild)
-     sand   #f0ead9  quiet tints and hairlines (kept)
-     brown  #7a4a12  earth and food: headings, brand accents, the
-                     Recommended badge (the existing brand colour)
-     green  #2f6f4e  mountain green: primary actions and active
-                     states — buttons, the active tab, the active
-                     language/view toggles, the map pins
-     blue   #1f6f96  ocean blue: links and travel actions — Open in
-                     Google Maps, Get directions, Check today's
-                     hours, distance tags, map-section accents
-     red    #a33b2e  semantic alerts: temporarily closed, the
-                     floating button's count badge — and the saved
-                     heart, carried over from the old app, where
-                     red is Save's colour (filled ♥, pale-red
-                     saved treatment)
-   Contrast (WCAG ratios, computed): white on green 5.99:1, white
-   on blue 5.57:1, white on the deep green 9.25:1, green text on
-   cream 5.89:1, blue text on cream 5.48:1, brown on cream 7.34:1.
-   Borrowed from the old (live) site's stylesheet: the photo-led
-   hero with a big display title, cards as white surfaces with
-   soft shadows (0 2px 10px / 0 10px 30px rgba(33,38,31,…)), the
-   muted sage text colour and the #ddd8c9 line colour.
+   colour a job, never confetti. It began as a light palette
+   (cream base, sand tints, brand brown); Jenny then asked for
+   the whole app in a night scheme — "my first version has a
+   black background" — so the same jobs are now done by the
+   first version's own dark tokens:
+     ground #131715  the page: near-black with a green tint
+                     (v1's --bg)
+     surface #1d2320 cards, rows, dialogs (v1's --surface)
+     raised #232a26  chips, inputs, hover lifts (v1's --chip)
+     line   #39413c  borders and hairlines (v1's --line)
+     ink    #f0ede3  body text (v1's --ink)
+     muted  #a9b3a6  quiet text (v1's --muted)
+     gold   #e0b95e  the old brand brown's night form: headings,
+                     brand accents, the Recommended badge —
+                     #7a4a12 is illegible on near-black, so the
+                     brown identity survives as gold-brown
+                     (v1's --gold; the deeper heading tone is
+                     v1's light-theme gold, #c98f1b)
+     green  #2f6f4e  mountain green FILLS: primary actions, the
+                     active tab/toggles, the map pins (white
+                     text on them); as TEXT it lightens to
+                     #6fd3a7 so it stays readable on the ground
+     blue   #1f6f96  ocean blue FILLS: travel actions, distance
+                     tags; as link TEXT it lightens to #7cc7ea
+                     (v1's teal #57c8b2 is the model for both
+                     lightenings)
+     red    #a33b2e  alert FILLS: temporarily closed, the count
+                     badge; as TEXT it lightens to v1's #ff8266,
+                     and the saved heart's pale-red ground
+                     deepens to #3a2320 (the heart stays red)
+   The token NAMES below are the light theme's fossils — --cream
+   is the page ground, --sand the quiet line/fill, --brown the
+   gold — while the values are the night theme's; renaming every
+   use would churn the whole file for no visitor-visible gain.
+   Contrast (WCAG ratios, computed): ink on ground 15.44:1,
+   muted on ground 8.34:1, gold on ground 9.71:1, heading gold
+   on ground 6.40:1, green text on ground 9.95:1, blue text on
+   ground 9.66:1, alert text on surface 6.58:1, white on green
+   5.99:1, white on blue 5.57:1, white on alert 6.52:1.
+   Borrowed from the old (live) site: the photo-led hero with a
+   big display title, cards as raised surfaces with soft
+   shadows, and — for this night theme — its dark palette
+   wholesale.
    Softening pass (Jenny's feedback, same day): the flat colour
    blocks and hard edges went — the hero is the photo itself,
-   with a soft scrim behind the title and a bottom edge that
-   fades into the cream; the footer is a plain sand tint; the
-   card, row and map edges are the soft sand line at generous
-   radii; the gradient survives as the hero's scrim tint, the
-   frame's fallback, and the dialog/driver accent strips. */
+   with a soft scrim behind the title; the footer is a plain
+   raised block; the card, row and map edges are the quiet line
+   at generous radii; the gradient survives as the hero's scrim
+   tint and the dialog/driver accent strips.
+   Night theme (Jenny's request, later the same day): the whole
+   app sits on the night ground, hero included — the banner
+   photo melts at its bottom directly into the page itself.
+   The one deliberate exception is the Show driver card: it
+   stays black on white, because it is held up to a driver. */
 
 :root {
-  --cream: #fffdf8;
-  --sand: #f0ead9;
-  --sand-soft: #faf5e9;
-  --ink: #1f2420;
-  --muted: #5d675c;
-  --line: #ddd8c9;
-  --line-strong: #cfc6a8;
-  --brown: #7a4a12;
-  --brown-deep: #5d370c;
+  /* Night theme values (see the palette note above): --cream is
+     the page ground, --sand the quiet line/fill, --sand-soft the
+     raised tone, --brown/--brown-deep the golds. */
+  --cream: #131715;
+  --sand: #39413c;
+  --sand-soft: #232a26;
+  --surface: #1d2320;
+  --raised: #232a26;
+  --ink: #f0ede3;
+  --muted: #a9b3a6;
+  --line: #39413c;
+  --line-strong: #4b574f;
+  --brown: #e0b95e;
+  --brown-deep: #c98f1b;
   --green: #2f6f4e;
   --green-deep: #20503a;
-  --green-tint: #e4efe6;
+  --green-text: #6fd3a7;
+  --green-tint: #1d2f26;
   --blue: #1f6f96;
   --blue-deep: #175a7c;
-  --blue-tint: #e2eef3;
+  --blue-text: #7cc7ea;
+  --blue-tint: #16283a;
   --alert: #a33b2e;
-  --shadow-card: 0 2px 10px rgba(33, 38, 31, 0.05);
-  --shadow-lift: 0 10px 30px rgba(33, 38, 31, 0.1);
+  --alert-text: #ff8266;
+  --alert-tint: #3a2320;
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 10px 30px rgba(0, 0, 0, 0.5);
   /* Mountains → sea, the site's signature gradient. */
   --gradient-sea: linear-gradient(120deg, var(--green-deep) 0%, var(--green) 52%, var(--blue) 135%);
   --gradient-rule: linear-gradient(90deg, var(--green), var(--blue));
@@ -71,7 +104,7 @@ body {
 /* One calm, visible focus ring everywhere the component rules
    don't draw their own (the clickable place entries do). */
 :focus-visible {
-  outline: 3px solid rgba(47, 111, 78, 0.55);
+  outline: 3px solid rgba(87, 200, 178, 0.65);
   outline-offset: 2px;
 }
 
@@ -87,11 +120,13 @@ body {
 /* Photo-led, the way the old site's top is: the banner photo
    carries the whole band, and the title and counts sit on the
    photo over a soft scrim — no flat colour block beneath it.
-   The band's bottom edge fades into the cream page instead of
-   ending in a straight line. The frame keeps the green→blue
-   gradient behind the photo, so if the photo cannot load (it
+   The band's bottom edge melts directly into the page ground
+   (Jenny's night theme: the photo fades into the page itself,
+   no separate band colour in between). The frame keeps the
+   ground behind the photo, so if the photo cannot load (it
    is served from the guide's main address — see OG_IMAGE_URL)
-   the band still reads as designed. */
+   the band still reads as designed: the dark ground under
+   the scrim's dusk tint. */
 .hero {
   position: relative;
   display: flex;
@@ -100,28 +135,30 @@ body {
   min-height: 21rem;
   border-radius: 1.25rem;
   overflow: hidden;
-  background: var(--gradient-sea);
+  background: var(--cream);
   margin-bottom: 1.75rem;
 }
 
 .hero-media {
   position: absolute;
   inset: 0;
-  background: var(--gradient-sea);
+  background: var(--cream);
 }
 
 /* The scrim: the mountains→sea gradient as a soft shadow behind
-   the text — deep green low over the title, a hint of sea blue
-   above it, gone before the photo's top — so the white title
-   stays readable without a colour block under it. */
+   the text — a hint of sea blue high up, gone before the photo's
+   top — with its low end deepened into the page ground (the
+   rgba stops are the ground's components), so the white title
+   stays readable where it overlaps the melt and the title zone
+   hands off smoothly into it. */
 .hero-media::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(23, 61, 44, 0.8) 0%,
-    rgba(32, 80, 58, 0.5) 36%,
+    rgba(19, 23, 21, 0.85) 0%,
+    rgba(23, 52, 66, 0.5) 36%,
     rgba(31, 111, 150, 0.22) 64%,
     rgba(31, 111, 150, 0) 86%
   );
@@ -134,20 +171,24 @@ body {
   object-fit: cover;
 }
 
-/* The bottom edge melts into the page: a short fade from the
-   band to the cream ground. It sits over the photo only — the
-   body's bottom padding keeps the counts clear of it. */
+/* The bottom edge melts into the page: the photo dissolves
+   into the page ground (--cream, with its components in the
+   rgba stops) and is fully the ground by the band's bottom
+   edge — the banner ends by becoming the page. It sits over
+   the photo; where its upper reach passes behind the counts,
+   the scrim's deepened low end keeps them clearly readable. */
 .hero::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 2rem;
+  height: 4rem;
   background: linear-gradient(
-    to bottom,
-    rgba(255, 253, 248, 0),
-    var(--cream)
+    to top,
+    var(--cream) 0%,
+    rgba(19, 23, 21, 0.72) 30%,
+    rgba(19, 23, 21, 0) 100%
   );
   pointer-events: none;
 }
@@ -156,7 +197,7 @@ body {
   position: relative;
   padding: 1.4rem 1.5rem 2.6rem;
   color: #fff;
-  text-shadow: 0 1px 14px rgba(23, 61, 44, 0.45);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5);
 }
 
 .hero-top {
@@ -225,7 +266,7 @@ body {
    site's toggle measure: padding 6px 16px, radius 9px, weight 700. */
 .lang-btn {
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--surface);
   padding: 0.375rem 0.875rem;
   font-size: 0.9rem;
   font-weight: 700;
@@ -261,7 +302,7 @@ body {
    0.92rem, pill radius. */
 .tab {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   border-radius: 999px;
   padding: 0.44rem 1rem;
   font-size: 0.92rem;
@@ -275,7 +316,7 @@ body {
 
 .tab:hover {
   border-color: var(--green);
-  color: var(--green-deep);
+  color: var(--green-text);
 }
 
 .tab.active {
@@ -303,7 +344,7 @@ body {
   font-size: 1rem;
   border: 1px solid var(--line-strong);
   border-radius: 0.65rem;
-  background: #fff;
+  background: var(--raised);
 }
 
 .control {
@@ -320,7 +361,7 @@ body {
   font-size: 0.95rem;
   border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--raised);
   color: var(--ink);
   max-width: 11rem;
 }
@@ -331,7 +372,7 @@ body {
 
 .toggle {
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--surface);
   padding: 0.375rem 0.875rem;
   font-size: 0.95rem;
   font-weight: 700;
@@ -388,8 +429,8 @@ body {
 
 .near-btn {
   border: 1px solid var(--green);
-  background: #fff;
-  color: var(--green-deep);
+  background: var(--surface);
+  color: var(--green-text);
   border-radius: 999px;
   padding: 0.55rem 1rem;
   font-size: 0.92rem;
@@ -426,7 +467,7 @@ body {
   font-size: 0.95rem;
   border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--raised);
   color: var(--ink);
 }
 
@@ -447,12 +488,12 @@ body {
 }
 
 .near-status.is-on {
-  color: var(--green-deep);
+  color: var(--green-text);
   font-weight: 600;
 }
 
 .near-status.is-error {
-  color: var(--alert);
+  color: var(--alert-text);
 }
 
 /* Distance tag on cards and compact rows while a location is known.
@@ -484,9 +525,9 @@ body {
   margin: 2.6rem 0 0;
 }
 
-/* Section headings are plain brown: the short gradient
+/* Section headings are plain gold-brown: the short gradient
    underline bars they briefly wore read as little cuts against
-   the cream, so they are gone. Their size and weight are the
+   the ground, so they are gone. Their size and weight are the
    old site's section measure: 1.45rem, weight 800. */
 .map-heading {
   margin: 0 0 0.3rem;
@@ -588,11 +629,11 @@ body {
   justify-content: center;
 }
 
-/* Cards view: true cards now, in the old site's treatment — a white
-   surface, a soft shadow that deepens on hover. Their edge is the
-   soft sand line rather than the crisper hairline, and the radius
-   is a generous 20px, so the cards read as soft shapes on the
-   cream rather than boxes. */
+/* Cards view: true cards now, in the old site's treatment — a
+   raised surface, a soft shadow that deepens on hover. Their
+   edge is the quiet line rather than a crisper hairline, and
+   the radius is a generous 20px, so the cards read as soft
+   shapes on the ground rather than boxes. */
 
 /* The old site's card rhythm: 16px between cards, 18px of
    padding inside them. */
@@ -603,7 +644,7 @@ body {
 }
 
 .place-list.cards .place {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--sand);
   border-radius: 1.25rem;
   padding: 1.125rem;
@@ -629,7 +670,7 @@ body {
 
 .place-name-en {
   margin: 0.1rem 0 0;
-  color: #777;
+  color: var(--muted);
   font-size: 0.95rem;
 }
 
@@ -653,10 +694,10 @@ body {
 /* Compact view */
 
 /* Compact rows wear the old site's row (.crow) treatment: a
-   bordered white card of their own, padding 10px 12px 10px 14px,
-   8px between rows — softened since: the edge is the soft sand
-   line and the radius a rounder 16px, so the rows sit as gently
-   as the cards do. */
+   bordered surface card of their own, padding 10px 12px 10px
+   14px, 8px between rows — softened since: the edge is the
+   quiet line and the radius a rounder 16px, so the rows sit
+   as gently as the cards do. */
 .place-list.compact {
   display: flex;
   flex-direction: column;
@@ -668,7 +709,7 @@ body {
   align-items: center;
   gap: 0.6rem;
   padding: 0.625rem 0.75rem 0.625rem 0.875rem;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--sand);
   border-radius: 1rem;
 }
@@ -727,8 +768,8 @@ body {
   display: block;
   margin: 0 auto;
   border: 1px solid var(--green);
-  background: #fff;
-  color: var(--green-deep);
+  background: var(--surface);
+  color: var(--green-text);
   border-radius: 999px;
   padding: 0.55rem 1rem;
   font-size: 0.92rem;
@@ -757,8 +798,8 @@ body {
 /* On cards the hover reward is the lifted shadow, not a tint. */
 .place-list.cards .place.clickable:hover,
 .place-list.cards .place.clickable:focus-visible {
-  background: #fff;
-  border-color: #c9d6c9;
+  background: var(--surface);
+  border-color: #43684f;
   box-shadow: var(--shadow-lift);
   transform: translateY(-1px);
 }
@@ -768,7 +809,7 @@ body {
   margin-left: auto;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--green-deep);
+  color: var(--green-text);
   background: var(--green-tint);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
@@ -781,7 +822,7 @@ body {
 /* The old app's heart (carried over at Jenny's call): a 40px
    circular Save toggle at the card's top-right and the row's
    right end — transparent with a hairline border and a muted
-   outline heart; saved turns it the old app's red on pale red
+   outline heart; saved turns it red on a deep red-brown ground
    with a filled heart. (The glyphs ♡/♥ are the old app's own.)
    In a card head the heart takes the auto margin that pushes it
    right; when the Saved marker precedes it, the marker keeps
@@ -808,9 +849,9 @@ body {
 }
 
 .card-save.is-saved {
-  color: var(--alert);
-  border-color: var(--alert);
-  background: #fdf0ec;
+  color: var(--alert-text);
+  border-color: var(--alert-text);
+  background: var(--alert-tint);
 }
 
 .place-head .saved-marker + .card-save {
@@ -830,7 +871,7 @@ body {
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(26, 26, 26, 0.55);
+  background: rgba(0, 0, 0, 0.62);
   overflow-y: auto;
   z-index: 40;
   padding: 1rem;
@@ -842,7 +883,7 @@ body {
   position: relative;
   max-width: 36rem;
   margin: 2rem auto;
-  background: var(--cream);
+  background: var(--surface);
   border-radius: 1.25rem;
   padding: 1.6rem 1.5rem 1.9rem;
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
@@ -868,7 +909,7 @@ body {
   height: 2.25rem;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--raised);
   font-size: 1rem;
   cursor: pointer;
   color: var(--ink);
@@ -911,7 +952,7 @@ body {
 
 .dialog-name-en {
   margin: 0.15rem 0 0;
-  color: #777;
+  color: var(--muted);
   font-size: 1rem;
 }
 
@@ -983,14 +1024,15 @@ body {
   padding: 0.2rem 0;
 }
 
-/* Links are the ocean blue everywhere (see the palette note). */
+/* Links are the ocean blue everywhere — its lightened text
+   form on the night ground (see the palette note). */
 .dialog a {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
 .good-to-know {
   background: var(--green-tint);
-  border: 1px solid #cfe0d2;
+  border: 1px solid #2e4a3a;
   border-radius: 0.75rem;
   padding: 0.75rem 0.9rem;
 }
@@ -1013,7 +1055,7 @@ body {
    with an 8px gap (the Save heart sits in that gap). */
 .action {
   border: 1.5px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   border-radius: 0.75rem;
   padding: 0.7rem 0.9rem;
@@ -1047,13 +1089,14 @@ body {
   background: var(--blue-deep);
 }
 
-/* Save, pressed: the old app's saved treatment — pale red ground,
-   red border and text, and the heart filled (the fill itself is
-   set on the SVG in PlaceDetailView). */
+/* Save, pressed: the old app's saved treatment, deepened for
+   the night theme — deep red-brown ground, light-red border
+   and text, and the heart filled (the fill itself is set on
+   the SVG in PlaceDetailView). */
 .action[aria-pressed="true"] {
-  background: #fdf0ec;
-  border-color: var(--alert);
-  color: var(--alert);
+  background: var(--alert-tint);
+  border-color: var(--alert-text);
+  color: var(--alert-text);
 }
 
 .save-action svg {
@@ -1169,7 +1212,7 @@ body {
   background: var(--green);
   color: #fff;
   border: 1px solid var(--green);
-  box-shadow: 0 0.5rem 1.5rem rgba(26, 26, 26, 0.3);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.45);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1218,7 +1261,7 @@ body {
   display: none;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(26, 26, 26, 0.55);
+  background: rgba(0, 0, 0, 0.62);
   padding: 14px max(16px, env(safe-area-inset-right, 0px))
     max(14px, env(safe-area-inset-bottom, 0px))
     max(16px, env(safe-area-inset-left, 0px));
@@ -1250,7 +1293,7 @@ body {
   height: 40px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--raised);
   color: var(--ink);
   font-size: 1rem;
   cursor: pointer;
@@ -1258,7 +1301,7 @@ body {
 }
 
 .search-sheet {
-  background: var(--cream);
+  background: var(--surface);
   color: var(--ink);
   width: 100%;
   max-height: 88vh;
@@ -1279,7 +1322,7 @@ body {
 .panel-count {
   margin: 0.25rem 0 0;
   font-weight: 700;
-  color: var(--green-deep);
+  color: var(--green-text);
 }
 
 .search-panel-body {
@@ -1300,7 +1343,7 @@ body {
   text-align: center;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--raised);
   padding: 0.55rem 1rem;
   text-decoration: none;
 }
@@ -1355,14 +1398,14 @@ body {
 }
 
 .contact-email-line a {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
-/* The footer ends the page gently, on the page's own ground —
-   like the old site's plain footer: a soft sand tint, brown
-   text, and the pill links as soft outlines on white. (It wore
-   a deep-green band for one slice; the second dark block cut
-   the page in two, so it went.) */
+/* The footer ends the page gently, on a raised block of the
+   page's own ground — like the old site's plain footer: muted
+   text, and the pill links as soft outlines on the surface
+   tone. (It wore a deep-green band for one slice; the second
+   dark block cut the page in two, so it went.) */
 .site-footer {
   margin-top: 2.5rem;
   background: var(--sand-soft);
@@ -1387,7 +1430,7 @@ body {
 
 .foot-link {
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--surface);
   border-radius: 999px;
   padding: 0.4rem 0.9rem;
   font-size: 0.9rem;
@@ -1459,7 +1502,7 @@ body {
 }
 
 .info-body a {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
 .info-actions {
@@ -1475,7 +1518,7 @@ body {
 
 .cf-intro {
   margin: 0.5rem 0 0;
-  color: #444;
+  color: var(--ink);
   font-size: 0.95rem;
 }
 
@@ -1501,7 +1544,7 @@ body {
   font-size: 1rem;
   border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--raised);
   color: var(--ink);
   font-family: inherit;
 }
@@ -1519,7 +1562,7 @@ body {
 
 .cf-status {
   margin: 0.5rem 0 0;
-  color: var(--green-deep);
+  color: var(--green-text);
   font-size: 0.9rem;
   min-height: 1.25em;
 }
@@ -1542,12 +1585,12 @@ body {
 }
 
 .cf-fallback a {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
 .cf-copy-btn {
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--raised);
   color: var(--brown);
   border-radius: 999px;
   padding: 0.45rem 1rem;
@@ -1609,7 +1652,7 @@ a.lang-btn {
 }
 
 .back-link {
-  color: var(--blue);
+  color: var(--blue-text);
   font-size: 0.95rem;
   text-decoration: none;
 }
@@ -1621,7 +1664,7 @@ a.lang-btn {
 /* Links inside the shared details view (the dialog styles its own
    anchors via .dialog a; the place page needs the same colour). */
 .place-detail a {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
 /* Footer links are anchors now, not buttons. */
@@ -1669,7 +1712,7 @@ a.foot-link {
      and the rounded corners go square. The bottom fade, the
      scrim and everything below the hero keep their padded
      alignment; only the hero breaks out. The photo crops by
-     cover, and the frame's gradient keeps the band full if
+     cover, and the frame's page ground keeps the band full if
      the photo is missing. */
   .hero {
     min-height: 19rem;
@@ -1755,22 +1798,22 @@ a.foot-link {
 }
 
 .admin-who {
-  color: #666;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .admin-card {
-  border: 1px solid #e5dcc3;
+  border: 1px solid var(--line);
   border-radius: 0.75rem;
-  background: #fffdf6;
+  background: var(--surface);
   padding: 1.1rem 1.2rem;
   max-width: 480px;
 }
 
 .admin-btn {
-  border: 1px solid #d8cfb4;
-  background: #fff;
-  color: #7a4a12;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--brown);
   border-radius: 999px;
   padding: 0.5rem 1rem;
   font-size: 0.92rem;
@@ -1784,28 +1827,28 @@ a.foot-link {
 }
 
 .admin-btn-primary {
-  border-color: #7a4a12;
-  background: #7a4a12;
-  color: #fff;
+  border-color: var(--brown);
+  background: var(--brown);
+  color: #131715;
 }
 
 .admin-btn-danger {
-  border-color: #a33b2e;
-  background: #a33b2e;
+  border-color: var(--alert);
+  background: var(--alert);
   color: #fff;
 }
 
 .admin-banner {
-  border: 1px solid #b9cf9e;
-  background: #f2f8e9;
-  color: #33511a;
+  border: 1px solid #2e4a3a;
+  background: var(--green-tint);
+  color: var(--green-text);
   border-radius: 0.5rem;
   padding: 0.6rem 0.9rem;
   font-size: 0.93rem;
 }
 
 .admin-error {
-  color: #a33b2e;
+  color: var(--alert-text);
   font-size: 0.93rem;
 }
 
@@ -1820,15 +1863,15 @@ a.foot-link {
   flex: 1 1 260px;
   padding: 0.55rem 0.7rem;
   font-size: 1rem;
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--raised);
+  color: var(--ink);
   font-family: inherit;
 }
 
 .admin-count {
-  color: #666;
+  color: var(--muted);
   font-size: 0.9rem;
   margin: 0.2rem 0 0.6rem;
 }
@@ -1846,15 +1889,15 @@ a.foot-link {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  border: 1px solid #eee5cb;
+  border: 1px solid var(--line);
   border-radius: 0.6rem;
-  background: #fff;
+  background: var(--surface);
   padding: 0.55rem 0.8rem;
 }
 
 .admin-row-id {
   font-variant-numeric: tabular-nums;
-  color: #7a4a12;
+  color: var(--brown);
   font-weight: 600;
   min-width: 3.2rem;
 }
@@ -1865,12 +1908,12 @@ a.foot-link {
 }
 
 .admin-row-en {
-  color: #666;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .admin-row-meta {
-  color: #888;
+  color: var(--muted);
   font-size: 0.85rem;
   white-space: nowrap;
 }
@@ -1881,23 +1924,23 @@ a.foot-link {
 }
 
 .admin-section {
-  border: 1px solid #e5dcc3;
+  border: 1px solid var(--line);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface);
   padding: 0.9rem 1rem 1rem;
   margin: 0 0 1rem;
 }
 
 .admin-section legend {
   font-weight: 600;
-  color: #7a4a12;
+  color: var(--brown);
   padding: 0 0.35rem;
 }
 
 /* The working-notes section is visually set apart so it never
    reads as part of the public place data. */
 .admin-internal {
-  background: #f4f1e6;
+  background: var(--raised);
   border-style: dashed;
 }
 
@@ -1912,7 +1955,7 @@ a.foot-link {
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.88rem;
-  color: #666;
+  color: var(--muted);
 }
 
 .admin-field input,
@@ -1920,10 +1963,10 @@ a.foot-link {
 .admin-field textarea {
   padding: 0.55rem 0.7rem;
   font-size: 1rem;
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--raised);
+  color: var(--ink);
   font-family: inherit;
 }
 
@@ -1937,7 +1980,7 @@ a.foot-link {
   align-items: center;
   gap: 0.3rem;
   font-size: 0.95rem;
-  color: #1a1a1a;
+  color: var(--ink);
   padding-top: 1.2rem;
 }
 
@@ -1950,15 +1993,15 @@ a.foot-link {
 
 .admin-danger {
   margin-top: 2rem;
-  border: 1px solid #e3b7b0;
+  border: 1px solid #6e3a32;
   border-radius: 0.75rem;
-  background: #fdf3f1;
+  background: #2e1f1c;
   padding: 0.9rem 1rem 1rem;
 }
 
 .admin-danger h3 {
   margin: 0 0 0.4rem;
-  color: #a33b2e;
+  color: var(--alert-text);
   font-size: 1.05rem;
 }
 
@@ -1977,10 +2020,10 @@ a.foot-link {
   flex: 1 1 220px;
   padding: 0.55rem 0.7rem;
   font-size: 1rem;
-  border: 1px solid #d9a49b;
+  border: 1px solid #6e3a32;
   border-radius: 0.5rem;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--raised);
+  color: var(--ink);
   font-family: inherit;
 }
 
@@ -2004,7 +2047,7 @@ button.foot-link {
 
 .install-text {
   margin: 0.75rem 0 0;
-  color: #444;
+  color: var(--ink);
 }
 
 .install-steps {
@@ -2018,6 +2061,6 @@ button.foot-link {
 
 .install-note {
   margin: 1rem 0 0;
-  color: #666;
+  color: var(--muted);
   font-size: 0.92rem;
 }

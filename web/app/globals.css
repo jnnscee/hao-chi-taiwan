@@ -349,6 +349,19 @@ body {
   border: 1px solid var(--line-strong);
   border-radius: 0.65rem;
   background: var(--raised);
+  /* The night theme's one un-coloured input: without this the
+     typed text fell back to the browser's black on the dark
+     raised ground — illegible, worst on iOS (Jenny's phone
+     spot-check, 2026-11-23). -webkit-text-fill-color is what
+     iOS Safari actually paints input text with. */
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+}
+
+.search::placeholder {
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted);
+  opacity: 1;
 }
 
 .control {

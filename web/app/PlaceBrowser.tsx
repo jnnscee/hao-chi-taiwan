@@ -42,7 +42,6 @@ import {
   parseStoredLang,
   type Lang,
 } from "@/lib/i18n";
-import { OG_IMAGE_URL } from "@/lib/routes";
 import PlaceDetails from "./PlaceDetails";
 import ContactForm, { type ContactOpenRequest } from "./ContactForm";
 import LangSwitch from "./LangSwitch";
@@ -812,14 +811,17 @@ export default function PlaceBrowser({
             band the way the old site's top does: the title and
             counts sit on the photo itself, over a soft green→blue
             scrim, and the band's bottom edge fades into the page.
-            The photo is the share-preview banner at its interim
-            absolute URL (see OG_IMAGE_URL in lib/routes.ts:
-            self-host at launch). Decorative: the title text beside
-            it names the guide. If it cannot load (offline before a
-            first online visit, say), the frame's gradient simply
-            fills the band. */}
+            The photo is self-hosted at /banner.jpg and precached
+            by the service worker: it used to load cross-origin
+            from the old site's address (the og:image URL), which
+            the service worker never caches, so a cold home-screen
+            launch often missed it until a reopen (Jenny's report,
+            2026-11-23). Decorative: the title text beside it names
+            the guide. If it cannot load (offline before a first
+            online visit, say), the frame's gradient simply fills
+            the band. */}
         <div className="hero-media" aria-hidden="true">
-          <img className="hero-photo" src={OG_IMAGE_URL} alt="" />
+          <img className="hero-photo" src="/banner.jpg" alt="" />
         </div>
         <div className="hero-body">
           <div className="hero-top">

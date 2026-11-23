@@ -142,9 +142,11 @@ served from the repo root until the rebuild is ready to take over.
   · location as description, and the info pages get plain summary
   descriptions. `og:image` everywhere is the default banner, for now
   referenced at the live site's absolute URL
-  (https://hao-chi-taiwan.vercel.app/og-image.jpg) because the
-  GitHub snapshot push cannot carry the binary — self-host it at
-  launch.
+  (https://hao-chi-taiwan.vercel.app/og-image.jpg) — point it at
+  this app's own domain at launch. The hero photo itself is
+  self-hosted (`/banner.jpg`, service-worker precached) since
+  2026-11-23: the cross-origin copy was never cached, so cold
+  home-screen launches often missed it.
 - A **Contact & feedback** section and footer close the page, as on
   the live app. The footer's About · Privacy · Terms · Contact &
   feedback links navigate to the real routes above. The three info
@@ -237,8 +239,8 @@ the old brand brown is illegible on near-black). The green
 `#2f6f4e` and blue `#1f6f96` fills survive from the Taiwan
 palette (primary and travel actions), with lighter text variants
 on dark (`#6fd3a7` / `#7cc7ea`); red is alerts and the saved
-heart. The hero is the old site's banner photo (the
-`OG_IMAGE_URL` banner at its interim absolute URL) with the
+heart. The hero is the old site's banner photo (self-hosted at
+`/banner.jpg`) with the
 title and counts on the photo, its bottom edge fading directly
 into the dark page — no band, no cream. On phones the hero runs
 full-bleed to the screen edges and the title scales with the

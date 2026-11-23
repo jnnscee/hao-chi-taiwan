@@ -21,7 +21,7 @@
  *    layer must never be served from, or written into, a cache.
  */
 
-const SW_VERSION = "pwa-1";
+const SW_VERSION = "pwa-2";
 const PRECACHE = `hao-chi-precache-${SW_VERSION}`;
 const PAGES = `hao-chi-pages-${SW_VERSION}`;
 const STATIC = `hao-chi-static-${SW_VERSION}`;
@@ -46,6 +46,7 @@ const PRECACHE_URLS = [
   "/zh/terms",
   "/zh/contact",
   OFFLINE_URL,
+  "/banner.jpg",
   "/manifest.webmanifest",
   "/icon",
   "/apple-icon",

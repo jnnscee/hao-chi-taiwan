@@ -102,7 +102,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<p>The contact form does not send anything itself. When you tap a send button, it opens your own email app with your message filled in, addressed to <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — nothing is sent until you press Send in your email app, and you can edit or delete the message before you do. Emails that reach that inbox are read only to reply to you and to fix problems you report. Please do not send sensitive personal information in a feedback email.</p>" +
       "<h3>Other services this page uses or links to</h3>" +
       "<ul><li>The map pictures are drawn by OpenStreetMap's map service. As with any website, that service receives the technical information a browser sends to load a page, such as your IP address. The guide's place list is kept in its database service (Supabase) and served to your browser with the page, and the guide uses the typefaces already on your device, so no font service is loaded.</li>" +
-      "<li>The guide is hosted by Vercel, which keeps basic server logs (such as which pages were requested and IP addresses) to run and protect the site, as any web host does. The home page's banner photo is loaded from the guide's main Vercel address, so it is covered by the same hosting and logs.</li>" +
+      "<li>The guide is hosted by Vercel, which keeps basic server logs (such as which pages were requested and IP addresses) to run and protect the site, as any web host does.</li>" +
       "<li>Links to Google Maps, shop websites, Instagram and Facebook are followed only when you tap them. Once you leave this guide, that site's own privacy policy applies.</li></ul>" +
       "<h3>Changes and questions</h3>" +
       "<p>If the guide ever starts doing something different with your information, this page will be updated to say so. Questions about privacy are welcome through Contact &amp; feedback below.</p>",
@@ -165,7 +165,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<p>聯絡表單本身不會傳送任何東西。當你點下傳送按鈕時，它會開啟你自己的郵件 App，並自動填好訊息，收件人是 <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — 在你在郵件 App 裡按下傳送之前，什麼都不會寄出，你也可以先修改或刪除訊息。寄到該信箱的信件，只會用來回覆你，以及修正你回報的問題。請不要在意見信裡寄送敏感的個人資訊。</p>" +
       "<h3>這個頁面使用或連結的其他服務</h3>" +
       "<ul><li>地圖圖片由 OpenStreetMap 的地圖服務繪製。和任何網站一樣，該服務會收到瀏覽器為了載入頁面而傳送的技術資訊，例如你的 IP 位址。這份指南的店家清單存放在它的資料庫服務（Supabase），並隨頁面一起傳送到你的瀏覽器。這份指南使用你裝置上已有的字型，不會載入任何字型服務。</li>" +
-      "<li>這份指南由 Vercel 代管，它會保留基本的伺服器紀錄（例如被請求的頁面和 IP 位址），來運作和保護網站，和任何網站主機一樣。首頁的橫幅照片是從這份指南的主要 Vercel 網址載入的，因此同樣涵蓋在相同的代管與紀錄範圍內。</li>" +
+      "<li>這份指南由 Vercel 代管，它會保留基本的伺服器紀錄（例如被請求的頁面和 IP 位址），來運作和保護網站，和任何網站主機一樣。</li>" +
       "<li>前往 Google Maps、店家網站、Instagram 和 Facebook 的連結，只在你點下時才會前往。離開這份指南後，適用該網站自己的隱私政策。</li></ul>" +
       "<h3>變更與問題</h3>" +
       "<p>如果這份指南日後對你的資訊有不同的處理方式，本頁會更新說明。關於隱私的問題，歡迎用下方的「聯絡與意見回饋」告訴我們。</p>",

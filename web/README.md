@@ -212,47 +212,51 @@ served from the repo root until the rebuild is ready to take over.
 
 ## Design
 
-The design-polish slice gave the site its finished look (all in
-`app/globals.css`, CSS variables at the top): Jenny's palette of
-Taiwan — cream `#fffdf8` base and sand `#f0ead9` (kept), brown
-`#7a4a12` for headings/brand/the list badge, mountain green
-`#2f6f4e` for primary actions and active states, ocean blue
-`#1f6f96` for links and travel actions, red `#a33b2e` for
-semantic alerts and the saved heart. The home hero is the old site's signature
-banner photo (the `OG_IMAGE_URL` banner at its interim absolute
-URL) carrying the band on its own — the title and counts sit on
-the photo over a soft green→blue "mountains → sea" scrim, and
-the band's bottom edge fades into the cream; the footer is a
-plain sand tint, and the standalone-page headers close with a
-soft sand rule. Cards borrow the old site's white-surface /
-soft-shadow treatment, edged with the sand line. All colour pairings pass WCAG AA (white
-on green 5.99:1, on blue 5.57:1, on deep green 9.25:1). No
-behaviour changed. Because the banner photo now loads from the
-guide's main Vercel address, the Privacy page's Vercel bullet
-says so, in both languages (adaptation 7 in `lib/pages.ts`).
+The site wears a single **night theme** (all in
+`app/globals.css`, CSS variables at the top — several token names
+are fossils from the earlier light scheme; `--cream`, for
+instance, now holds the dark ground, as the stylesheet's header
+comment records). An earlier design-polish slice first built a
+light Taiwan palette (cream, sand, brown, mountain green, ocean
+blue); Jenny then asked for the banner to fade into a night
+colour with no cream at all — "my first version has a black
+background" — so the whole app converted to the old app's own
+dark tokens: page ground `#131715`, surfaces `#1d2320`, raised
+chips/inputs `#232a26`, ink `#f0ede3`, muted `#a9b3a6`, lines
+`#39413c`. Headings and brand are gold (`#e0b95e` / `#c98f1b`;
+the old brand brown is illegible on near-black). The green
+`#2f6f4e` and blue `#1f6f96` fills survive from the Taiwan
+palette (primary and travel actions), with lighter text variants
+on dark (`#6fd3a7` / `#7cc7ea`); red is alerts and the saved
+heart. The hero is the old site's banner photo (the
+`OG_IMAGE_URL` banner at its interim absolute URL) with the
+title and counts on the photo, its bottom edge fading directly
+into the dark page — no band, no cream. On phones the hero runs
+full-bleed to the screen edges and the title scales with the
+screen (`clamp(1.45rem, 6.6vw, 1.9rem)`, never wrapping). The
+Show driver card deliberately stays black-on-white. The PWA
+theme/background colour is the night ground `#131715`. All
+colour pairings pass WCAG AA. Because the banner photo loads
+from the guide's main Vercel address, the Privacy page's Vercel
+bullet says so, in both languages (adaptation 7 in
+`lib/pages.ts`).
 
-A fix batch followed Jenny's design-slice feedback: the language
-toggle's twin-path helper (`lib/routes.ts`) now normalises the
-client router's "/index" name for the root route, which had made
-the English home's toggle point at /index and /zh/index (a 404);
-the hero title keeps 好吃台灣 unbroken on one desktop line; the
-map moved below the list; the old app's heart came back as the
-Save control (and the Privacy text's "(the heart)" / 「（愛心）」
-with it — adaptation 5 in `lib/pages.ts`); and the proportions
-were aligned to the old site's measures (card padding/density,
-sheet and button sizes, section rhythm, heading weights) with
-the palette unchanged.
-
-A second fix batch followed: the Compact rows gained the food
-line they were missing (the English gloss, falling back to the
-cuisine — the old app's rows always carried it, and the Cards
-view already did; the phone's Compact default is why its
-absence read as the whole app missing the gloss), and the
-design was softened where it felt boxy: the hero's flat
-gradient block under the photo and the footer's deep-green
-band went, the card, row and map edges eased to the soft sand
-line at rounder radii, and the section headings lost their
-short gradient underline bars.
+Details Jenny directed along the way: list numbers are quiet
+positional text ending the card meta line and the compact food
+line ("· No. 12" / 「· 第 12 家」), renumbering with every view
+and shared with the map pins — never a badge, never beside the
+Save heart; the Google rating is worn as a tag chip beside a
+cuisine chip (cards, details, and compact rows — in rows the
+chip sits on its own line under the food line, after a
+phone-width crush taught us it cannot share the names line);
+the floating search button wears the old app's teal `#57c8b2`
+with a near-black magnifier (hover `#3da892`) and its red count
+badge. The language toggle's twin-path helper (`lib/routes.ts`)
+normalises the client router's "/index" name for the root
+route, which had once pointed the English home's toggle at a
+404; the old app's heart is the Save control everywhere (and
+the Privacy text's "(the heart)" / 「（愛心）」 with it —
+adaptation 5 in `lib/pages.ts`).
 
 ## Run it
 
@@ -261,6 +265,60 @@ npm install
 npm run build
 npm start
 ```
+
+## Tests
+
+Two suites, both added by the engineering-backbone slice
+(2026-11-22):
+
+- **Logic tests (Vitest)** — `npm test`. Sixty-three tests in
+  `tests/` over the pure lib modules (`places`, `map`, `i18n`,
+  `routes`, `details`, `contact`), run against
+  `tests/fixtures/places.json`: a snapshot of all 242 places
+  exported from the Supabase `places` table in the shape
+  `lib/data.ts` produces. They pin the invariants the slices
+  originally proved by hand — search/filter counts (noodle 14,
+  Zuoying 93, Kaohsiung 196, Hot pot 4), positional numbering,
+  pin numbers agreeing with list numbers, Near me radius counts
+  from Zuoying HSR, zero-miss Chinese labels, twin paths,
+  contact-form composition. The fixture is a snapshot on
+  purpose (CI has no database credentials): **refresh it in the
+  same commit whenever a bulk data change lands**; single edits
+  Jenny makes through /admin change the database only and never
+  touch the repo, so the counts describe the snapshot.
+- **Phone-width layout tests (Playwright)** —
+  `npm run test:e2e` (needs `npx playwright install chromium`
+  once, and a production build first; the config serves
+  `npm start` on port 3100). One spec in `tests-e2e/` at 390px
+  and 360px viewports asserting the compact rows keep their
+  width, the hero title stays on one line, nothing overflows
+  horizontally, and the rating chip sits below the food line —
+  the regression Jenny's 2026-11-22 screenshot caught, which a
+  desktop check structurally cannot see.
+
+## CI
+
+`.github/workflows/ci.yml` (repo root) runs on pushes to
+`staging` and `main` touching `web/**`: Node 22, `npm ci`,
+`npm test`, `npm run build`, the budget check below, then the
+Playwright install and layout spec — the same gates as locally,
+so a red push is never promoted. (The workflow file itself was
+authored in the backbone slice but could not be pushed by the
+GitHub snapshot tool — workflow files need a scope the token
+does not hold, so the push was rejected with a 403. The file is
+preserved at `hidden_files/ci-workflow-proposed-2026-11-22.yml`
+in the goal workspace and needs adding through the GitHub web
+UI or another full-scope route before CI can run.)
+
+## Performance budget
+
+`npm run check-budget` (after a build) sums the gzipped size of
+the home page's First Load JS from the build manifest and fails
+over **160 kB**. Measured when the budget was set (2026-11-22):
+129.4 kB — the cap is that measurement plus ~25% headroom, so a
+change that quietly makes the home page a quarter heavier fails
+in CI instead of reaching a visitor's phone.
+
 
 ## Not yet
 

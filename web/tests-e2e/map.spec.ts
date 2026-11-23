@@ -338,7 +338,12 @@ test.describe("map legibility", () => {
 // asserting and never check that a search actually MOVED the view.
 // The tests below close those blind spots: they assert the map's
 // geographic bounds (reconstructed from the tiles on screen), not
-// just its markers.
+// just its markers. Tests (l) and (m) cover the third failure of
+// the same day: Leaflet's animated fitBounds could defer a
+// set-change fit to an animation frame that never came, or drop it
+// outright when a zoom animation was in flight, while the
+// component recorded it as applied — they reproduce both shapes
+// against the production build (both failed before the fix).
 test.describe("fit integrity (2026-11-23 regression)", () => {
   test("(e) below-the-fold load: after scrolling into view the map frames Taiwan and sums to 242", async ({
     page,
@@ -545,6 +550,184 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
     expect(after.centre).not.toBeNull();
     expect(after.centre!.z).toBe(before.centre!.z);
     expect(after.total).toBe(242);
+  });
+
+  test("(l) a set-change fit lands even when no animation frame ever comes (animated-band deferral)", async ({
+    page,
+  }) => {
+    // Regression for the third live failure (2026-11-23): Leaflet's
+    // ANIMATED fitBounds, inside its animated band (zoom delta <=
+    // zoomAnimationThreshold = 4, zoom origin within one screen),
+    // defers the entire view change to a single
+    // requestAnimationFrame callback — and the component recorded
+    // the fit as applied, so no retry ever fired when the frame
+    // never came (a frame-starved renderer: occluded or
+    // agent-driven browser, composited scrolling). From the Taiwan
+    // fit (zoom 6) the noodle fit (zoom 12, delta 6) is synchronous
+    // and could never show this; at zoom 8 (delta 4) it can. So:
+    // zoom in twice first, scroll back up, starve rAF, then run the
+    // diagnostic's Experiment 1 sequence. The rAF gate is installed
+    // before any page script runs (Leaflet captures
+    // window.requestAnimationFrame at module load).
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+    await page.addInitScript(() => {
+      const w = window as unknown as {
+        __setStarveRaf?: (v: boolean) => void;
+      };
+      const native = window.requestAnimationFrame.bind(window);
+      let starving = false;
+      let queue: FrameRequestCallback[] = [];
+      window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+        if (!starving) return native(cb);
+        queue.push(cb);
+        return queue.length;
+      };
+      w.__setStarveRaf = (v: boolean) => {
+        starving = v;
+        if (!v) {
+          const q = queue;
+          queue = [];
+          for (const cb of q) native(() => cb(performance.now()));
+        }
+      };
+    });
+    await stubTiles(page);
+    await page.goto("/");
+    const map = page.locator(".place-map.leaflet-container");
+    await map.waitFor({ state: "visible", timeout: 30_000 });
+    await map.scrollIntoViewIfNeeded();
+    await page.waitForSelector(".leaflet-tile-loaded", { timeout: 30_000 });
+    await page.waitForTimeout(600);
+    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    await zoomIn.click();
+    await page.waitForTimeout(700);
+    await zoomIn.click();
+    await page.waitForTimeout(900);
+    const atEight = await viewFromTiles(page);
+    expect(atEight.centre?.z).toBe(8);
+    // Back up to the search box; starve the renderer from here on.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(400);
+    await page.evaluate(() =>
+      (
+        window as unknown as { __setStarveRaf: (v: boolean) => void }
+      ).__setStarveRaf(true)
+    );
+    await page.locator("input.search").first().fill("noodle");
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => document.querySelectorAll(".map-pin").length),
+        { timeout: 20_000 }
+      )
+      .toBe(14);
+    // The diagnostic's waits: 3s after the search, then
+    // keyboard-scroll only, then 5s at the map.
+    await page.waitForTimeout(3000);
+    for (let i = 0; i < 12; i++) {
+      const b = await map.boundingBox();
+      if (b && b.y < 900 && b.y + b.height > 0) break;
+      await page.keyboard.press("PageDown");
+      await page.waitForTimeout(300);
+    }
+    await page.waitForTimeout(5000);
+    // While STILL starved, the pins must already be spread across
+    // the frame — the pre-fix code left them piled on one spot
+    // (measured spread 16px) until a frame happened to arrive.
+    const centres = await page.locator(".map-pin").evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      })
+    );
+    expect(centres).toHaveLength(14);
+    const xs = centres.map((c) => c.x);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(100);
+    expect(
+      new Set(centres.map((c) => `${Math.round(c.x)},${Math.round(c.y)}`)).size
+    ).toBeGreaterThanOrEqual(12);
+    // And the frame is the noodle set's Kaohsiung frame (checked
+    // after releasing the gate so tiles can paint).
+    await page.evaluate(() =>
+      (
+        window as unknown as { __setStarveRaf: (v: boolean) => void }
+      ).__setStarveRaf(false)
+    );
+    await page.waitForTimeout(1200);
+    const view = await viewFromTiles(page);
+    expect(view.centre).not.toBeNull();
+    expect(view.centre!.z).toBeGreaterThanOrEqual(10);
+    expect(view.centre!.lat).toBeGreaterThanOrEqual(22.55);
+    expect(view.centre!.lat).toBeLessThanOrEqual(22.8);
+    expect(view.centre!.lng).toBeGreaterThanOrEqual(120.2);
+    expect(view.centre!.lng).toBeLessThanOrEqual(120.45);
+  });
+
+  test("(m) a search dispatched during a zoom animation is not dropped", async ({
+    page,
+  }) => {
+    // The other half of the same root cause: Leaflet's
+    // _tryAnimatedZoom returns "handled" immediately when a zoom
+    // animation is already in flight, silently DISCARDING a
+    // fitBounds that arrives mid-animation — while the component
+    // recorded it as applied (the live diagnostic's pins redrew,
+    // the view completed the OLD animation and stayed). Start a
+    // zoom-in, and the moment Leaflet's own leaflet-zoom-anim class
+    // shows the animation is running, dispatch the search as a real
+    // input event in the same task, so the set-change fit is
+    // guaranteed to land mid-animation.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    await page.locator(".leaflet-control-zoom-in").click();
+    await page.evaluate(async () => {
+      const pane = document.querySelector(".leaflet-map-pane");
+      for (
+        let i = 0;
+        i < 400 && !pane?.classList.contains("leaflet-zoom-anim");
+        i++
+      ) {
+        await new Promise((r) => setTimeout(r, 5));
+      }
+      const input = document.querySelector(
+        "input.search"
+      ) as HTMLInputElement;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )!.set!;
+      setter.call(input, "noodle");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => document.querySelectorAll(".map-pin").length),
+        { timeout: 20_000 }
+      )
+      .toBe(14);
+    // Long past the animation's 250ms: a dropped fit never retries.
+    await page.waitForTimeout(2500);
+    const centres = await page.locator(".map-pin").evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      })
+    );
+    expect(centres).toHaveLength(14);
+    const xs = centres.map((c) => c.x);
+    // Pre-fix: spread ~9px (pins piled at the old frame's zoom).
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(100);
+    const view = await viewFromTiles(page);
+    expect(view.centre).not.toBeNull();
+    expect(view.centre!.z).toBeGreaterThanOrEqual(10);
+    expect(view.centre!.lat).toBeGreaterThanOrEqual(22.55);
+    expect(view.centre!.lat).toBeLessThanOrEqual(22.8);
+    expect(view.centre!.lng).toBeGreaterThanOrEqual(120.2);
+    expect(view.centre!.lng).toBeLessThanOrEqual(120.45);
+    expect(map).toBeTruthy();
   });
 
   test("(h) a visitor's own zoom survives a later size correction", async ({

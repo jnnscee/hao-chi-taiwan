@@ -7,11 +7,12 @@
 // showing_all entries, transcribed from source. Jenny approved that
 // wording in the live app; do not re-translate it here.
 //
-// The only exceptions are the five labels under "Filled gaps" at the
+// The only exceptions are the entries under "Filled gaps" at the
 // bottom of each language object: the live app has no standalone string
-// for them (its filter selects carry no visible field labels), so they
-// were translated plainly for the rebuild's labelled controls. They are
-// listed in the slice report for Jenny's review.
+// for them (its filter selects carry no visible field labels, and its
+// list numbers were bare digits with no "No." wording), so they were
+// written plainly for the rebuild. They are listed in the slice report
+// for Jenny's review.
 
 export type Lang = "en" | "zh";
 
@@ -143,6 +144,7 @@ export type Strings = {
   label_cuisine: string;
   label_view: string;
   label_contact: string;
+  place_no: (n: number) => string;
 };
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -404,6 +406,9 @@ export const STRINGS: Record<Lang, Strings> = {
     label_cuisine: "Cuisine",
     label_view: "View",
     label_contact: "Contact",
+    // The quiet list number at the end of a card's meta line / a
+    // row's food line (Jenny, 2026-11-22): a reference, not a badge.
+    place_no: (n) => "No. " + n,
   },
   zh: {
     stat_total: "家店（全部）",
@@ -658,6 +663,8 @@ export const STRINGS: Record<Lang, Strings> = {
     label_cuisine: "類型",
     label_view: "顯示方式",
     label_contact: "聯絡方式",
+    // The quiet list number (see the EN note): 第 N 家.
+    place_no: (n) => "第 " + n + " 家",
   },
 };
 

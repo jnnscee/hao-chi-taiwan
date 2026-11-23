@@ -241,22 +241,24 @@ export function filterAndSortPlaces(
 }
 
 /**
- * Display numbers, keyed by legacy_id. Recommended places always carry
- * their legacy number (1–45). Want to Try places are numbered 1..N in the
- * order they appear in the displayed list (which is A–Z under the default
- * and Name sorts), matching the live app.
+ * Display numbers, keyed by legacy_id: a place's number is simply its
+ * 1-based position in the currently displayed list — the filtered and
+ * sorted array the visitor is looking at (Jenny's rule, 2026-11-22).
+ * Every tab, sort, search and filter renumbers: searching "noodle"
+ * shows 14 places numbered 1–14, and batching continues the count
+ * across "Show more" because the number comes from the full displayed
+ * array, never from the visible slice. The map's numbered pins read
+ * this same map (buildMapMarkers takes it as an argument), so a pin's
+ * number always agrees with the place's number in the list. No stored
+ * per-place number is consulted: the legacy id stays the place's
+ * identity for URLs, the saved set and the admin manager, but it no
+ * longer doubles as its list number.
  */
 export function assignDisplayNumbers(displayed: Place[]): Map<string, number> {
   const numbers = new Map<string, number>();
-  let wantToTryCount = 0;
-  for (const place of displayed) {
-    if (place.list_type === "recommended") {
-      numbers.set(place.legacy_id, legacyNumber(place.legacy_id));
-    } else {
-      wantToTryCount += 1;
-      numbers.set(place.legacy_id, wantToTryCount);
-    }
-  }
+  displayed.forEach((place, index) => {
+    numbers.set(place.legacy_id, index + 1);
+  });
   return numbers;
 }
 

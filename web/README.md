@@ -17,8 +17,12 @@ served from the repo root until the rebuild is ready to take over.
   to Try A–Z), Name A–Z or Highest Google rating; Cards (10 at a time) /
   Compact (15) views with Show more, the view choice persisted in
   localStorage under `hao-chi-view-v1` with Compact as the phone default;
-  per-place numbers (legacy numbers for Recommended, 1..N in displayed
-  order for Want to Try); a live result count and Clear all.
+  per-place numbers that are purely positional — a place's number is
+  its 1-based place in the currently displayed (filtered + sorted)
+  list, renumbering with every tab, search, filter and sort — shown as
+  quiet faded text ending the card's meta line and the compact row's
+  food line ("No. 12" / 「第 12 家」), never as a badge; a live result
+  count and Clear all.
 - An **EN / 中文 language toggle** in the header switches the whole
   chrome — hero stats, tabs, search, filter/sort labels, result and
   batch counts, Cards/Compact, the details dialog and the driver card.

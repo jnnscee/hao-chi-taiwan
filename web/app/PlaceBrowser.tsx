@@ -878,9 +878,6 @@ export default function PlaceBrowser({
               onKeyDown={openOnKeyDown(place)}
             >
               <div className="place-head">
-                <span className="place-number">
-                  {numbers.get(place.legacy_id)}
-                </span>
                 <h3 className="place-name-zh">{place.name_zh}</h3>
                 {savedIds.includes(place.legacy_id) ? (
                   <span className="saved-marker">{t.saved}</span>
@@ -895,6 +892,14 @@ export default function PlaceBrowser({
                 {[place.cuisine, place.district, cityLabel(lang, place.city ?? "")]
                   .filter(Boolean)
                   .join(" · ")}
+                {/* The place's number in the current view, as quiet
+                    text ending the meta line — never a badge, and
+                    never up by the heart, where it could read as a
+                    save count (Jenny, 2026-11-22). */}
+                <span className="place-no">
+                  {" · "}
+                  {t.place_no(numbers.get(place.legacy_id) ?? 0)}
+                </span>
               </p>
               {place.rating_value != null ? (
                 <p className="place-rating">{ratingText(place)}</p>
@@ -921,9 +926,6 @@ export default function PlaceBrowser({
               onClick={() => openDetails(place)}
               onKeyDown={openOnKeyDown(place)}
             >
-              <span className="place-number">
-                {numbers.get(place.legacy_id)}
-              </span>
               <span className="row-names">
                 <span className="place-name-zh">{place.name_zh}</span>
                 <span className="place-name-en">{place.name_en}</span>
@@ -934,6 +936,13 @@ export default function PlaceBrowser({
                 {place.gloss || place.cuisine ? (
                   <span className="row-food">
                     {place.gloss || place.cuisine}
+                    {/* The current-view number, flowing on the left
+                        right after the food text — not right-aligned
+                        and not beside the heart (Jenny, 2026-11-22). */}
+                    <span className="place-no">
+                      {" · "}
+                      {t.place_no(numbers.get(place.legacy_id) ?? 0)}
+                    </span>
                   </span>
                 ) : null}
               </span>

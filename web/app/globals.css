@@ -18,6 +18,18 @@
                      brown identity survives as gold-brown
                      (v1's --gold; the deeper heading tone is
                      v1's light-theme gold, #c98f1b)
+     SALMON SWAP (Jenny, 2026-11-23): she disliked the mustard
+                     gold and asked for ALL gold text in v1's
+                     salmon instead — so --brown now holds v1's
+                     dark-theme --red-ink #ff9d86 and --brown-deep
+                     v1's --red #ff8266. The token names stay as
+                     fossils; every `color: var(--brown*)` use is
+                     text on a dark surface, the map cluster
+                     badge's ring/glow follow its number, and the
+                     one fill use (the admin primary button) takes
+                     the salmon too. The floating search badge
+                     (below) wears the #ff8266 fill with white
+                     numerals, exactly v1's chip treatment.
      green  #2f6f4e  mountain green FILLS: primary actions, the
                      active tab/toggles, the map pins (white
                      text on them); as TEXT it lightens to
@@ -68,8 +80,8 @@
   --muted: #a9b3a6;
   --line: #39413c;
   --line-strong: #4b574f;
-  --brown: #e0b95e;
-  --brown-deep: #c98f1b;
+  --brown: #ff9d86;
+  --brown-deep: #ff8266;
   --green: #2f6f4e;
   --green-deep: #20503a;
   --green-text: #6fd3a7;
@@ -604,8 +616,9 @@ body {
 }
 
 /* Cluster badges (large sets): a dark disc in the night surface
-   tone with the count in gold, so the number reads at a glance
-   against the pale map tiles and matches the app's own headings.
+   tone with the count in salmon (gold until Jenny's 2026-11-23
+   swap), so the number reads at a glance against the pale map
+   tiles and matches the app's own headings.
    The badge counts plus any ungrouped dots always add up to the
    filtered set's size. */
 .map-cluster-wrap {
@@ -625,7 +638,7 @@ body {
   border: 2px solid var(--brown);
   box-shadow:
     0 1px 5px rgba(0, 0, 0, 0.45),
-    0 0 0 4px rgba(224, 185, 94, 0.18);
+    0 0 0 4px rgba(255, 130, 102, 0.18);
   font-size: 0.85rem;
   font-weight: 800;
   cursor: pointer;
@@ -989,7 +1002,8 @@ body {
   padding: 0.2rem 0.6rem;
 }
 
-/* The list badge (Recommended / Want to Try) wears the brown. */
+/* The list badge (Recommended / Want to Try) wears the salmon
+   (the --brown token, gold until Jenny's 2026-11-23 swap). */
 .list-badge {
   background: var(--sand);
   color: var(--brown);
@@ -1267,7 +1281,7 @@ body {
   /* v1's floating button, matched (Jenny, 2026-11-22): bright teal
      fill with the magnifier in the near-black page tone — the icon
      is stroked in currentColor, so `color` is the icon colour. The
-     red count badge below is deliberately untouched. */
+     count badge below wears v1's salmon (Jenny, 2026-11-23). */
   background: var(--teal);
   color: #131715;
   border: 1px solid var(--teal);
@@ -1289,8 +1303,9 @@ body {
 
 /* The badge carries the filtered result count whenever a search or
    filter narrows the set, so an active narrowing is never invisible
-   while the panel is closed. The red is semantic (an alert that the
-   list is narrowed), one of the red's two jobs. */
+   while the panel is closed. It wears v1's salmon fill (#ff8266,
+   the --alert-text token's value) with white numerals — v1's own
+   chip treatment, chosen by Jenny 2026-11-23 over the brick red. */
 .float-badge {
   position: absolute;
   top: -6px;
@@ -1299,7 +1314,7 @@ body {
   height: 24px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--alert);
+  background: var(--alert-text);
   color: #fff;
   font-size: 0.78rem;
   font-weight: 800;

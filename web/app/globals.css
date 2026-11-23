@@ -78,6 +78,10 @@
   --blue-deep: #175a7c;
   --blue-text: #7cc7ea;
   --blue-tint: #16283a;
+  /* v1's dark-theme teal, matched at Jenny's request (2026-11-22):
+     so far only the floating search button wears it. */
+  --teal: #57c8b2;
+  --teal-deep: #3da892;
   --alert: #a33b2e;
   --alert-text: #ff8266;
   --alert-tint: #3a2320;
@@ -1211,9 +1215,13 @@ body {
   height: 58px;
   border-radius: 50%;
   padding: 0;
-  background: var(--green);
-  color: #fff;
-  border: 1px solid var(--green);
+  /* v1's floating button, matched (Jenny, 2026-11-22): bright teal
+     fill with the magnifier in the near-black page tone — the icon
+     is stroked in currentColor, so `color` is the icon colour. The
+     red count badge below is deliberately untouched. */
+  background: var(--teal);
+  color: #131715;
+  border: 1px solid var(--teal);
   box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.45);
   display: inline-flex;
   align-items: center;
@@ -1223,7 +1231,7 @@ body {
 }
 
 .float-search:hover {
-  background: var(--green-deep);
+  background: var(--teal-deep);
 }
 
 .float-search[hidden] {

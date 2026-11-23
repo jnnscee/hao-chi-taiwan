@@ -93,7 +93,8 @@ served from the repo root until the rebuild is ready to take over.
   reference point.
 - **Jenny's floating search button**, as on the live app: a circular
   button fixed bottom-right (bilingual aria-label "Search & filters /
-  搜尋與篩選") whose badge shows the result count whenever the set is
+  搜尋與篩選") in v1's dark-theme teal (`#57c8b2`) with a near-black
+  magnifier, whose badge shows the result count whenever the set is
   narrowed below the current tab's full set. On desktop it appears
   only once the in-page search area has scrolled off screen; on phone
   (≤640px) it is always visible and the in-page search area leaves the

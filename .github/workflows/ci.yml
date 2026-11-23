@@ -1,0 +1,50 @@
+# CI for the Hao Chi Taiwan Next.js rebuild (web/).
+#
+# Runs on every push to staging or main that touches the app or
+# this workflow: the Vitest logic suite, a production build, the
+# First Load JS budget check, and the Playwright phone-width
+# layout spec — the same four gates the engineering-backbone slice
+# proved locally, so a change that breaks an invariant (or crushes
+# the phone layout again) shows up red before it is ever promoted.
+
+name: CI
+
+on:
+  push:
+    branches: [staging, main]
+    paths:
+      - "web/**"
+      - ".github/workflows/ci.yml"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Logic tests (Vitest)
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: First Load JS budget
+        run: node scripts/check-budget.mjs
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Phone-width layout spec (Playwright)
+        run: npx playwright test

@@ -31,6 +31,15 @@ import type { Place } from "@/lib/places";
 // the set's frame (with generous padding, and whole Taiwan for an
 // empty set) only when the set itself changes — panning/zooming and
 // then toggling Cards/Compact does not move the visitor's view.
+//
+// A fit is only ever computed against a settled size: if the
+// container has not reached its real size when a fit comes due (the
+// map sits below the fold while the page settles), the fit is queued
+// rather than computed against the wrong size, and a ResizeObserver
+// plus the settle remedies land it — or re-apply the current fit
+// exactly once — when the size corrects. A fit computed against an
+// unsettled size zooms to an extreme and strands the map there,
+// because Leaflet's own size corrections only pan, never refit.
 
 type PlaceMapProps = {
   markerSet: MapMarkerSet;
@@ -43,6 +52,22 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
   const mapRef = useRef<Leaflet.Map | null>(null);
   const layerRef = useRef<Leaflet.LayerGroup | null>(null);
   const fittedSignatureRef = useRef<string | null>(null);
+  // Fit bookkeeping for the size gate below: a fit is only ever
+  // computed against a SETTLED size, and a later material size
+  // correction re-applies the current set's fit exactly once.
+  // lastFitRef records what was fitted and at what container size;
+  // pendingFitRef marks a fit that is waiting for a settled size;
+  // userMovedRef records that the visitor has taken over the view
+  // (drag, zoom, cluster tap), after which a size correction must
+  // never yank the view back to a fit.
+  const lastFitRef = useRef<{
+    signature: string;
+    width: number;
+    height: number;
+  } | null>(null);
+  const pendingFitRef = useRef(false);
+  const userMovedRef = useRef(false);
+  const lastFitAtRef = useRef(0);
   // Latest props, readable from the Leaflet callbacks and effects below
   // without re-creating the map.
   const markerSetRef = useRef(markerSet);
@@ -54,6 +79,84 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     markerSetRef.current = markerSet;
     onSelectRef.current = onSelect;
   });
+
+  // A size is settled when the container has a real size, the padded
+  // viewport (size minus the fit padding on both sides) is still
+  // positive — a fit computed against a zero/negative viewport zooms
+  // to an extreme and strands the map there — and Leaflet's cached
+  // size agrees with the container's actual size.
+  function sizeSettled(map: Leaflet.Map): boolean {
+    const container = containerRef.current;
+    if (!container) return false;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    if (width <= FIT_PADDING_PX * 2 || height <= FIT_PADDING_PX * 2) {
+      return false;
+    }
+    const size = map.getSize();
+    return Math.abs(size.x - width) <= 1 && Math.abs(size.y - height) <= 1;
+  }
+
+  // Fit the current set, but only against a settled size. When the
+  // size is not settled the fit is queued (pendingFitRef) instead of
+  // computed — the settle remedies and the ResizeObserver below retry
+  // it until it lands. Returns whether the fit was applied.
+  function applyFit(map: Leaflet.Map, set: MapMarkerSet): boolean {
+    if (!sizeSettled(map)) {
+      // Leaflet's cached size may simply be stale; re-measuring now
+      // can settle it immediately.
+      map.invalidateSize();
+      if (!sizeSettled(map)) {
+        pendingFitRef.current = true;
+        return false;
+      }
+    }
+    pendingFitRef.current = false;
+    // frameBounds falls back to whole Taiwan for an empty set, so a
+    // no-match search returns the visitor to the island instead of
+    // leaving the map wherever it happened to be.
+    const bounds = frameBounds(set);
+    // Timestamp BEFORE the call: the fit's zoom animation fires
+    // zoomstart a frame later, and the gesture guard below must not
+    // mistake our own fit for the visitor taking over the view.
+    lastFitAtRef.current = performance.now();
+    map.fitBounds(
+      [
+        [bounds.south, bounds.west],
+        [bounds.north, bounds.east],
+      ],
+      { padding: [FIT_PADDING_PX, FIT_PADDING_PX], maxZoom: FIT_MAX_ZOOM }
+    );
+    const container = containerRef.current;
+    lastFitRef.current = {
+      signature: markerSetSignature(set),
+      width: container?.clientWidth ?? 0,
+      height: container?.clientHeight ?? 0,
+    };
+    fittedSignatureRef.current = lastFitRef.current.signature;
+    return true;
+  }
+
+  // Called after every size re-measurement (the settle remedies and
+  // the ResizeObserver): if a fit is still pending, land it now that
+  // the size may have settled; otherwise, if the container's size has
+  // materially changed since the current fit was computed and the
+  // visitor has not taken over the view, re-apply the current set's
+  // fit exactly once at the corrected size.
+  function refitAfterResize(map: Leaflet.Map) {
+    if (pendingFitRef.current) {
+      if (sizeSettled(map)) applyFit(map, markerSetRef.current);
+      return;
+    }
+    const last = lastFitRef.current;
+    const container = containerRef.current;
+    if (!last || !container || userMovedRef.current) return;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    if (Math.abs(width - last.width) > 2 || Math.abs(height - last.height) > 2) {
+      applyFit(map, markerSetRef.current);
+    }
+  }
 
   function drawMarkers(L: typeof Leaflet, map: Leaflet.Map, refit: boolean) {
     const layer = layerRef.current;
@@ -80,7 +183,9 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
       // separating clusters as the visitor dives in. getZoom is only
       // unset before the first fit, which the mount effect performs
       // before the first draw — the fallback is whole-Taiwan zoom.
-      const zoom = map.getZoom() || 8;
+      // (Nullish, not ||: zoom 0 is a real zoom and must not be
+      // silently regrouped as zoom 8.)
+      const zoom = map.getZoom() ?? 8;
       for (const group of clusterMarkers(set.markers, zoom)) {
         if (group.count === 1) {
           const marker = group.markers[0];
@@ -107,6 +212,9 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
             .on("click", () => {
               const bounds = markerBounds(group.markers);
               if (!bounds) return;
+              // The visitor is steering the view now; a later size
+              // correction must not undo this tap with a set refit.
+              userMovedRef.current = true;
               map.fitBounds(
                 [
                   [bounds.south, bounds.west],
@@ -140,22 +248,13 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     }
     // Refit only when the set's identity actually changed, and only
     // on a set-driven draw — a zoom-driven redraw (clusters
-    // regrouping) must never move the visitor's view.
+    // regrouping) must never move the visitor's view. A fit that is
+    // still pending (queued behind an unsettled size) is retried on
+    // every set-driven draw until it lands.
     if (!refit) return;
     const signature = markerSetSignature(set);
-    if (signature !== fittedSignatureRef.current) {
-      fittedSignatureRef.current = signature;
-      // frameBounds falls back to whole Taiwan for an empty set, so a
-      // no-match search returns the visitor to the island instead of
-      // leaving the map wherever it happened to be.
-      const bounds = frameBounds(set);
-      map.fitBounds(
-        [
-          [bounds.south, bounds.west],
-          [bounds.north, bounds.east],
-        ],
-        { padding: [FIT_PADDING_PX, FIT_PADDING_PX], maxZoom: FIT_MAX_ZOOM }
-      );
+    if (signature !== fittedSignatureRef.current || pendingFitRef.current) {
+      applyFit(map, set);
     }
   }
 
@@ -164,8 +263,16 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     let cancelled = false;
     let map: Leaflet.Map | null = null;
     let observer: IntersectionObserver | null = null;
+    let resizeObserver: ResizeObserver | null = null;
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
-    const onWindowLoad = () => map?.invalidateSize();
+    // Every size re-measurement also gives a queued or size-invalidated
+    // fit its chance to land at the corrected size.
+    const remeasure = () => {
+      if (!map) return;
+      map.invalidateSize();
+      refitAfterResize(map);
+    };
+    const onWindowLoad = () => remeasure();
     (async () => {
       const L = (await import("leaflet")).default;
       if (cancelled || !containerRef.current) return;
@@ -198,10 +305,31 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
           drawMarkers(leafletRef.current, map, false);
         }
       });
-      map.fitBounds([
-        [TAIWAN_BOUNDS.south, TAIWAN_BOUNDS.west],
-        [TAIWAN_BOUNDS.north, TAIWAN_BOUNDS.east],
-      ]);
+      // Once the visitor drags or zooms the view is theirs: a later
+      // size correction must not re-apply a fit over their view. Our
+      // own fits fire zoomstart too (from the zoom animation, shortly
+      // after the fit call), so zooms that begin within a beat of a
+      // fit are not counted as the visitor's.
+      map.on("dragstart", () => {
+        userMovedRef.current = true;
+      });
+      map.on("zoomstart", () => {
+        if (performance.now() - lastFitAtRef.current > 600) {
+          userMovedRef.current = true;
+        }
+      });
+      // Pre-frame Taiwan only if the size is already settled; the
+      // draw below applies the real (gated) set fit either way, and a
+      // queued fit lands via the remedies below once the size settles.
+      // Timestamped like every programmatic fit, so its zoomstart is
+      // not mistaken for a visitor gesture.
+      if (sizeSettled(map)) {
+        lastFitAtRef.current = performance.now();
+        map.fitBounds([
+          [TAIWAN_BOUNDS.south, TAIWAN_BOUNDS.west],
+          [TAIWAN_BOUNDS.north, TAIWAN_BOUNDS.east],
+        ]);
+      }
       drawMarkers(L, map, true);
       // Grey-hole remedies: the map sits below the list, and the page
       // around it is still settling when it first sizes itself
@@ -211,20 +339,34 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
       // again when it finishes loading, and whenever the map scrolls
       // into view; invalidateSize is cheap and idempotent.
       map.whenReady(() => {
-        requestAnimationFrame(() => map?.invalidateSize());
+        requestAnimationFrame(() => remeasure());
       });
-      settleTimer = setTimeout(() => map?.invalidateSize(), 400);
+      settleTimer = setTimeout(() => remeasure(), 400);
       window.addEventListener("load", onWindowLoad);
       if (containerRef.current && "IntersectionObserver" in window) {
         observer = new IntersectionObserver(
           (entries) => {
             if (entries.some((entry) => entry.isIntersecting)) {
-              map?.invalidateSize();
+              remeasure();
             }
           },
           { rootMargin: "200px" }
         );
         observer.observe(containerRef.current);
+      }
+      // The direct watch: any change to the container's own size —
+      // the page settling, a window resize, a layout shift — re-
+      // measures Leaflet and gives the fit machinery its chance to
+      // land a queued fit or re-apply the current fit exactly once at
+      // the corrected size. (invalidateSize never changes the
+      // container's own size, so this cannot loop.)
+      if (containerRef.current && "ResizeObserver" in window) {
+        let raf = 0;
+        resizeObserver = new ResizeObserver(() => {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => remeasure());
+        });
+        resizeObserver.observe(containerRef.current);
       }
     })();
     return () => {
@@ -232,11 +374,15 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
       if (settleTimer) clearTimeout(settleTimer);
       window.removeEventListener("load", onWindowLoad);
       if (observer) observer.disconnect();
+      if (resizeObserver) resizeObserver.disconnect();
       if (map) map.remove();
       leafletRef.current = null;
       mapRef.current = null;
       layerRef.current = null;
       fittedSignatureRef.current = null;
+      lastFitRef.current = null;
+      pendingFitRef.current = false;
+      userMovedRef.current = false;
     };
     // Mount-only: later set changes are handled by the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps

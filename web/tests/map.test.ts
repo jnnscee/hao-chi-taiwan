@@ -168,7 +168,11 @@ describe("clustering for large sets", () => {
   });
 
   it("cluster counts sum to the set size at whole-Taiwan zooms, every place grouped exactly once", () => {
-    for (const zoom of [7, 8, 9]) {
+    // Zoom 6 is the fitted whole-Taiwan zoom on the desktop frame —
+    // the zoom the live regression stranded the map away from — so
+    // conservation is asserted there and at the street-level zooms a
+    // regroup can land on, not just the comfortable middle range.
+    for (const zoom of [6, 7, 8, 9, 10, 12]) {
       const groups = clusterMarkers(allSet.markers, zoom);
       expect(groups.reduce((sum, g) => sum + g.count, 0)).toBe(242);
       const seen = groups.flatMap((g) => g.markers.map((m) => m.place.legacy_id));

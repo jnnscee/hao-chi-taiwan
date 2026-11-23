@@ -117,6 +117,51 @@ async function gotoMap(page: import("@playwright/test").Page) {
   return map;
 }
 
+/** The map's current view, reconstructed from the tile <img> under
+ * the container's centre (its z/x/y give the zoom and the centre's
+ * coordinates), plus the DOM marker accounting. */
+async function viewFromTiles(page: import("@playwright/test").Page) {
+  return page.evaluate(() => {
+    const container = document.querySelector(".place-map")!;
+    const cr = container.getBoundingClientRect();
+    const cx = cr.left + cr.width / 2;
+    const cy = cr.top + cr.height / 2;
+    let centre: { z: number; lat: number; lng: number } | null = null;
+    for (const t of Array.from(
+      document.querySelectorAll(".leaflet-tile")
+    ) as HTMLImageElement[]) {
+      const r = t.getBoundingClientRect();
+      if (cx >= r.left && cx < r.right && cy >= r.top && cy < r.bottom) {
+        const parts = t.src.split("/");
+        const z = Number(parts[3]);
+        const x = Number(parts[4]);
+        const y = Number(parts[5].replace(".png", ""));
+        const size = 256 * 2 ** z;
+        const px = (x + (cx - r.left) / r.width) * 256;
+        const py = (y + (cy - r.top) / r.height) * 256;
+        centre = {
+          z,
+          lng: (px / size) * 360 - 180,
+          lat:
+            (Math.atan(Math.sinh(Math.PI - (2 * Math.PI * py) / size)) *
+              180) /
+            Math.PI,
+        };
+        break;
+      }
+    }
+    const badges = Array.from(document.querySelectorAll(".map-cluster")).map(
+      (el) => parseInt(el.textContent || "0", 10)
+    );
+    const badgeSum = badges.reduce((s, n) => s + n, 0);
+    const dots = document.querySelectorAll(
+      ".leaflet-overlay-pane path.leaflet-interactive"
+    ).length;
+    const pins = document.querySelectorAll(".map-pin").length;
+    return { centre, badgeSum, dots, pins, total: badgeSum + dots + pins };
+  });
+}
+
 test.describe("map legibility", () => {
   test("(a) noodle search: all 14 pins fully inside the frame", async ({ page }) => {
     await stubTiles(page);
@@ -281,6 +326,165 @@ test.describe("map legibility", () => {
       return covered / (container.width * container.height);
     });
     expect(coverage).toBeGreaterThan(0.95);
+    expect(map).toBeTruthy();
+  });
+});
+
+// Regression coverage for the 2026-11-23 live failure of the Phase A
+// build: on the real site the map opened on a whole-world view, a
+// search redrew the pins without refitting the view, and the badge
+// sum drifted after the map scrolled into view — while every test
+// above passed, because they all scroll the map into view before
+// asserting and never check that a search actually MOVED the view.
+// The tests below close those blind spots: they assert the map's
+// geographic bounds (reconstructed from the tiles on screen), not
+// just its markers.
+test.describe("fit integrity (2026-11-23 regression)", () => {
+  test("(e) below-the-fold load: after scrolling into view the map frames Taiwan and sums to 242", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    await page.goto("/");
+    const map = page.locator(".place-map.leaflet-container");
+    await map.waitFor({ state: "visible", timeout: 30_000 });
+    // Deliberately do NOT scroll: the map sits below the fold while
+    // the page settles, exactly as a real visitor's first seconds go.
+    await page.waitForTimeout(1800);
+    await map.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1200);
+    const view = await viewFromTiles(page);
+    expect(view.centre).not.toBeNull();
+    // A Taiwan fit, not a world view: zoom 5–8 and the centre inside
+    // a generous Taiwan envelope.
+    expect(view.centre!.z).toBeGreaterThanOrEqual(5);
+    expect(view.centre!.z).toBeLessThanOrEqual(8);
+    expect(view.centre!.lat).toBeGreaterThanOrEqual(21.5);
+    expect(view.centre!.lat).toBeLessThanOrEqual(25.6);
+    expect(view.centre!.lng).toBeGreaterThanOrEqual(119.0);
+    expect(view.centre!.lng).toBeLessThanOrEqual(122.3);
+    // The scroll-into-view regroup conserves the set: badge counts
+    // plus dots plus pins equal the full 242 in the DOM.
+    expect(view.total).toBe(242);
+  });
+
+  test("(f) noodle search actually refits: bounds move to the noodle set, pins spread out", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    await gotoMap(page);
+    const before = await viewFromTiles(page);
+    expect(before.centre).not.toBeNull();
+    await page.locator("input.search").first().fill("noodle");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".map-pin").length === 14,
+      { timeout: 15_000 }
+    );
+    await page.waitForTimeout(900);
+    const after = await viewFromTiles(page);
+    expect(after.centre).not.toBeNull();
+    // The view MOVED to the noodle set's Kaohsiung-area envelope at
+    // district zoom — the live failure left it on the previous frame
+    // with the pins stacked on one spot.
+    expect(after.centre!.z).toBeGreaterThanOrEqual(10);
+    expect(after.centre!.lat).toBeGreaterThanOrEqual(22.55);
+    expect(after.centre!.lat).toBeLessThanOrEqual(22.8);
+    expect(after.centre!.lng).toBeGreaterThanOrEqual(120.2);
+    expect(after.centre!.lng).toBeLessThanOrEqual(120.45);
+    expect(
+      Math.abs(after.centre!.lat - before.centre!.lat) +
+        Math.abs(after.centre!.lng - before.centre!.lng)
+    ).toBeGreaterThan(0.5);
+    // The 14 pins spread over the frame — not a single stacked
+    // point. (Two noodle places share a block, so two pins may sit a
+    // pixel apart at this zoom; the failure mode being guarded is
+    // ALL of them piled onto one spot.)
+    const centres = await page.locator(".map-pin").evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return `${Math.round(r.x + r.width / 2)},${Math.round(r.y + r.height / 2)}`;
+      })
+    );
+    expect(new Set(centres).size).toBeGreaterThanOrEqual(12);
+    const perPosition = new Map<string, number>();
+    for (const c of centres) perPosition.set(c, (perPosition.get(c) ?? 0) + 1);
+    expect(Math.max(...perPosition.values())).toBeLessThanOrEqual(2);
+    const xs = centres.map((c) => Number(c.split(",")[0]));
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(100);
+  });
+
+  test("(g) a fit due while the container is transiently small is re-applied when the size corrects", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    // Force the map container to 120×120 for the first 2.5s of the
+    // page's life — the size band in which a padded fit collapses to
+    // a near-world zoom — then let it take its real size. The
+    // pre-fix code computed the fit against the small size and
+    // stranded the map there (Leaflet's size corrections only pan,
+    // never refit); the fit must land on Taiwan once the size
+    // corrects.
+    await page.addInitScript(() => {
+      const style = document.createElement("style");
+      style.textContent =
+        ".place-map { width: 120px !important; height: 120px !important; }";
+      document.addEventListener("DOMContentLoaded", () =>
+        document.head.appendChild(style)
+      );
+      setTimeout(() => style.remove(), 2500);
+    });
+    await page.goto("/");
+    const map = page.locator(".place-map.leaflet-container");
+    await map.waitFor({ state: "visible", timeout: 30_000 });
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(
+            () => document.querySelector(".place-map")!.clientWidth
+          ),
+        { timeout: 15_000 }
+      )
+      .toBeGreaterThan(600);
+    await map.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1500);
+    const view = await viewFromTiles(page);
+    expect(view.centre).not.toBeNull();
+    expect(view.centre!.z).toBeGreaterThanOrEqual(5);
+    expect(view.centre!.z).toBeLessThanOrEqual(8);
+    expect(view.centre!.lat).toBeGreaterThanOrEqual(21.5);
+    expect(view.centre!.lat).toBeLessThanOrEqual(25.6);
+    expect(view.centre!.lng).toBeGreaterThanOrEqual(119.0);
+    expect(view.centre!.lng).toBeLessThanOrEqual(122.3);
+    expect(view.total).toBe(242);
+  });
+
+  test("(h) a visitor's own zoom survives a later size correction", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    // The visitor takes over the view: two zoom-ins from the Taiwan
+    // fit (zoom 6 → 8).
+    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    await zoomIn.click();
+    await page.waitForTimeout(500);
+    await zoomIn.click();
+    await page.waitForTimeout(900);
+    const before = await viewFromTiles(page);
+    expect(before.centre).not.toBeNull();
+    expect(before.centre!.z).toBe(8);
+    // A material size change (the window narrows; the map column
+    // follows) must not yank the visitor's view back to a fit.
+    await page.setViewportSize({ width: 760, height: 900 });
+    await page.waitForTimeout(1500);
+    const after = await viewFromTiles(page);
+    expect(after.centre).not.toBeNull();
+    expect(after.centre!.z).toBe(8);
+    expect(
+      Math.abs(after.centre!.lat - before.centre!.lat)
+    ).toBeLessThan(0.05);
+    expect(
+      Math.abs(after.centre!.lng - before.centre!.lng)
+    ).toBeLessThan(0.05);
     expect(map).toBeTruthy();
   });
 });

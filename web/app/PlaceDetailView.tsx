@@ -319,6 +319,11 @@ export default function PlaceDetailView({
           >
             ✕
           </button>
+          {/* Jenny's polite request line (her exact wording, settled
+              2026-11-22): fixed Chinese in BOTH languages — the card is
+              shown to the driver, so it speaks to the driver, politely,
+              as someone already in the taxi. */}
+          <p className="driver-request">師傅，請帶我到這個地址，謝謝！</p>
           <p className="driver-name">{place.name_zh}</p>
           <p className="driver-address">{place.address_zh}</p>
         </div>

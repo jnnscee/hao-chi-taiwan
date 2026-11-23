@@ -1,0 +1,286 @@
+// Map legibility spec (Phase A, 2026-11-23).
+//
+// Guards the audit findings against the interactive map:
+//   (a) a filtered set's numbered pins sit fully inside the frame
+//       (the audit found noodle-search pins cut off at the top edge);
+//   (b) the 242 baseline is verifiable on screen: cluster badge
+//       counts plus ungrouped dots sum to the set's size;
+//   (c) a no-match search leaves the map framed on Taiwan with no
+//       pins (the audit caught it sitting on a wide SE Asia view);
+//   (d) four rapid zoom-ins never leave the map blank: once settled,
+//       every tile is loaded and the tiles cover the container.
+//
+// The sandbox (and CI) cannot be relied on to reach
+// tile.openstreetmap.org — in this environment the browser's proxy
+// refuses it outright — and hammering the real tile service from CI
+// would breach its usage policy anyway. So the spec stubs the tile
+// endpoint at the network layer with a locally drawn PNG (with a
+// small artificial latency, closer to real tiles than an instant
+// reply). The framing assertion in (c) reads the z/x/y of the tile
+// <img>s the map ends up showing.
+//
+// The service worker is blocked for this spec: by design it serves
+// tiles cache-first, and its fetches bypass page-level route
+// interception (in this sandbox they fail through the proxy while
+// stubbed page requests succeed), which would make every tile
+// assertion nondeterministic. The worker's own caching behaviour
+// was verified in the offline/PWA slice and is untouched here.
+
+import { expect, test } from "@playwright/test";
+import { deflateSync } from "node:zlib";
+
+// --- A 256×256 PNG tile, drawn in-process (green land-ish fill with
+// a darker border, so tiles are distinguishable in screenshots). ---
+function crc32(buf: Buffer): number {
+  let c = ~0;
+  for (let i = 0; i < buf.length; i++) {
+    c ^= buf[i];
+    for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
+  }
+  return ~c >>> 0;
+}
+function chunk(type: string, data: Buffer): Buffer {
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length);
+  const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body));
+  return Buffer.concat([len, body, crc]);
+}
+function tilePng(): Buffer {
+  const size = 256;
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // colour type RGB
+  const raw = Buffer.alloc(size * (size * 3 + 1));
+  for (let y = 0; y < size; y++) {
+    const row = y * (size * 3 + 1);
+    raw[row] = 0; // filter: none
+    for (let x = 0; x < size; x++) {
+      const o = row + 1 + x * 3;
+      const border = x < 2 || y < 2 || x >= size - 2 || y >= size - 2;
+      raw[o] = border ? 90 : 173;
+      raw[o + 1] = border ? 120 : 199;
+      raw[o + 2] = border ? 90 : 165;
+    }
+  }
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(raw)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+const TILE_PNG = tilePng();
+
+type TileStub = { requested: string[] };
+async function stubTiles(
+  page: import("@playwright/test").Page,
+  delayMs = 150
+): Promise<TileStub> {
+  const stub: TileStub = { requested: [] };
+  await page.route("https://tile.openstreetmap.org/**", async (route) => {
+    stub.requested.push(route.request().url());
+    if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
+    await route.fulfill({ contentType: "image/png", body: TILE_PNG });
+  });
+  return stub;
+}
+
+/** Parse a tile URL's z/x/y and return its geographic bounds. */
+function tileBounds(url: string) {
+  const parts = url.split("/");
+  const z = Number(parts[3]);
+  const x = Number(parts[4]);
+  const y = Number(parts[5].replace(".png", ""));
+  const n = 2 ** z;
+  const lngWest = (x / n) * 360 - 180;
+  const lngEast = ((x + 1) / n) * 360 - 180;
+  const latOf = (ty: number) => {
+    const m = Math.PI - (2 * Math.PI * ty) / n;
+    return (Math.atan(Math.sinh(m)) * 180) / Math.PI;
+  };
+  return { z, west: lngWest, east: lngEast, north: latOf(y), south: latOf(y + 1) };
+}
+
+test.use({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block" });
+
+async function gotoMap(page: import("@playwright/test").Page) {
+  await page.goto("/");
+  const map = page.locator(".place-map.leaflet-container");
+  await map.waitFor({ state: "visible", timeout: 30_000 });
+  await map.scrollIntoViewIfNeeded();
+  await page.waitForSelector(".leaflet-tile-loaded", { timeout: 30_000 });
+  await page.waitForTimeout(600);
+  return map;
+}
+
+test.describe("map legibility", () => {
+  test("(a) noodle search: all 14 pins fully inside the frame", async ({ page }) => {
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    await page.locator("input.search").first().fill("noodle");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".map-pin").length === 14,
+      { timeout: 15_000 }
+    );
+    // Let the fit animation finish before measuring.
+    await page.waitForTimeout(900);
+    const mapBox = (await map.boundingBox())!;
+    const pins = await page.locator(".map-pin").evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, right: r.right, bottom: r.bottom };
+      })
+    );
+    expect(pins).toHaveLength(14);
+    for (const pin of pins) {
+      // Fully inside the container, with sub-pixel tolerance — the
+      // acceptance criterion is that no pin is clipped at an edge.
+      expect(pin.x).toBeGreaterThanOrEqual(mapBox.x - 1);
+      expect(pin.y).toBeGreaterThanOrEqual(mapBox.y - 1);
+      expect(pin.right).toBeLessThanOrEqual(mapBox.x + mapBox.width + 1);
+      expect(pin.bottom).toBeLessThanOrEqual(mapBox.y + mapBox.height + 1);
+    }
+  });
+
+  test("(b) baseline: cluster counts + dots sum to 242", async ({ page }) => {
+    await stubTiles(page);
+    await gotoMap(page);
+    const total = async () => {
+      const badges = await page.locator(".map-cluster").allTextContents();
+      const badgeSum = badges.reduce((sum, t) => sum + parseInt(t, 10), 0);
+      const dots = await page
+        .locator(".leaflet-overlay-pane path.leaflet-interactive")
+        .count();
+      return { badgeSum, dots, total: badgeSum + dots, badges: badges.length };
+    };
+    // Poll until the drawn set stabilises at the full 242 (the
+    // initial cluster draw can precede the fitted zoom's regroup).
+    await expect
+      .poll(async () => (await total()).total, { timeout: 20_000 })
+      .toBe(242);
+    const result = await total();
+    expect(result.badges).toBeGreaterThan(0);
+    expect(result.badgeSum).toBeGreaterThan(0);
+
+    // Tapping a cluster expands it: the map zooms toward the
+    // cluster's bounds (the tiles on screen move to a deeper zoom).
+    const maxTileZoom = async () =>
+      page.locator(".leaflet-tile").evaluateAll((els) =>
+        Math.max(
+          ...els.map((el) =>
+            Number((el as HTMLImageElement).src.split("/")[3])
+          )
+        )
+      );
+    const before = await maxTileZoom();
+    await page.locator(".map-cluster").first().click();
+    await expect
+      .poll(maxTileZoom, { timeout: 15_000 })
+      .toBeGreaterThan(before);
+  });
+
+  test("(c) no-match search: map frames Taiwan, zero pins", async ({ page }) => {
+    await stubTiles(page);
+    await gotoMap(page);
+    // Move the view somewhere else first, so returning to Taiwan is
+    // observable: noodle fits Kaohsiung at street-district zoom.
+    await page.locator("input.search").first().fill("noodle");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".map-pin").length === 14,
+      { timeout: 15_000 }
+    );
+    await page.locator("input.search").first().fill("zzzzqqq");
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll(".map-pin").length === 0 &&
+        document.querySelectorAll(".map-cluster").length === 0,
+      { timeout: 15_000 }
+    );
+    expect(
+      await page.locator(".leaflet-overlay-pane path.leaflet-interactive").count()
+    ).toBe(0);
+    // Evidence for the frame: the tile <img>s the map ends up
+    // showing. (Network requests are not usable evidence here —
+    // Leaflet and the browser serve a return to a recent view from
+    // cache without new requests.) Once the refit settles, every
+    // tile on screen sits at a Taiwan-fit zoom inside a generous
+    // Taiwan envelope; a leftover street-level frame (zoom 13+) or
+    // the audit's wide SE Asia frame (zoom ≤5, tiles reaching far
+    // west/south) both fail this.
+    const domTiles = async () =>
+      page.locator(".leaflet-tile").evaluateAll((els) =>
+        els.map((el) => (el as HTMLImageElement).src)
+      );
+    await expect
+      .poll(
+        async () => {
+          const srcs = await domTiles();
+          if (srcs.length < 4) return false;
+          return srcs.every((src) => {
+            const z = tileBounds(src).z;
+            return z >= 6 && z <= 8;
+          });
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+    for (const src of await domTiles()) {
+      const b = tileBounds(src);
+      expect(b.west).toBeGreaterThanOrEqual(108);
+      expect(b.east).toBeLessThanOrEqual(133);
+      expect(b.south).toBeGreaterThanOrEqual(12);
+      expect(b.north).toBeLessThanOrEqual(35);
+    }
+  });
+
+  test("(d) four rapid zoom-ins never leave the map blank", async ({ page }) => {
+    await stubTiles(page, 300);
+    const map = await gotoMap(page);
+    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    for (let i = 0; i < 4; i++) {
+      await zoomIn.click({ timeout: 5_000 });
+    }
+    // Once settled, every tile on screen is loaded and together the
+    // tiles cover (nearly) the whole container — no bare pane.
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => {
+            const tiles = Array.from(
+              document.querySelectorAll(".leaflet-tile")
+            ) as HTMLImageElement[];
+            if (tiles.length === 0) return 0;
+            const loaded = tiles.filter(
+              (t) => t.complete && t.naturalWidth > 0
+            ).length;
+            return loaded / tiles.length;
+          }),
+        { timeout: 25_000 }
+      )
+      .toBe(1);
+    const coverage = await page.evaluate(() => {
+      const container = document
+        .querySelector(".place-map")!
+        .getBoundingClientRect();
+      const tiles = Array.from(
+        document.querySelectorAll(".leaflet-tile")
+      ) as HTMLImageElement[];
+      let covered = 0;
+      for (const t of tiles) {
+        const r = t.getBoundingClientRect();
+        const w =
+          Math.min(r.right, container.right) - Math.max(r.left, container.left);
+        const h =
+          Math.min(r.bottom, container.bottom) - Math.max(r.top, container.top);
+        if (w > 0 && h > 0) covered += w * h;
+      }
+      return covered / (container.width * container.height);
+    });
+    expect(coverage).toBeGreaterThan(0.95);
+    expect(map).toBeTruthy();
+  });
+});

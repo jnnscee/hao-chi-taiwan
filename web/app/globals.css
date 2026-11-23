@@ -590,6 +590,34 @@ body {
   cursor: pointer;
 }
 
+/* Cluster badges (large sets): a dark disc in the night surface
+   tone with the count in gold, so the number reads at a glance
+   against the pale map tiles and matches the app's own headings.
+   The badge counts plus any ungrouped dots always add up to the
+   filtered set's size. */
+.map-cluster-wrap {
+  background: transparent;
+  border: none;
+}
+
+.map-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--brown);
+  border: 2px solid var(--brown);
+  box-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.45),
+    0 0 0 4px rgba(224, 185, 94, 0.18);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 /* The visitor's own position: an ocean-blue "you are here" dot,
    deliberately unlike the green place pins. */
 .map-you-wrap {

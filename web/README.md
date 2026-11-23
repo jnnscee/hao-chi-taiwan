@@ -61,13 +61,22 @@ served from the repo root until the rebuild is ready to take over.
   list (the old site's order), headed by the live app's own map strings
   ("Where they are" / 「地圖」 and its tap-a-pin hint, in `lib/i18n.ts`).
   It draws exactly the current filtered set: numbered pins (number =
-  the place's list number) at 60 or fewer results, small dot markers
-  above that, every marker clickable to open that place's details. The
-  view fits the set's bounds (fit zoom capped at 15) only when the set
-  itself changes — panning or zooming and then toggling Cards/Compact
-  keeps the visitor's view. Wheel/drag/pinch zoom runs to street
-  level. The marker logic is pure functions in `lib/map.ts`,
-  unit-checked against the real data.
+  the place's list number) at 60 or fewer results; above that, places
+  group into cluster badges carrying their count (an ungrouped place
+  keeps its plain dot), regrouping as the visitor zooms and expanding
+  on tap — badge counts plus dots always add up to the set's size, so
+  the 242 baseline is verifiable on screen. Every individual marker
+  is clickable to open that place's details. The view fits the set's
+  frame (56px padding so no pin or badge touches the edge; fit zoom
+  capped at 15; an empty set frames the whole of Taiwan) only when
+  the set itself changes — panning or zooming and then toggling
+  Cards/Compact keeps the visitor's view. Wheel/drag/pinch zoom runs
+  to street level. The marker and clustering logic is pure functions
+  in `lib/map.ts`, unit-checked against the real data. (Phase A map
+  legibility, 2026-11-23: padded fit, clustering, Taiwan framing for
+  no-match searches, rapid-zoom tile hardening, and re-measuring the
+  map once the page settles and whenever it scrolls into view, so no
+  grey unpainted strips survive first paint.)
 - **Near me**, mirroring the live app: the Near me button asks for the
   visitor's location only when tapped (`navigator.geolocation`, the
   live app's options). The position is held in memory (filter state)
@@ -286,15 +295,25 @@ Two suites, both added by the engineering-backbone slice
   same commit whenever a bulk data change lands**; single edits
   Jenny makes through /admin change the database only and never
   touch the repo, so the counts describe the snapshot.
-- **Phone-width layout tests (Playwright)** —
+- **Browser tests (Playwright)** —
   `npm run test:e2e` (needs `npx playwright install chromium`
   once, and a production build first; the config serves
-  `npm start` on port 3100). One spec in `tests-e2e/` at 390px
-  and 360px viewports asserting the compact rows keep their
-  width, the hero title stays on one line, nothing overflows
-  horizontally, and the rating chip sits below the food line —
-  the regression Jenny's 2026-11-22 screenshot caught, which a
-  desktop check structurally cannot see.
+  `npm start` on port 3100). Two specs in `tests-e2e/`: a
+  phone-width layout spec at 390px and 360px viewports asserting
+  the compact rows keep their width, the hero title stays on one
+  line, nothing overflows horizontally, and the rating chip sits
+  below the food line — the regression Jenny's 2026-11-22
+  screenshot caught, which a desktop check structurally cannot
+  see — and a map legibility spec (desktop viewport) asserting a
+  filtered set's pins sit fully inside the frame, the cluster
+  counts plus dots sum to 242 and a cluster tap zooms in, a
+  no-match search leaves the map framed on Taiwan, and four rapid
+  zoom-ins never leave the map blank. The map spec stubs the
+  OpenStreetMap tile endpoint with a locally drawn PNG (the
+  sandbox/CI cannot reliably reach the real tile service, and
+  its usage policy discourages test traffic anyway) and blocks
+  the service worker, whose cache-first tile serving would
+  otherwise bypass the stub nondeterministically.
 
 ## CI
 
@@ -305,10 +324,12 @@ Playwright install and layout spec — the same gates as locally,
 so a red push is never promoted. (The workflow file itself was
 authored in the backbone slice but could not be pushed by the
 GitHub snapshot tool — workflow files need a scope the token
-does not hold, so the push was rejected with a 403. The file is
-preserved at `hidden_files/ci-workflow-proposed-2026-11-22.yml`
-in the goal workspace and needs adding through the GitHub web
-UI or another full-scope route before CI can run.)
+does not hold, so that push was rejected with a 403. It was
+then added on `staging` through the GitHub web UI (commit
+7af0eab, 2026-11-22) and CI run #1 succeeded with all four
+gates green; the proposed copy is preserved at
+`hidden_files/ci-workflow-proposed-2026-11-22.yml` in the goal
+workspace.)
 
 ## Performance budget
 
@@ -322,11 +343,13 @@ in CI instead of reaching a visitor's phone.
 
 ## Not yet
 
-Admin login is done (see above); two Auth settings live only in the Supabase
-dashboard and are still Jenny's to flip there: disabling public
-sign-ups, and adding the 6-digit code (`{{ .Token }}`) to the
-Magic Link email template so the login email shows the code as
-well as the link.
+Admin login is done (see above), and public sign-ups were
+disabled in the Supabase dashboard on 2026-11-22. The login
+email shows only the magic link, not a 6-digit code: on
+Supabase's free plan the email template cannot be edited
+(that needs custom SMTP or a paid plan), so the code box in
+the login form stays unused unless the plan changes — the
+working flow is to tap the link in the email.
 `app/InfoOverlay.tsx` is a retired stub (the info overlays were
 replaced by real pages); it stays only because the GitHub snapshot
 push cannot delete files.

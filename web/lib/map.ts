@@ -147,3 +147,142 @@ export const TAIWAN_BOUNDS: LatLngBounds = {
  * cluster lands at street-district level rather than building level.
  */
 export const FIT_MAX_ZOOM = 15;
+
+/**
+ * Padding (px) applied on every fit. Leaflet's fitBounds frames the
+ * marker POINTS; a numbered pin extends 15px beyond its point and a
+ * cluster badge 20px, so the old 24px padding left edge pins nearly
+ * touching — and, once the map sized itself late, clipped at — the
+ * frame. 56px keeps every badge visibly inside with margin to spare.
+ */
+export const FIT_PADDING_PX = 56;
+
+/**
+ * The bounds the map frames for a set: its fit bounds, or the
+ * whole-Taiwan view when there is nothing to fit (an empty result
+ * set). Before Phase A an empty set simply left the map wherever it
+ * was — an audit caught it sitting on a wide South-East Asia view
+ * after a no-match search; now a no-match search always returns the
+ * visitor to Taiwan.
+ */
+export function frameBounds(set: MapMarkerSet): LatLngBounds {
+  return fitBounds(set) ?? TAIWAN_BOUNDS;
+}
+
+// --- Clustering (large sets) ---
+//
+// Above NUMBERED_PIN_LIMIT the map used to draw one plain dot per
+// place: at whole-Taiwan zoom the 242 dots pile onto the same few
+// pixels in Kaohsiung and there is no way to see how many places a
+// pile holds. Now large sets are grouped into clusters whose badges
+// carry the count, so the counts on screen always add up to the
+// size of the filtered set. The grouping is a pure function of the
+// markers and the zoom, kept here (Leaflet-free) so the sums can be
+// unit-checked; the component re-runs it whenever the zoom changes.
+
+/** Pixel distance (at the current zoom) within which dots cluster. */
+export const CLUSTER_RADIUS_PX = 56;
+
+/** Deepest zoom a cluster tap fits to, so taps keep separating. */
+export const CLUSTER_FIT_MAX_ZOOM = 17;
+
+/** Web Mercator's latitude limit (the projection's square edge). */
+const MAX_PROJECTED_LAT = 85.05112878;
+
+/**
+ * Project a coordinate to Web Mercator world pixel coordinates at a
+ * zoom level (256px tiles) — the same space Leaflet positions tiles
+ * and markers in, computed here so clustering needs no Leaflet.
+ */
+export function projectToPixels(
+  lat: number,
+  lng: number,
+  zoom: number
+): { x: number; y: number } {
+  const scale = 256 * 2 ** zoom;
+  const clamped = Math.max(-MAX_PROJECTED_LAT, Math.min(MAX_PROJECTED_LAT, lat));
+  const sin = Math.sin((clamped * Math.PI) / 180);
+  return {
+    x: (scale * (lng + 180)) / 360,
+    y: scale * (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)),
+  };
+}
+
+/** Inverse of projectToPixels. */
+export function unprojectFromPixels(
+  x: number,
+  y: number,
+  zoom: number
+): LatLng {
+  const scale = 256 * 2 ** zoom;
+  const lng = (x / scale) * 360 - 180;
+  const n = Math.PI * (1 - (2 * y) / scale);
+  const lat = (180 / Math.PI) * Math.atan(Math.sinh(n));
+  return { lat, lng };
+}
+
+export type MapClusterGroup = {
+  /** The places in this group, in set order. */
+  markers: MapMarker[];
+  /** How many places the group holds (markers.length, named for use). */
+  count: number;
+  /** The group's centre: the mean of its members' positions. */
+  lat: number;
+  lng: number;
+};
+
+/**
+ * Group markers into clusters at a zoom: each marker joins the
+ * first existing cluster whose centre is within `radiusPx` screen
+ * pixels (projected at that zoom), or starts a new cluster. Greedy
+ * and order-stable — the same set at the same zoom always groups
+ * identically. Every marker lands in exactly one group, so the
+ * group counts sum to markers.length at any zoom; a group of one
+ * is drawn as the plain dot it always was.
+ */
+export function clusterMarkers(
+  markers: MapMarker[],
+  zoom: number,
+  radiusPx: number = CLUSTER_RADIUS_PX
+): MapClusterGroup[] {
+  type Working = {
+    markers: MapMarker[];
+    sumX: number;
+    sumY: number;
+  };
+  const groups: Working[] = [];
+  for (const marker of markers) {
+    const point = projectToPixels(marker.lat, marker.lng, zoom);
+    let target: Working | null = null;
+    for (const group of groups) {
+      const cx = group.sumX / group.markers.length;
+      const cy = group.sumY / group.markers.length;
+      const dx = point.x - cx;
+      const dy = point.y - cy;
+      if (dx * dx + dy * dy <= radiusPx * radiusPx) {
+        target = group;
+        break;
+      }
+    }
+    if (!target) {
+      target = { markers: [], sumX: 0, sumY: 0 };
+      groups.push(target);
+    }
+    target.markers.push(marker);
+    target.sumX += point.x;
+    target.sumY += point.y;
+  }
+  return groups.map((group) => {
+    const centre = unprojectFromPixels(
+      group.sumX / group.markers.length,
+      group.sumY / group.markers.length,
+      zoom
+    );
+    return {
+      markers: group.markers,
+      count: group.markers.length,
+      lat: centre.lat,
+      lng: centre.lng,
+    };
+  });
+}

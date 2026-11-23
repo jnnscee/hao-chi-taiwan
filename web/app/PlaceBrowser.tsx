@@ -42,6 +42,7 @@ import {
   parseStoredLang,
   type Lang,
 } from "@/lib/i18n";
+import { OG_IMAGE_URL } from "@/lib/routes";
 import PlaceDetails from "./PlaceDetails";
 import ContactForm, { type ContactOpenRequest } from "./ContactForm";
 import LangSwitch from "./LangSwitch";
@@ -779,15 +780,28 @@ export default function PlaceBrowser({
   return (
     <div className="browser">
       <header className="hero">
-        <div className="hero-top">
-          <h1>Hao Chi Taiwan 好吃台灣</h1>
-          {renderLangToggle()}
+        {/* The old site's signature banner photo, with the title on
+            a deep green-to-blue band beneath it — Taiwan's mountains
+            running down to the sea. The photo is the share-preview
+            banner at its interim absolute URL (see OG_IMAGE_URL in
+            lib/routes.ts: self-host at launch). Decorative: the
+            title text beside it names the guide. If it cannot load
+            (offline before a first online visit, say), the band's
+            gradient simply fills the frame. */}
+        <div className="hero-media" aria-hidden="true">
+          <img className="hero-photo" src={OG_IMAGE_URL} alt="" />
         </div>
-        <p className="counts">
-          {places.length} {t.stat_total} · {tabCounts.recommended}{" "}
-          {t.stat_recommended} · {tabCounts.want_to_try} {t.stat_want} ·{" "}
-          {kaohsiungCount} {t.stat_khh}
-        </p>
+        <div className="hero-body">
+          <div className="hero-top">
+            <h1>Hao Chi Taiwan 好吃台灣</h1>
+            {renderLangToggle()}
+          </div>
+          <p className="counts">
+            {places.length} {t.stat_total} · {tabCounts.recommended}{" "}
+            {t.stat_recommended} · {tabCounts.want_to_try} {t.stat_want} ·{" "}
+            {kaohsiungCount} {t.stat_khh}
+          </p>
+        </div>
       </header>
 
       {/* The in-page search area. On phone (≤640px) it leaves the

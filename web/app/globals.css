@@ -1,4 +1,50 @@
-/* Rebuild styling: clean and readable; design polish comes in a later slice. */
+/* Design polish (Jenny's direction, 2026-11-22): Taiwan is nature
+   — mountains running down to the sea. The palette gives each
+   colour a job, never confetti:
+     cream  #fffdf8  the base (kept from the earlier rebuild)
+     sand   #f0ead9  quiet tints and hairlines (kept)
+     brown  #7a4a12  earth and food: headings, brand accents, the
+                     Recommended badge (the existing brand colour)
+     green  #2f6f4e  mountain green: primary actions and active
+                     states — buttons, the active tab, the active
+                     language/view toggles, the map pins
+     blue   #1f6f96  ocean blue: links and travel actions — Open in
+                     Google Maps, Get directions, Check today's
+                     hours, distance tags, map-section accents
+     red    #a33b2e  semantic alerts ONLY: temporarily closed, the
+                     floating button's count badge
+   Contrast (WCAG ratios, computed): white on green 5.99:1, white
+   on blue 5.57:1, white on the deep green 9.25:1, green text on
+   cream 5.89:1, blue text on cream 5.48:1, brown on cream 7.34:1.
+   Borrowed from the old (live) site's stylesheet: the deep green
+   hero band with a big display title, cards as white surfaces with
+   a 1px line border, 16px radii and soft shadows
+   (0 2px 10px / 0 10px 30px rgba(33,38,31,…)), the muted sage
+   text colour and the #ddd8c9 line colour. */
+
+:root {
+  --cream: #fffdf8;
+  --sand: #f0ead9;
+  --sand-soft: #faf5e9;
+  --ink: #1f2420;
+  --muted: #5d675c;
+  --line: #ddd8c9;
+  --line-strong: #cfc6a8;
+  --brown: #7a4a12;
+  --brown-deep: #5d370c;
+  --green: #2f6f4e;
+  --green-deep: #20503a;
+  --green-tint: #e4efe6;
+  --blue: #1f6f96;
+  --blue-deep: #175a7c;
+  --blue-tint: #e2eef3;
+  --alert: #a33b2e;
+  --shadow-card: 0 2px 10px rgba(33, 38, 31, 0.05);
+  --shadow-lift: 0 10px 30px rgba(33, 38, 31, 0.1);
+  /* Mountains → sea, the site's signature gradient. */
+  --gradient-sea: linear-gradient(120deg, var(--green-deep) 0%, var(--green) 52%, var(--blue) 135%);
+  --gradient-rule: linear-gradient(90deg, var(--green), var(--blue));
+}
 
 * {
   box-sizing: border-box;
@@ -7,15 +53,70 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #1a1a1a;
-  background: #fffdf8;
+  color: var(--ink);
+  background: var(--cream);
   line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One calm, visible focus ring everywhere the component rules
+   don't draw their own (the clickable place entries do). */
+:focus-visible {
+  outline: 3px solid rgba(47, 111, 78, 0.55);
+  outline-offset: 2px;
 }
 
 .page {
   max-width: 44rem;
   margin: 0 auto;
   padding: 1.5rem 1rem 4rem;
+}
+
+/* --- Hero: the old site's banner, mountains → sea --- */
+
+/* A rounded band: the banner photo on top, the title and counts on
+   a deep green-to-blue gradient beneath it. The media frame keeps
+   the same gradient behind the photo, so if the photo cannot load
+   (it is served from the guide's main address — see OG_IMAGE_URL)
+   the band still reads as designed. */
+.hero {
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: var(--gradient-sea);
+  box-shadow: var(--shadow-lift);
+  margin-bottom: 1.75rem;
+}
+
+.hero-media {
+  position: relative;
+  height: 210px;
+  background: var(--gradient-sea);
+}
+
+.hero-media::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 55%;
+  background: linear-gradient(
+    to bottom,
+    rgba(32, 80, 58, 0),
+    rgba(32, 80, 58, 0.42)
+  );
+}
+
+.hero-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-body {
+  padding: 1.15rem 1.3rem 1.3rem;
+  color: #fff;
 }
 
 .hero-top {
@@ -25,14 +126,34 @@ body {
   gap: 1rem;
 }
 
+/* The old site's display title: big, tight, confident. */
 .hero h1 {
   margin: 0 0 0.25rem;
-  font-size: 2rem;
+  font-size: clamp(2rem, 6vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
 }
 
 .counts {
-  margin: 0 0 1.5rem;
-  color: #666;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.98rem;
+}
+
+/* The language toggle sits on the hero's dark band, so on the home
+   pages it wears glass clothes; on the standalone pages (PageHeader,
+   cream background) it keeps the light clothes below. */
+.hero .lang-btn {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.hero .lang-btn.active {
+  background: #fff;
+  border-color: #fff;
+  color: var(--green-deep);
 }
 
 /* --- Language toggle --- */
@@ -43,13 +164,17 @@ body {
   margin-top: 0.35rem;
 }
 
+.hero .langtoggle {
+  margin-top: 0.5rem;
+}
+
 .lang-btn {
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   background: #fff;
   padding: 0.4rem 0.75rem;
   font-size: 0.9rem;
   cursor: pointer;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .lang-btn:first-child {
@@ -62,8 +187,8 @@ body {
 }
 
 .lang-btn.active {
-  background: #7a4a12;
-  border-color: #7a4a12;
+  background: var(--green);
+  border-color: var(--green);
   color: #fff;
 }
 
@@ -77,17 +202,32 @@ body {
 }
 
 .tab {
-  border: 1px solid #d8cfb4;
+  border: 1px solid var(--line);
   background: #fff;
   border-radius: 999px;
-  padding: 0.4rem 0.9rem;
+  padding: 0.45rem 0.95rem;
   font-size: 0.95rem;
   cursor: pointer;
+  color: var(--ink);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.tab:hover {
+  border-color: var(--green);
+  color: var(--green-deep);
 }
 
 .tab.active {
-  background: #7a4a12;
-  border-color: #7a4a12;
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-weight: 600;
+}
+
+.tab.active:hover {
   color: #fff;
 }
 
@@ -101,10 +241,10 @@ body {
 
 .search {
   flex: 1 1 100%;
-  padding: 0.55rem 0.75rem;
+  padding: 0.6rem 0.8rem;
   font-size: 1rem;
-  border: 1px solid #cfc6a8;
-  border-radius: 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.65rem;
   background: #fff;
 }
 
@@ -113,16 +253,17 @@ body {
   flex-direction: column;
   gap: 0.2rem;
   font-size: 0.8rem;
-  color: #666;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .control select {
   padding: 0.45rem 0.5rem;
   font-size: 0.95rem;
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
   background: #fff;
-  color: #1a1a1a;
+  color: var(--ink);
   max-width: 11rem;
 }
 
@@ -131,12 +272,12 @@ body {
 }
 
 .toggle {
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   background: #fff;
   padding: 0.45rem 0.7rem;
   font-size: 0.95rem;
   cursor: pointer;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .toggle:first-child {
@@ -149,15 +290,15 @@ body {
 }
 
 .toggle.active {
-  background: #7a4a12;
-  border-color: #7a4a12;
+  background: var(--green);
+  border-color: var(--green);
   color: #fff;
 }
 
 .clear-all {
   border: none;
   background: none;
-  color: #7a4a12;
+  color: var(--brown);
   font-size: 0.95rem;
   padding: 0.45rem 0.25rem;
   cursor: pointer;
@@ -166,13 +307,13 @@ body {
 
 .result-count {
   margin: 0.25rem 0 1rem;
-  color: #666;
+  color: var(--muted);
   font-size: 0.95rem;
 }
 
 .empty {
   padding: 2rem 0;
-  color: #666;
+  color: var(--muted);
   text-align: center;
 }
 
@@ -187,18 +328,23 @@ body {
 }
 
 .near-btn {
-  border: 1px solid #7a4a12;
+  border: 1px solid var(--green);
   background: #fff;
-  color: #7a4a12;
+  color: var(--green-deep);
   border-radius: 999px;
   padding: 0.5rem 1.1rem;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.near-btn:hover {
+  background: var(--green-tint);
 }
 
 .near-btn.active {
-  background: #7a4a12;
+  background: var(--green);
   color: #fff;
 }
 
@@ -218,16 +364,16 @@ body {
 .near-radius select {
   padding: 0.45rem 0.5rem;
   font-size: 0.95rem;
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
   background: #fff;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .near-clear {
   border: none;
   background: none;
-  color: #7a4a12;
+  color: var(--brown);
   font-size: 0.95rem;
   padding: 0.45rem 0.25rem;
   cursor: pointer;
@@ -236,23 +382,25 @@ body {
 
 .near-status {
   margin: 0 0 1rem;
-  color: #666;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 
 .near-status.is-on {
-  color: #7a4a12;
+  color: var(--green-deep);
+  font-weight: 600;
 }
 
 .near-status.is-error {
-  color: #a33b2e;
+  color: var(--alert);
 }
 
-/* Distance tag on cards and compact rows while a location is known. */
+/* Distance tag on cards and compact rows while a location is known.
+   A travel fact, so it wears the ocean blue. */
 
 .dist-tag {
   display: inline-block;
-  background: #7a4a12;
+  background: var(--blue);
   color: #fff;
   border-radius: 999px;
   padding: 0.12rem 0.55rem;
@@ -271,17 +419,32 @@ body {
 /* --- Interactive map (Leaflet) --- */
 
 .map-section {
-  margin: 0 0 1.25rem;
+  margin: 0 0 1.5rem;
 }
 
+/* Section headings carry the mountains→sea rule: a short gradient
+   underline, green running into blue. */
 .map-heading {
-  margin: 0 0 0.25rem;
-  font-size: 1.35rem;
+  margin: 0 0 0.3rem;
+  font-size: 1.5rem;
+  font-weight: 750;
+  color: var(--brown-deep);
+}
+
+.map-heading::after,
+.contact-section h2::after {
+  content: "";
+  display: block;
+  width: 3.5rem;
+  height: 4px;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+  background: var(--gradient-rule);
 }
 
 .map-sub {
   margin: 0 0 0.75rem;
-  color: #666;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 
@@ -292,11 +455,12 @@ body {
   position: relative;
   z-index: 0;
   height: 420px;
-  border: 1px solid #d8cfb4;
-  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
   overflow: hidden;
   background: #eef2ea;
   font-family: inherit;
+  box-shadow: var(--shadow-card);
 }
 
 @media (max-width: 640px) {
@@ -319,7 +483,7 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  background: #7a4a12;
+  background: var(--green);
   color: #fff;
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
@@ -328,8 +492,8 @@ body {
   cursor: pointer;
 }
 
-/* The visitor's own position: a blue "you are here" dot, deliberately
-   unlike the brown place pins. */
+/* The visitor's own position: an ocean-blue "you are here" dot,
+   deliberately unlike the green place pins. */
 .map-you-wrap {
   background: transparent;
   border: none;
@@ -341,10 +505,10 @@ body {
   height: 14px;
   margin: 3px;
   border-radius: 999px;
-  background: #1a73e8;
+  background: var(--blue);
   border: 2.5px solid #fff;
   box-shadow:
-    0 0 0 3px rgba(26, 115, 232, 0.35),
+    0 0 0 3px rgba(31, 111, 150, 0.35),
     0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
@@ -362,8 +526,8 @@ body {
   height: 1.9rem;
   padding: 0 0.3rem;
   border-radius: 999px;
-  background: #f0ead9;
-  color: #7a4a12;
+  background: var(--sand);
+  color: var(--brown);
   font-size: 0.85rem;
   font-weight: 700;
   display: inline-flex;
@@ -371,11 +535,25 @@ body {
   justify-content: center;
 }
 
-/* Cards view */
+/* Cards view: true cards now, in the old site's treatment — a white
+   surface, a hairline border, a soft shadow that deepens on hover. */
+
+.place-list.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
 
 .place-list.cards .place {
-  padding: 0.85rem 0;
-  border-bottom: 1px solid #f0ead9;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow-card);
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .place-head {
@@ -386,7 +564,7 @@ body {
 
 .place-name-zh {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.18rem;
   font-weight: 700;
 }
 
@@ -403,7 +581,7 @@ body {
 
 .place-meta {
   margin: 0.25rem 0 0;
-  color: #666;
+  color: var(--muted);
   font-size: 0.88rem;
 }
 
@@ -419,8 +597,9 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #f0ead9;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--sand);
+  border-radius: 0.6rem;
 }
 
 .place-list.compact .place-number {
@@ -459,20 +638,26 @@ body {
 
 .batch-count {
   margin: 0 0 0.6rem;
-  color: #666;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .show-more {
   display: block;
   margin: 0 auto;
-  border: 1px solid #7a4a12;
+  border: 1px solid var(--green);
   background: #fff;
-  color: #7a4a12;
+  color: var(--green-deep);
   border-radius: 999px;
   padding: 0.55rem 1.4rem;
   font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.show-more:hover {
+  background: var(--green-tint);
 }
 
 /* --- Clickable entries + saved marker --- */
@@ -483,8 +668,17 @@ body {
 
 .place.clickable:hover,
 .place.clickable:focus-visible {
-  background: #faf5e9;
+  background: var(--sand-soft);
   outline: none;
+}
+
+/* On cards the hover reward is the lifted shadow, not a tint. */
+.place-list.cards .place.clickable:hover,
+.place-list.cards .place.clickable:focus-visible {
+  background: #fff;
+  border-color: #c9d6c9;
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-1px);
 }
 
 .saved-marker {
@@ -492,8 +686,8 @@ body {
   margin-left: auto;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #7a4a12;
-  background: #f0ead9;
+  color: var(--green-deep);
+  background: var(--green-tint);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
 }
@@ -517,10 +711,22 @@ body {
   position: relative;
   max-width: 36rem;
   margin: 2rem auto;
-  background: #fffdf8;
+  background: var(--cream);
   border-radius: 1rem;
   padding: 1.5rem;
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+}
+
+/* A mountains→sea accent bar across the dialog's top edge. */
+.dialog::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 1rem 1rem 0 0;
+  background: var(--gradient-rule);
 }
 
 .dialog-close {
@@ -529,12 +735,12 @@ body {
   right: 0.75rem;
   width: 2.25rem;
   height: 2.25rem;
-  border: 1px solid #d8cfb4;
+  border: 1px solid var(--line);
   border-radius: 999px;
   background: #fff;
   font-size: 1rem;
   cursor: pointer;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .dialog-badges {
@@ -552,20 +758,22 @@ body {
   padding: 0.2rem 0.6rem;
 }
 
+/* The list badge (Recommended / Want to Try) wears the brown. */
 .list-badge {
-  background: #f0ead9;
-  color: #7a4a12;
+  background: var(--sand);
+  color: var(--brown);
 }
 
 .closed-badge {
-  background: #a33b2e;
+  background: var(--alert);
   color: #fff;
 }
 
 .dialog-name-zh {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   line-height: 1.25;
+  color: var(--brown-deep);
 }
 
 .dialog-name-en {
@@ -587,12 +795,12 @@ body {
   display: flex;
   gap: 0.75rem;
   padding: 0.35rem 0;
-  border-bottom: 1px solid #f0ead9;
+  border-bottom: 1px solid var(--sand);
 }
 
 .dialog-facts dt {
   flex: 0 0 6.5rem;
-  color: #666;
+  color: var(--muted);
   font-size: 0.88rem;
 }
 
@@ -614,7 +822,7 @@ body {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #7a4a12;
+  color: var(--brown);
 }
 
 .dialog-section p {
@@ -628,7 +836,7 @@ body {
 
 .hours-note,
 .hours-checked {
-  color: #666;
+  color: var(--muted);
   font-size: 0.88rem;
 }
 
@@ -642,13 +850,14 @@ body {
   padding: 0.2rem 0;
 }
 
+/* Links are the ocean blue everywhere (see the palette note). */
 .dialog a {
-  color: #7a4a12;
+  color: var(--blue);
 }
 
 .good-to-know {
-  background: #faf5e9;
-  border: 1px solid #f0ead9;
+  background: var(--green-tint);
+  border: 1px solid #cfe0d2;
   border-radius: 0.75rem;
   padding: 0.75rem 0.9rem;
 }
@@ -666,24 +875,42 @@ body {
 }
 
 .action {
-  border: 1px solid #7a4a12;
+  border: 1px solid var(--line-strong);
   background: #fff;
-  color: #7a4a12;
+  color: var(--ink);
   border-radius: 999px;
   padding: 0.55rem 1.1rem;
   font-size: 0.95rem;
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
+.action:hover {
+  background: var(--sand-soft);
+}
+
+/* The primary action in the dialog is Open in Google Maps — a
+   travel action, so it wears the ocean blue. */
 .action.primary {
-  background: #7a4a12;
+  background: var(--blue);
+  border-color: var(--blue);
   color: #fff;
+  font-weight: 600;
 }
 
+.action.primary:hover {
+  background: var(--blue-deep);
+}
+
+/* Save, pressed: a quiet green "on" state. */
 .action[aria-pressed="true"] {
-  background: #f0ead9;
+  background: var(--green-tint);
+  border-color: var(--green);
+  color: var(--green-deep);
 }
 
 .maps-action {
@@ -692,14 +919,14 @@ body {
 
 .maps-action .hint {
   margin: 0.35rem 0 0;
-  color: #666;
+  color: var(--muted);
   font-size: 0.88rem;
 }
 
 .share-note {
   flex: 1 1 100%;
   margin: 0;
-  color: #666;
+  color: var(--muted);
   font-size: 0.88rem;
   word-break: break-all;
 }
@@ -728,6 +955,19 @@ body {
   justify-content: center;
   text-align: center;
   padding: 2rem 1.5rem;
+}
+
+/* A slim mountains→sea accent across the very top; the huge type
+   and the black-on-white contrast below it are untouched, and the
+   polite line stays the card's top line. */
+.driver-overlay::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: var(--gradient-rule);
 }
 
 .driver-close {
@@ -779,14 +1019,19 @@ body {
   height: 58px;
   border-radius: 50%;
   padding: 0;
-  background: #7a4a12;
+  background: var(--green);
   color: #fff;
-  border: 1px solid #7a4a12;
+  border: 1px solid var(--green);
   box-shadow: 0 0.5rem 1.5rem rgba(26, 26, 26, 0.3);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.float-search:hover {
+  background: var(--green-deep);
 }
 
 .float-search[hidden] {
@@ -795,7 +1040,8 @@ body {
 
 /* The badge carries the filtered result count whenever a search or
    filter narrows the set, so an active narrowing is never invisible
-   while the panel is closed. */
+   while the panel is closed. The red is semantic (an alert that the
+   list is narrowed), one of the red's two jobs. */
 .float-badge {
   position: absolute;
   top: -6px;
@@ -804,7 +1050,7 @@ body {
   height: 24px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #a33b2e;
+  background: var(--alert);
   color: #fff;
   font-size: 0.78rem;
   font-weight: 800;
@@ -812,7 +1058,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fffdf8;
+  border: 2px solid var(--cream);
 }
 
 /* The panel: a fixed overlay sheet holding the same controls bound
@@ -856,17 +1102,17 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid #d8cfb4;
+  border: 1px solid var(--line);
   background: #fff;
-  color: #1a1a1a;
+  color: var(--ink);
   font-size: 1rem;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(26, 26, 26, 0.15);
 }
 
 .search-sheet {
-  background: #fffdf8;
-  color: #1a1a1a;
+  background: var(--cream);
+  color: var(--ink);
   width: 100%;
   max-height: 88vh;
   overflow: auto;
@@ -876,15 +1122,17 @@ body {
 
 .search-sheet h2 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.45rem;
+  font-weight: 750;
   line-height: 1.2;
   padding-right: 44px;
+  color: var(--brown-deep);
 }
 
 .panel-count {
   margin: 0.25rem 0 0;
   font-weight: 700;
-  color: #a33b2e;
+  color: var(--green-deep);
 }
 
 .search-panel-body {
@@ -896,14 +1144,14 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 1rem;
-  border-top: 1px solid #f0ead9;
+  border-top: 1px solid var(--sand);
   padding-top: 0.9rem;
 }
 
 .search-panel-actions .panel-clear {
   flex: 1 1 160px;
   text-align: center;
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
   background: #fff;
   padding: 0.55rem 1rem;
@@ -918,12 +1166,14 @@ body {
 
 .contact-section h2 {
   margin: 0 0 0.35rem;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
+  font-weight: 750;
+  color: var(--brown-deep);
 }
 
 .contact-sub {
-  margin: 0 0 0.9rem;
-  color: #666;
+  margin: 0.6rem 0 0.9rem;
+  color: var(--muted);
   font-size: 0.95rem;
 }
 
@@ -934,52 +1184,69 @@ body {
   gap: 0.6rem 1rem;
 }
 
+/* The contact button is the page's closing primary action: green. */
 .contact-open-btn {
-  border: 1px solid #7a4a12;
-  background: #7a4a12;
+  border: 1px solid var(--green);
+  background: var(--green);
   color: #fff;
   border-radius: 999px;
   padding: 0.55rem 1.1rem;
   font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.contact-open-btn:hover {
+  background: var(--green-deep);
 }
 
 .contact-email-line {
-  color: #666;
+  color: var(--muted);
   font-size: 0.92rem;
 }
 
 .contact-email-line a {
-  color: #7a4a12;
+  color: var(--blue);
 }
 
+/* The footer is a deep band — the mountains at the bottom of the
+   page — with cream text and glass pills, echoing the hero. */
 .site-footer {
   margin-top: 2.5rem;
-  border-top: 1px solid #f0ead9;
-  padding-top: 1rem;
-  color: #666;
-  font-size: 0.88rem;
+  background: linear-gradient(140deg, var(--green-deep) 0%, #173d2c 100%);
+  color: #f5f2e7;
+  border-radius: 1.25rem;
+  padding: 1.5rem 1.3rem 1.75rem;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-card);
 }
 
 .site-footer p {
   margin: 0.35rem 0;
+  color: rgba(255, 253, 248, 0.82);
 }
 
 .foot-links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.8rem;
+  margin-top: 0.9rem;
 }
 
 .foot-link {
-  border: 1px solid #d8cfb4;
-  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   padding: 0.4rem 0.9rem;
   font-size: 0.9rem;
   cursor: pointer;
-  color: #7a4a12;
+  color: #fff;
+  transition: background 0.15s ease;
+}
+
+.foot-link:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 /* --- Info + contact overlays --- */
@@ -993,9 +1260,11 @@ body {
 
 .dialog-title {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.45rem;
+  font-weight: 750;
   line-height: 1.25;
   padding-right: 2.5rem;
+  color: var(--brown-deep);
 }
 
 .info-updated {
@@ -1014,7 +1283,7 @@ body {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #7a4a12;
+  color: var(--brown);
 }
 
 .info-body h3:first-child {
@@ -1035,7 +1304,7 @@ body {
 }
 
 .info-body a {
-  color: #7a4a12;
+  color: var(--blue);
 }
 
 .info-actions {
@@ -1043,7 +1312,7 @@ body {
   flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 1.25rem;
-  border-top: 1px solid #f0ead9;
+  border-top: 1px solid var(--sand);
   padding-top: 1rem;
 }
 
@@ -1067,7 +1336,7 @@ body {
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.88rem;
-  color: #666;
+  color: var(--muted);
 }
 
 .cf-fields input,
@@ -1075,10 +1344,10 @@ body {
 .cf-fields textarea {
   padding: 0.55rem 0.7rem;
   font-size: 1rem;
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
   background: #fff;
-  color: #1a1a1a;
+  color: var(--ink);
   font-family: inherit;
 }
 
@@ -1089,13 +1358,13 @@ body {
 
 .cf-note {
   margin: 0.9rem 0 0;
-  color: #666;
+  color: var(--muted);
   font-size: 0.88rem;
 }
 
 .cf-status {
   margin: 0.5rem 0 0;
-  color: #7a4a12;
+  color: var(--green-deep);
   font-size: 0.9rem;
   min-height: 1.25em;
 }
@@ -1109,7 +1378,7 @@ body {
 
 .cf-fallback {
   margin-top: 1rem;
-  color: #666;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -1118,13 +1387,13 @@ body {
 }
 
 .cf-fallback a {
-  color: #7a4a12;
+  color: var(--blue);
 }
 
 .cf-copy-btn {
-  border: 1px solid #cfc6a8;
+  border: 1px solid var(--line-strong);
   background: #fff;
-  color: #7a4a12;
+  color: var(--brown);
   border-radius: 999px;
   padding: 0.45rem 1rem;
   font-size: 0.9rem;
@@ -1133,13 +1402,27 @@ body {
 
 /* --- Standalone pages (place / info / contact) --- */
 
-/* The slim header on non-home pages: site name + language toggle. */
+/* The slim header on non-home pages: site name + language toggle,
+   closed by the mountains→sea gradient rule. */
 .page-header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.9rem;
+}
+
+.page-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--gradient-rule);
 }
 
 .page-header .langtoggle {
@@ -1149,7 +1432,7 @@ body {
 .site-name {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--brown-deep);
   text-decoration: none;
   line-height: 1.3;
 }
@@ -1170,7 +1453,7 @@ a.lang-btn {
 }
 
 .back-link {
-  color: #7a4a12;
+  color: var(--blue);
   font-size: 0.95rem;
   text-decoration: none;
 }
@@ -1182,7 +1465,7 @@ a.lang-btn {
 /* Links inside the shared details view (the dialog styles its own
    anchors via .dialog a; the place page needs the same colour). */
 .place-detail a {
-  color: #7a4a12;
+  color: var(--blue);
 }
 
 /* Footer links are anchors now, not buttons. */
@@ -1220,6 +1503,32 @@ a.foot-link {
 }
 
 @media (max-width: 640px) {
+  /* The hero photo crops shorter on phone; the band's gradient
+     keeps the frame full if the photo is missing. */
+  .hero-media {
+    height: 150px;
+  }
+
+  .hero-body {
+    padding: 1rem 1.1rem 1.15rem;
+  }
+
+  .hero h1 {
+    font-size: 1.9rem;
+  }
+
+  .page {
+    padding-top: 1rem;
+  }
+
+  /* Comfortable tap targets for the pill controls. */
+  .tab,
+  .toggle,
+  .lang-btn {
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+  }
+
   /* The in-page search & filter area leaves the page flow entirely;
      the floating button (always visible on phone) is the only way
      into search, via the panel. The panel's own copy of the control

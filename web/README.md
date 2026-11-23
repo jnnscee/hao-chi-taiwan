@@ -201,6 +201,25 @@ served from the repo root until the rebuild is ready to take over.
   a real offline copy again, the Privacy page's offline-copy
   bullet — removed when it wasn't true — is restored.
 
+## Design
+
+The design-polish slice gave the site its finished look (all in
+`app/globals.css`, CSS variables at the top): Jenny's palette of
+Taiwan — cream `#fffdf8` base and sand `#f0ead9` (kept), brown
+`#7a4a12` for headings/brand/the list badge, mountain green
+`#2f6f4e` for primary actions and active states, ocean blue
+`#1f6f96` for links and travel actions, red `#a33b2e` for
+semantic alerts only. The home hero is the old site's signature
+banner photo (the `OG_IMAGE_URL` banner at its interim absolute
+URL) over a deep green→blue "mountains → sea" gradient band,
+which also closes the footer and rules the standalone-page
+headers; cards borrow the old site's white-surface / hairline /
+soft-shadow treatment. All colour pairings pass WCAG AA (white
+on green 5.99:1, on blue 5.57:1, on deep green 9.25:1). No
+behaviour changed. Because the banner photo now loads from the
+guide's main Vercel address, the Privacy page's Vercel bullet
+says so, in both languages (adaptation 7 in `lib/pages.ts`).
+
 ## Run it
 
 ```bash

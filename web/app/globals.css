@@ -1659,11 +1659,24 @@ a.foot-link {
 }
 
 @media (max-width: 640px) {
-  /* The hero band is a touch shorter on phone; the photo fills
-     it edge to edge and crops by cover, and the frame's gradient
-     keeps the band full if the photo is missing. */
+  /* The hero band is a touch shorter on phone, and (Jenny's
+     request) it goes full-bleed: the photo meets the phone's
+     edges, the way the old app's banner does. The negative
+     margins exactly cancel the .page padding at this width —
+     top 1.25rem (the .page phone override in this block),
+     sides 1.375rem —
+     so the band spans the screen with no sideways overflow,
+     and the rounded corners go square. The bottom fade, the
+     scrim and everything below the hero keep their padded
+     alignment; only the hero breaks out. The photo crops by
+     cover, and the frame's gradient keeps the band full if
+     the photo is missing. */
   .hero {
     min-height: 19rem;
+    margin-top: -1.25rem;
+    margin-left: -1.375rem;
+    margin-right: -1.375rem;
+    border-radius: 0;
   }
 
   .hero-body {

@@ -39,7 +39,10 @@ served from the repo root until the rebuild is ready to take over.
   the Chinese heading with the English sub-line in both languages.
 - Clicking or tapping any card or row opens the details dialog
   (`app/PlaceDetails.tsx`): names and gloss, temporarily-closed and list
-  badges, cuisine, area, both addresses, the muted Google rating, hours
+  badges, cuisine, area, both addresses, the Google rating (worn as a
+  small tag chip beside a cuisine chip, as in v1 — the same chip row
+  cards carry under their meta line, and compact rows carry at their
+  right), hours
   with the note, "Last checked" month and a "Check today's hours" link,
   phone / website / Instagram / Facebook links when present, and a
   "Good to know" block (visitor notes, cash-only) that appears only here,

@@ -680,10 +680,28 @@ body {
   font-size: 0.88rem;
 }
 
-.place-rating {
-  margin: 0.15rem 0 0;
-  color: #999;
-  font-size: 0.85rem;
+/* The v1 tag row (Jenny, 2026-11-22): the cuisine and the Google
+   rating worn as small quiet pills — raised surface, hairline
+   border, muted ink — on cards and in the details meta row; the
+   rating chip also stands alone at a compact row's right. The
+   rating's text is the same composed line as ever; only its dress
+   changed, from a plain muted line to the chip v1 uses. */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0;
+}
+
+.tag {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.14rem 0.55rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 /* Compact view */
@@ -737,8 +755,7 @@ body {
   line-height: 1.35;
 }
 
-.place-list.compact .place-rating {
-  margin: 0;
+.place-list.compact .tag {
   flex: none;
 }
 
@@ -970,10 +987,6 @@ body {
 .dialog-facts dd {
   margin: 0;
   font-size: 0.95rem;
-}
-
-.dialog-rating {
-  color: #999;
 }
 
 .dialog-section {

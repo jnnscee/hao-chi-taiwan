@@ -901,8 +901,20 @@ export default function PlaceBrowser({
                   {t.place_no(numbers.get(place.legacy_id) ?? 0)}
                 </span>
               </p>
-              {place.rating_value != null ? (
-                <p className="place-rating">{ratingText(place)}</p>
+              {/* The v1 tag row (Jenny, 2026-11-22): the cuisine
+                  chip, then the Google rating chip — the rating's
+                  composed text is unchanged, only its dress: a
+                  small quiet pill instead of a plain muted line.
+                  Either chip shows alone when the other is absent. */}
+              {place.cuisine || place.rating_value != null ? (
+                <p className="tag-row">
+                  {place.cuisine ? (
+                    <span className="tag">{place.cuisine}</span>
+                  ) : null}
+                  {place.rating_value != null ? (
+                    <span className="tag rating">{ratingText(place)}</span>
+                  ) : null}
+                </p>
               ) : null}
               {distances.get(place.legacy_id) != null ? (
                 <p className="place-dist">
@@ -954,10 +966,11 @@ export default function PlaceBrowser({
               {savedIds.includes(place.legacy_id) ? (
                 <span className="saved-marker">{t.saved}</span>
               ) : null}
+              {/* The rating as the same chip as on cards, in the
+                  same spot at the row's right (v1's rows carry the
+                  chip too). The food line above is untouched. */}
               {place.rating_value != null ? (
-                <span className="place-rating">
-                  {place.rating_value.toFixed(1)}
-                </span>
+                <span className="tag rating">{ratingText(place)}</span>
               ) : null}
               {renderSaveHeart(place)}
             </li>

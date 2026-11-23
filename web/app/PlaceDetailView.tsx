@@ -117,6 +117,24 @@ export default function PlaceDetailView({
       <p className="dialog-name-en">{place.name_en}</p>
       {place.gloss ? <p className="dialog-gloss">{place.gloss}</p> : null}
 
+      {/* The v1 details meta row (Jenny, 2026-11-22): cuisine chip
+          + Google rating chip, replacing the plain rating fact that
+          used to sit in the facts list. The composed rating text is
+          the same as ever; the facts list below is untouched. */}
+      {place.cuisine || place.rating_value != null ? (
+        <p className="tag-row">
+          {place.cuisine ? <span className="tag">{place.cuisine}</span> : null}
+          {place.rating_value != null ? (
+            <span className="tag rating">
+              {t.google_rating} {place.rating_value.toFixed(1)}
+              {place.rating_count != null
+                ? ` · ${place.rating_count.toLocaleString()} ${t.reviews_word}`
+                : ""}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+
       <dl className="dialog-facts">
         {place.cuisine ? (
           <div className="fact">
@@ -150,17 +168,6 @@ export default function PlaceDetailView({
           <div className="fact">
             <dt>{t.f_address_zh}</dt>
             <dd>{place.address_zh}</dd>
-          </div>
-        ) : null}
-        {place.rating_value != null ? (
-          <div className="fact">
-            <dt>{t.google_rating}</dt>
-            <dd className="dialog-rating">
-              {place.rating_value.toFixed(1)}
-              {place.rating_count != null
-                ? ` · ${place.rating_count.toLocaleString()} ${t.reviews_word}`
-                : ""}
-            </dd>
           </div>
         ) : null}
       </dl>

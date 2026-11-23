@@ -27,6 +27,7 @@ import {
   internalFormHasContent,
   internalToForm,
   isAdminEmail,
+  managerMatchesQuery,
   nextLegacyId,
   placeToForm,
   validateInternalForm,
@@ -130,13 +131,9 @@ export default function AdminApp() {
       }
       return legacyNumber(a.legacy_id) - legacyNumber(b.legacy_id);
     });
-    const q = query.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter((r) =>
-      [r.legacy_id, r.name_zh, r.name_en, r.name_rom, r.city, r.district].some(
-        (v) => v != null && v.toLowerCase().includes(q)
-      )
-    );
+    // Same fields as the public search, plus the legacy ID
+    // (managerMatchesQuery in lib/admin.ts wraps lib/places.ts).
+    return sorted.filter((r) => managerMatchesQuery(r, query));
   }, [rows, query]);
 
   async function sendCode(e: React.FormEvent) {
@@ -370,7 +367,7 @@ export default function AdminApp() {
               <input
                 type="search"
                 className="admin-search"
-                placeholder="Search by name, ID, city or district…"
+                placeholder="Search by name, ID, cuisine, city, district…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="Search places"

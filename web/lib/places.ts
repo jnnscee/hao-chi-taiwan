@@ -90,7 +90,13 @@ export function legacyNumber(legacyId: string): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-const SEARCH_FIELDS: Array<keyof Place> = [
+/**
+ * The fields the text search scans. This list is the single source
+ * of truth for BOTH the public list and the admin manager (which
+ * adds legacy_id on top — see managerMatchesQuery in lib/admin.ts),
+ * so the two searches can never drift apart.
+ */
+export const SEARCH_FIELDS: Array<keyof Place> = [
   "name_zh",
   "name_en",
   "name_rom",
@@ -102,7 +108,8 @@ const SEARCH_FIELDS: Array<keyof Place> = [
   "address_zh",
 ];
 
-function matchesQuery(place: Place, query: string): boolean {
+/** Case-insensitive substring match across SEARCH_FIELDS. */
+export function matchesQuery(place: Place, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   return SEARCH_FIELDS.some((field) => {

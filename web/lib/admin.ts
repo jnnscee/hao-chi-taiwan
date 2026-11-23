@@ -7,7 +7,7 @@
 // Security lets only this email write, whatever the UI does.
 
 import type { Place } from "./places";
-import { legacyNumber } from "./places";
+import { legacyNumber, matchesQuery } from "./places";
 
 /** The one and only admin account. Visitors never have accounts. */
 export const ADMIN_EMAIL = "jnnscee@gmail.com";
@@ -18,6 +18,24 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 
 /** A `places` row as the admin reads and writes it (id included). */
 export type AdminPlaceRow = Place & { id: string };
+
+/**
+ * The manager's search: exactly the public search (matchesQuery in
+ * lib/places.ts — the same SEARCH_FIELDS and the same
+ * case-insensitive substring rule, so the two always agree) PLUS
+ * the legacy_id, since this is an admin tool and Jenny looks places
+ * up by ID. Jenny asked for the manager and public searches to
+ * match after 'noodle' gave 4 in the manager vs 14 in the app.
+ */
+export function managerMatchesQuery(
+  row: AdminPlaceRow,
+  query: string
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (row.legacy_id.toLowerCase().includes(q)) return true;
+  return matchesQuery(row, query);
+}
 
 /** A `place_internal` row — Jenny's working notes, never public. */
 export type InternalRow = {

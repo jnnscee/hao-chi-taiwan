@@ -144,6 +144,7 @@ export type Strings = {
   label_cuisine: string;
   label_view: string;
   label_contact: string;
+  contact_none: string;
   place_no: (n: number) => string;
 };
 
@@ -212,7 +213,7 @@ export const STRINGS: Record<Lang, Strings> = {
     foot1: "Places come from Jenny's Google Maps lists “Taiwan - Tried & Tested” (Recommended) and “Taiwan - On My Radar” (Want to Try). Ratings are the Google ratings captured with the lists in Nov 2026.",
     foot2: "Hours and phone numbers for the first ten places (Zuoying) are provisional, from shop listings, last checked Nov 2026, and are being checked before the real launch — use “Check today's hours” in a place's details to see its current hours on Google Maps. Chinese addresses are drafts awaiting Jenny's check.",
     cf_title: "Contact & feedback",
-    cf_intro: "Tell us what's on your mind. When you tap the send button, your email app opens with everything filled in, addressed to haochitaiwan@muse.ai — nothing is sent until you press Send there, and you can attach a screenshot in your email app.",
+    cf_intro: "Tell us what's on your mind. Tap “Open in email app” — or “Open in Gmail” — and your email app opens with everything filled in, addressed to haochitaiwan@muse.ai — nothing is sent until you press Send there, and you can attach a screenshot in your email app.",
     cf_category: "What is this about?",
     cf_cat_feedback: "Feedback",
     cf_cat_problem: "Report a problem",
@@ -406,6 +407,10 @@ export const STRINGS: Record<Lang, Strings> = {
     label_cuisine: "Cuisine",
     label_view: "View",
     label_contact: "Contact",
+    // The Contact section is always present (Phase A parity fix,
+    // 2026-11-23); this is its honest empty state — the app's
+    // standing "not listed yet, never guessed" rule.
+    contact_none: "No contact details listed yet.",
     // The quiet list number at the end of a card's meta line / a
     // row's food line (Jenny, 2026-11-22): a reference, not a badge.
     place_no: (n) => "No. " + n,
@@ -474,7 +479,7 @@ export const STRINGS: Record<Lang, Strings> = {
     foot1: "店家來自 Jenny 的 Google Maps 清單「Taiwan - Tried & Tested」（推薦）和「Taiwan - On My Radar」（想去）。評分是 2026 年 11 月擷取清單時的 Google 評分。",
     foot2: "前十家（左營）的營業時間和電話是暫定的，來自店家刊登資訊，最後確認於 2026 年 11 月，正式上線前還在確認中 — 在店家詳情點「查看今日營業時間」可在 Google Maps 看目前時間。中文地址是草稿，等 Jenny 檢查。",
     cf_title: "聯絡與意見回饋",
-    cf_intro: "告訴我們你的想法。點下傳送按鈕後，你的郵件 App 會開啟並自動填好內容，收件人是 haochitaiwan@muse.ai — 在那邊按下傳送之前，這裡不會寄出任何東西；你也可以在郵件 App 裡附上截圖。",
+    cf_intro: "告訴我們你的想法。點下「開啟郵件 App」（或「用 Gmail 開啟」），你的郵件 App 會開啟並自動填好內容，收件人是 haochitaiwan@muse.ai — 在那邊按下傳送之前，這裡不會寄出任何東西；你也可以在郵件 App 裡附上截圖。",
     cf_category: "這封信是關於什麼？",
     cf_cat_feedback: "意見回饋",
     cf_cat_problem: "回報問題",
@@ -663,6 +668,9 @@ export const STRINGS: Record<Lang, Strings> = {
     label_cuisine: "類型",
     label_view: "顯示方式",
     label_contact: "聯絡方式",
+    // The Contact section's empty state (see the EN note).
+    // Filled-gap translation — flagged for Jenny's spot-check.
+    contact_none: "尚未列出聯絡方式。",
     // The quiet list number (see the EN note): 第 N 家.
     place_no: (n) => "第 " + n + " 家",
   },

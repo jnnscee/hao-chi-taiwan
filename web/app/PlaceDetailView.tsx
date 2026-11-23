@@ -192,9 +192,16 @@ export default function PlaceDetailView({
         </section>
       ) : null}
 
-      {place.phone || place.website || place.instagram || place.facebook ? (
-        <section className="dialog-section">
-          <h3>{t.label_contact}</h3>
+      {/* The Contact section is ALWAYS present (Phase A parity
+          fix, 2026-11-23): it used to vanish entirely when a place
+          had no phone/website/socials collected, so a standalone
+          Want to Try page like r147 carried one section fewer
+          than a Recommended page. With nothing collected, the
+          section says so — the app's "not listed yet, never
+          guessed" rule — instead of disappearing. */}
+      <section className="dialog-section">
+        <h3>{t.label_contact}</h3>
+        {place.phone || place.website || place.instagram || place.facebook ? (
           <ul className="link-list">
             {place.phone ? (
               <li>
@@ -228,8 +235,10 @@ export default function PlaceDetailView({
               </li>
             ) : null}
           </ul>
-        </section>
-      ) : null}
+        ) : (
+          <p className="contact-none">{t.contact_none}</p>
+        )}
+      </section>
 
       {place.visitor_notes || place.cash_only ? (
         <section className="dialog-section good-to-know">

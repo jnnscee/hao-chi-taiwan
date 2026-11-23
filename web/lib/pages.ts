@@ -99,7 +99,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<p>Your location is used only when you ask for it: tapping “Near me” or choosing “Nearest” sorting. Your browser asks your permission first. Your location is then used inside your own browser to work out distances and order the list — it is not stored, and it is never sent to us.</p>" +
       "<p>One exception you control: if you tap to open directions or a place in Google Maps, Google Maps receives the destination — and, if you shared your location for directions, your starting point — so it can draw the route. That happens in Google Maps, under Google's own privacy policy.</p>" +
       "<h3>Contact &amp; feedback emails</h3>" +
-      "<p>The contact form does not send anything itself. When you tap a send button, it opens your own email app with your message filled in, addressed to <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — nothing is sent until you press Send in your email app, and you can edit or delete the message before you do. Emails that reach that inbox are read only to reply to you and to fix problems you report. Please do not send sensitive personal information in a feedback email.</p>" +
+      "<p>The contact form does not send anything itself. When you tap “Open in email app” or “Open in Gmail”, it opens your own email app with your message filled in, addressed to <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — nothing is sent until you press Send in your email app, and you can edit or delete the message before you do. Emails that reach that inbox are read only to reply to you and to fix problems you report. Please do not send sensitive personal information in a feedback email.</p>" +
       "<h3>Other services this page uses or links to</h3>" +
       "<ul><li>The map pictures are drawn by OpenStreetMap's map service. As with any website, that service receives the technical information a browser sends to load a page, such as your IP address. The guide's place list is kept in its database service (Supabase) and served to your browser with the page, and the guide uses the typefaces already on your device, so no font service is loaded.</li>" +
       "<li>The guide is hosted by Vercel, which keeps basic server logs (such as which pages were requested and IP addresses) to run and protect the site, as any web host does.</li>" +
@@ -162,7 +162,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<p>你的位置只在你主動要求時才會使用：點「我附近」或選擇「最近」排序時。瀏覽器會先徵求你的許可。之後，你的位置只在你自己的瀏覽器裡用來計算距離和排列清單 — 不會被儲存，也不會傳送給我們。</p>" +
       "<p>有一個由你控制的例外：如果你點開在 Google Maps 的路線或店家頁面，Google Maps 會收到目的地 — 如果你為了路線分享了位置，也會收到你的出發點 — 以便繪製路線。那是在 Google Maps 裡發生的，適用 Google 自己的隱私政策。</p>" +
       "<h3>聯絡與意見回饋的 Email</h3>" +
-      "<p>聯絡表單本身不會傳送任何東西。當你點下傳送按鈕時，它會開啟你自己的郵件 App，並自動填好訊息，收件人是 <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — 在你在郵件 App 裡按下傳送之前，什麼都不會寄出，你也可以先修改或刪除訊息。寄到該信箱的信件，只會用來回覆你，以及修正你回報的問題。請不要在意見信裡寄送敏感的個人資訊。</p>" +
+      "<p>聯絡表單本身不會傳送任何東西。當你點下「開啟郵件 App」或「用 Gmail 開啟」時，它會開啟你自己的郵件 App，並自動填好訊息，收件人是 <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — 在你在郵件 App 裡按下傳送之前，什麼都不會寄出，你也可以先修改或刪除訊息。寄到該信箱的信件，只會用來回覆你，以及修正你回報的問題。請不要在意見信裡寄送敏感的個人資訊。</p>" +
       "<h3>這個頁面使用或連結的其他服務</h3>" +
       "<ul><li>地圖圖片由 OpenStreetMap 的地圖服務繪製。和任何網站一樣，該服務會收到瀏覽器為了載入頁面而傳送的技術資訊，例如你的 IP 位址。這份指南的店家清單存放在它的資料庫服務（Supabase），並隨頁面一起傳送到你的瀏覽器。這份指南使用你裝置上已有的字型，不會載入任何字型服務。</li>" +
       "<li>這份指南由 Vercel 代管，它會保留基本的伺服器紀錄（例如被請求的頁面和 IP 位址），來運作和保護網站，和任何網站主機一樣。</li>" +

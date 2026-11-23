@@ -12,21 +12,33 @@ const nextConfig = {
         ],
       },
       {
-        // The static site's security header set (its vercel.json),
-        // carried over by the engineering-backbone audit
-        // (2026-11-22) — minus the Content-Security-Policy, which
-        // is deliberately NOT copied: the static site's policy
-        // assumes a single self-contained page, while the rebuild
-        // is a Next.js app whose bootstrap uses inline scripts,
-        // whose map loads OpenStreetMap tiles, whose banner/og
-        // image is (interim) served from the main Vercel address
-        // and which talks to Supabase. A CSP written for it has to
-        // be drafted and proven against the running app (map,
-        // admin sign-in, offline worker) rather than inherited —
-        // it is a documented deferred item in the audit, not an
-        // oversight. (Vercel already serves HSTS on these domains.)
+        // The security header set: the static site's set (its
+        // vercel.json) plus the Content-Security-Policy, drafted
+        // for this app and added at Phase A (Jenny's go-ahead,
+        // 2026-11-23) after having been deliberately deferred by
+        // the engineering-backbone audit (2026-11-22) until it
+        // could be proven against the running app. What the
+        // policy has to allow, and why:
+        //  - script/style 'unsafe-inline': Next's bootstrap
+        //    streams inline scripts, and Leaflet positions tiles
+        //    and markers with inline styles.
+        //  - img-src: the self-hosted banner and icons ('self',
+        //    data:), OpenStreetMap tiles, and Supabase storage
+        //    (admin place photos).
+        //  - connect-src: Supabase (place data + auth) and the
+        //    map tiles again — the service worker fetches tiles
+        //    itself, and a worker's fetches answer to connect-src.
+        //  - Everything else stays home: fonts are the device's
+        //    own, the worker and manifest are same-origin, no
+        //    objects, no framing.
+        // (Vercel already serves HSTS on these domains.)
         source: "/(.*)",
         headers: [
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.supabase.co; connect-src 'self' https://*.supabase.co https://tile.openstreetmap.org https://*.tile.openstreetmap.org; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+          },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           {

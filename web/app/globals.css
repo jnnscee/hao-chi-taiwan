@@ -809,6 +809,12 @@ body {
 .place-list.compact .place-name-en {
   margin: 0;
   font-size: 0.88rem;
+  /* The romanized name always takes its own line under the
+     Chinese name in a compact row — the same arrangement as the
+     cards — instead of sitting beside it on rows where it
+     happens to fit and wrapping below on the rest (Phase A
+     defect fix, 2026-11-23: the wrap is now uniform). */
+  flex-basis: 100%;
 }
 
 /* The row's food line (the gloss, or the cuisine in its place)
@@ -1081,6 +1087,11 @@ body {
 .hours-checked {
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+/* The Contact section's empty state: quiet, like the hours notes. */
+.contact-none {
+  color: var(--muted);
 }
 
 .link-list {

@@ -966,13 +966,18 @@ export default function PlaceBrowser({
               {savedIds.includes(place.legacy_id) ? (
                 <span className="saved-marker">{t.saved}</span>
               ) : null}
-              {/* The rating as the same chip as on cards, in the
-                  same spot at the row's right (v1's rows carry the
-                  chip too). The food line above is untouched. */}
-              {place.rating_value != null ? (
-                <span className="tag rating">{ratingText(place)}</span>
-              ) : null}
               {renderSaveHeart(place)}
+              {/* The rating as the same chip as on cards — but on
+                  its OWN line under the food line (the .row-tags
+                  wrapper takes the full row width), never sharing
+                  the names line: at phone widths the full-text chip
+                  beside the heart crushed the names into a narrow
+                  column (Jenny's screenshot, 2026-11-22). */}
+              {place.rating_value != null ? (
+                <span className="row-tags">
+                  <span className="tag rating">{ratingText(place)}</span>
+                </span>
+              ) : null}
             </li>
           ))}
         </ul>

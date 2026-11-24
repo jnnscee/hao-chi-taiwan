@@ -61,6 +61,13 @@
 //     the visitor's map-look choice on the device
 //     (hao-chi-map-theme-v1), so a "map look" bullet joins the
 //     device-storage list in both languages.
+// 11. The vector-map switch (2026-11-24) moved the map from
+//     OpenStreetMap's own map service to OpenFreeMap's hosted
+//     service, which serves OpenStreetMap data, so the
+//     services bullet now names OpenFreeMap as the service
+//     that draws the map pictures, with OpenStreetMap kept
+//     as the data source, in both languages (Jenny's
+//     approval, 2026-11-24).
 // About and Terms are verbatim, unadapted.
 
 import type { Lang } from "./i18n";
@@ -129,7 +136,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>Contact &amp; feedback emails</h3>" +
       "<p>The contact form does not send anything itself. When you tap “Open in email app” or “Open in Gmail”, it opens your own email app with your message filled in, addressed to <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — nothing is sent until you press Send in your email app, and you can edit or delete the message before you do. Emails that reach that inbox are read only to reply to you and to fix problems you report. Please do not send sensitive personal information in a feedback email.</p>" +
       "<h3>Other services this page uses or links to</h3>" +
-      "<ul><li>The map pictures are drawn by OpenStreetMap's map service. As with any website, that service receives the technical information a browser sends to load a page, such as your IP address. The guide's place list is kept in its database service (Supabase) and served to your browser with the page, and the guide uses the typefaces already on your device, so no font service is loaded.</li>" +
+      "<ul><li>The map pictures are drawn by OpenFreeMap's map service, using OpenStreetMap data. As with any website, that service receives the technical information a browser sends to load a page, such as your IP address. The guide's place list is kept in its database service (Supabase) and served to your browser with the page, and the guide uses the typefaces already on your device, so no font service is loaded.</li>" +
       "<li>The guide is hosted by Vercel, which keeps basic server logs (such as which pages were requested and IP addresses) to run and protect the site, as any web host does. Vercel also provides the anonymous visit counts described above.</li>" +
       "<li>Links to Google Maps, shop websites, Instagram and Facebook are followed only when you tap them. Once you leave this guide, that site's own privacy policy applies.</li></ul>" +
       "<h3>Changes and questions</h3>" +
@@ -199,7 +206,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>聯絡與意見回饋的 Email</h3>" +
       "<p>聯絡表單本身不會傳送任何東西。當你點下「開啟郵件 App」或「用 Gmail 開啟」時，它會開啟你自己的郵件 App，並自動填好訊息，收件人是 <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — 在你在郵件 App 裡按下傳送之前，什麼都不會寄出，你也可以先修改或刪除訊息。寄到該信箱的信件，只會用來回覆你，以及修正你回報的問題。請不要在意見信裡寄送敏感的個人資訊。</p>" +
       "<h3>這個頁面使用或連結的其他服務</h3>" +
-      "<ul><li>地圖圖片由 OpenStreetMap 的地圖服務繪製。和任何網站一樣，該服務會收到瀏覽器為了載入頁面而傳送的技術資訊，例如你的 IP 位址。這份指南的店家清單存放在它的資料庫服務（Supabase），並隨頁面一起傳送到你的瀏覽器。這份指南使用你裝置上已有的字型，不會載入任何字型服務。</li>" +
+      "<ul><li>地圖圖片由 OpenFreeMap 的地圖服務繪製，使用的是 OpenStreetMap 的資料。和任何網站一樣，該服務會收到瀏覽器為了載入頁面而傳送的技術資訊，例如你的 IP 位址。這份指南的店家清單存放在它的資料庫服務（Supabase），並隨頁面一起傳送到你的瀏覽器。這份指南使用你裝置上已有的字型，不會載入任何字型服務。</li>" +
       "<li>這份指南由 Vercel 代管，它會保留基本的伺服器紀錄（例如被請求的頁面和 IP 位址），來運作和保護網站，和任何網站主機一樣。Vercel 也提供上面說明的匿名造訪次數計算。</li>" +
       "<li>前往 Google Maps、店家網站、Instagram 和 Facebook 的連結，只在你點下時才會前往。離開這份指南後，適用該網站自己的隱私政策。</li></ul>" +
       "<h3>變更與問題</h3>" +

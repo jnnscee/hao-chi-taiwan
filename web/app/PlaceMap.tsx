@@ -15,8 +15,11 @@ import {
   type MapMarkerSet,
 } from "@/lib/map";
 import {
-  applyDarkPaint,
+  MAP_THEME_STORAGE_KEY,
   applyLabelLanguage,
+  applyMapPaint,
+  parseStoredMapTheme,
+  type MapTheme,
   type StyleTarget,
 } from "@/lib/mapStyle";
 import { STRINGS, type Lang } from "@/lib/i18n";
@@ -25,8 +28,9 @@ import type { Place } from "@/lib/places";
 // The real interactive map — TRIAL build (Jenny's go-ahead,
 // 2026-11-24, staging only): MapLibre GL JS drawing OpenStreetMap
 // data as VECTOR tiles (OpenFreeMap's hosted OpenMapTiles service,
-// the calm "positron" base style repainted toward the app's night
-// palette by lib/mapStyle.ts), replacing the Leaflet map's borrowed
+// the calm "positron" base style repainted by lib/mapStyle.ts in
+// the map's day (pastel) or night palette — the visitor's own
+// toggle, day by default), replacing the Leaflet map's borrowed
 // raster tile pictures. What the swap buys: vector tiles zoom
 // smoothly instead of loading a new picture per level (the lag
 // Jenny felt on pinch zoom), the labels are data the app can
@@ -179,6 +183,24 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The expanded (full-viewport overlay) state of the map.
   const [expanded, setExpanded] = useState(false);
+  // The map's day/night theme (Jenny, 2026-11-24): DAY (the soft
+  // pastel palette) is the first-visit default; the visitor's
+  // toggle choice is remembered on this device only
+  // (MAP_THEME_STORAGE_KEY, disclosed on the Privacy page). This
+  // component is client-only (next/dynamic, ssr:false), so the
+  // stored choice can be read in the initialiser — the map opens
+  // in the visitor's own mode, pre-paint background included, with
+  // no flash of the other theme.
+  const [mapTheme, setMapTheme] = useState<MapTheme>(() => {
+    try {
+      return parseStoredMapTheme(
+        window.localStorage.getItem(MAP_THEME_STORAGE_KEY)
+      );
+    } catch {
+      return "day";
+    }
+  });
+  const themeRef = useRef(mapTheme);
   // Latest props, readable from the MapLibre callbacks and effects
   // below without re-creating the map.
   const markerSetRef = useRef(markerSet);
@@ -191,6 +213,7 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
     markerSetRef.current = markerSet;
     onSelectRef.current = onSelect;
     langRef.current = lang;
+    themeRef.current = mapTheme;
   });
 
   // A size is settled when the container has a real size and the
@@ -391,6 +414,30 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
     applyFit(map, markerSetRef.current);
   }
 
+  // Day/night theme (Jenny, 2026-11-24): switch the palette on the
+  // LIVE style in place — a repaint only, no reload, no camera
+  // change — and remember the choice on this device. The button
+  // shows the mode it switches TO (a moon in day mode, a sun in
+  // night mode) and its label names that destination mode.
+  function toggleMapTheme(next: MapTheme) {
+    themeRef.current = next;
+    setMapTheme(next);
+    try {
+      window.localStorage.setItem(MAP_THEME_STORAGE_KEY, next);
+    } catch {
+      /* storage unavailable: the mode still switches for this visit */
+    }
+    const map = mapRef.current;
+    if (map) {
+      // No isStyleLoaded gate: setPaintProperty is valid while
+      // tiles are still streaming in, and gating on it would let a
+      // tap in that window flip the button but not the map. If the
+      // style is not up at all yet, applyMapPaint no-ops and the
+      // style.load handler applies themeRef when it lands.
+      applyMapPaint(map as unknown as StyleTarget, next);
+    }
+  }
+
   // Expand/collapse (Jenny, 2026-11-24): every transition holds
   // the camera first (the toggle's own click handler, and the
   // Escape handler in the effect below, both come through here).
@@ -544,13 +591,13 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
       // production — one expando property, removed on unmount.
       (containerEl as unknown as { __haoChiMap?: MLMap }).__haoChiMap = map;
 
-      // The night repaint and the language-following labels apply
+      // The theme repaint and the language-following labels apply
       // the moment the base style lands; both are live-style
       // changes (lib/mapStyle.ts), no reload.
       map.on("style.load", () => {
         if (!map) return;
         const target = map as unknown as StyleTarget;
-        applyDarkPaint(target);
+        applyMapPaint(target, themeRef.current);
         applyLabelLanguage(target, langRef.current);
       });
       // Clusters regroup with the zoom; the numbered pins don't
@@ -734,7 +781,7 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
   const t = STRINGS[lang];
   return (
     <div className={expanded ? "place-map-wrap expanded" : "place-map-wrap"}>
-      <div ref={containerRef} className="place-map" />
+      <div ref={containerRef} className="place-map" data-map-theme={mapTheme} />
       <div className="map-tools">
         <button
           type="button"
@@ -786,6 +833,41 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
               aria-hidden="true"
             >
               <path d="M9 4.5H4.5V9M15 4.5h4.5V9M9 19.5H4.5V15M15 19.5h4.5V15" />
+            </svg>
+          )}
+        </button>
+        <button
+          type="button"
+          className="map-tool-btn map-theme-btn"
+          aria-label={mapTheme === "day" ? t.map_night : t.map_day}
+          title={mapTheme === "day" ? t.map_night : t.map_day}
+          onClick={() =>
+            toggleMapTheme(mapTheme === "day" ? "night" : "day")
+          }
+        >
+          {mapTheme === "day" ? (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M20 13.6A8.6 8.6 0 1 1 10.4 4a7.2 7.2 0 0 0 9.6 9.6Z" />
+            </svg>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19" />
             </svg>
           )}
         </button>

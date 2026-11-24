@@ -641,7 +641,8 @@ body {
    the map's internal controls stay below the details dialog
    (z-index 40) and driver overlay (50). The background is the
    night ground: it is what shows for the moment before the
-   vector tiles first paint, and around them ever after. */
+   vector tiles first paint, and around them ever after — unless
+   the map's day theme is active (the rule right below). */
 .place-map {
   position: relative;
   z-index: 0;
@@ -652,6 +653,15 @@ body {
   background: #131715;
   font-family: inherit;
   box-shadow: var(--shadow-card);
+}
+
+/* The map container's pre-paint background follows the map's
+   day/night theme (the data-map-theme attribute PlaceMap sets):
+   the pastel land colour in day mode, so a day visitor never sees
+   a dark flash before the vector tiles first paint — and the
+   night ground in night mode, as it was. */
+.place-map[data-map-theme="day"] {
+  background: #f3f6ee;
 }
 
 @media (max-width: 640px) {

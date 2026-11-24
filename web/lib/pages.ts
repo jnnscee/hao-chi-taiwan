@@ -57,6 +57,10 @@
 //     languages describes both layers and names the Vercel
 //     analytics script that loads with the page, and the
 //     Vercel services bullet cross-references those counts.
+// 10. The map day/night toggle (Jenny, 2026-11-24) remembers
+//     the visitor's map-look choice on the device
+//     (hao-chi-map-theme-v1), so a "map look" bullet joins the
+//     device-storage list in both languages.
 // About and Terms are verbatim, unadapted.
 
 import type { Lang } from "./i18n";
@@ -116,6 +120,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<li><b>Your view choice</b> — whether you last used Cards or Compact list is also remembered on this device only, so the list opens the way you left it.</li>" +
       "<li><b>Your language choice</b> — whether you last used English or 中文 is also remembered on this device only, so the guide opens in your language.</li>" +
       "<li><b>The install reminder</b> — if you close the “Add to Home Screen” reminder at the bottom of the list, that choice is also remembered on this device only, so it does not keep asking.</li>" +
+      "<li><b>The map look</b> — whether you last used the map's day or night look is also remembered on this device only, so the map opens in the look you chose.</li>" +
       "<li><b>An offline copy</b> — so the guide keeps working with no connection, your browser stores a copy of the app and its place list on your device. That is storage on your device, not tracking.</li></ul>" +
       "<p>You can remove all of it at any time by clearing this site's data in your browser settings.</p>" +
       "<h3>Your location — Near me</h3>" +
@@ -185,6 +190,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<li><b>你的檢視選擇</b> — 你上次用的是「卡片」還是「緊湊清單」，也只會記在這台裝置上，讓清單以你離開時的樣子開啟。</li>" +
       "<li><b>你的語言選擇</b> — 你上次用的是 English 還是中文，也只會記在這台裝置上，讓指南以你的語言開啟。</li>" +
       "<li><b>加到主畫面的提醒</b> — 如果你關掉清單底部的「加到主畫面」提醒，那個選擇也只會記在這台裝置上，不會一再跳出來問。</li>" +
+      "<li><b>地圖的外觀</b> — 你上次用的是地圖的日間還是夜間外觀，也只會記在這台裝置上，讓地圖以你選的樣子開啟。</li>" +
       "<li><b>離線副本</b> — 為了讓指南在沒有網路時也能用，你的瀏覽器會在裝置上存一份 App 和店家清單的副本。那是存在你裝置上的資料，不是追蹤。</li></ul>" +
       "<p>你可以隨時在瀏覽器設定中清除此網站的資料，把以上內容全部移除。</p>" +
       "<h3>你的位置 — 「我附近」</h3>" +

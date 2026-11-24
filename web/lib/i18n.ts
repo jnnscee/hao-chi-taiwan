@@ -169,11 +169,14 @@ export type Strings = {
   contact_none: string;
   place_no: (n: number) => string;
   // The vector map's own tool buttons (reset view / expand /
-  // collapse, added 2026-11-24 at Jenny's request): aria labels
-  // and titles, no live-app counterpart.
+  // collapse / day-night, added 2026-11-24 at Jenny's request):
+  // aria labels and titles, no live-app counterpart. The day/night
+  // button's label names the mode it switches TO.
   map_reset_view: string;
   map_expand: string;
   map_collapse: string;
+  map_day: string;
+  map_night: string;
 };
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -470,6 +473,8 @@ export const STRINGS: Record<Lang, Strings> = {
     map_reset_view: "Reset map view",
     map_expand: "Expand map",
     map_collapse: "Collapse map",
+    map_day: "Day map",
+    map_night: "Night map",
   },
   zh: {
     stat_total: "家店（全部）",
@@ -752,6 +757,8 @@ export const STRINGS: Record<Lang, Strings> = {
     map_reset_view: "重設地圖視角",
     map_expand: "放大地圖",
     map_collapse: "縮小地圖",
+    map_day: "日間地圖",
+    map_night: "夜間地圖",
   },
 };
 

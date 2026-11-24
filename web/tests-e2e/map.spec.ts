@@ -383,8 +383,8 @@ test.describe("map legibility", () => {
       .toBe(242);
     // And the canvas is genuinely painted, not a blank pane: the
     // centre pixel is the stub tiles' water colour (repainted to
-    // the night water tone by the dark adaptation), not
-    // transparent black.
+    // the active theme's water tone — the day pastel by default),
+    // not transparent black.
     const px = await centrePixel(page);
     expect(px[3]).toBe(255);
     expect(px[0] + px[1] + px[2]).toBeGreaterThan(0);
@@ -983,5 +983,124 @@ test.describe("map tools: reset view + expand", () => {
     await expect(
       page.getByRole("button", { name: "Expand map" })
     ).toBeVisible();
+  });
+});
+
+// Day/night map themes (Jenny, 2026-11-24): the map wears a soft
+// pastel "day" palette by default — friendlier for visitors with
+// bad eyesight — and the tool stack's sun/moon button switches to
+// the night palette and back on the LIVE style (no reload, no
+// camera change). The choice is remembered on the device
+// (hao-chi-map-theme-v1) and read on the next load.
+test.describe("map day/night themes", () => {
+  /** Key paint values read from the live style, plus the
+   * container's theme attribute and pre-paint background. */
+  async function themeState(page: import("@playwright/test").Page) {
+    return page.evaluate(() => {
+      const el = document.querySelector(".place-map") as unknown as {
+        __haoChiMap?: {
+          getStyle(): {
+            layers: Array<{
+              id: string;
+              paint?: Record<string, unknown>;
+            }>;
+          };
+        };
+      } & HTMLElement;
+      const layers = el.__haoChiMap?.getStyle().layers ?? [];
+      const byId = (id: string) =>
+        layers.find((l) => l.id === id)?.paint ?? {};
+      return {
+        background: byId("background")["background-color"],
+        water: byId("water")["fill-color"],
+        label: byId("label_city")["text-color"],
+        labelHalo: byId("label_city")["text-halo-color"],
+        attr: el.getAttribute("data-map-theme"),
+        prePaint: getComputedStyle(el).backgroundColor,
+      };
+    });
+  }
+
+  test("(q) the toggle repaints the live style in place — camera untouched, choice remembered", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    await gotoMap(page);
+    // Day (pastel) by default: pastel ground/water, ink labels on
+    // a white halo, and the button offers the night mode.
+    const day = await themeState(page);
+    expect(day.background).toBe("#f3f6ee");
+    expect(day.water).toBe("#b9daea");
+    expect(day.label).toBe("#2e3a33");
+    expect(day.labelHalo).toBe("#ffffff");
+    expect(day.attr).toBe("day");
+    const themeBtn = page.locator(".map-theme-btn");
+    await expect(themeBtn).toHaveAttribute("aria-label", "Night map");
+
+    const before = await viewFromMap(page);
+    expect(before.centre).not.toBeNull();
+    await themeBtn.click();
+    await expect
+      .poll(async () => (await themeState(page)).background, {
+        timeout: 10_000,
+      })
+      .toBe("#131715");
+    const night = await themeState(page);
+    expect(night.water).toBe("#14313d");
+    expect(night.label).toBe("#f0ede3");
+    expect(night.attr).toBe("night");
+    await expect(themeBtn).toHaveAttribute("aria-label", "Day map");
+    // The camera did not move a hair, and the choice is stored.
+    const after = await viewFromMap(page);
+    expect(after.centre!.z).toBe(before.centre!.z);
+    expect(Math.abs(after.centre!.lat - before.centre!.lat)).toBeLessThan(1e-9);
+    expect(Math.abs(after.centre!.lng - before.centre!.lng)).toBeLessThan(1e-9);
+    expect(
+      await page.evaluate(() =>
+        window.localStorage.getItem("hao-chi-map-theme-v1")
+      )
+    ).toBe("night");
+
+    // And back: day values return, storage follows.
+    await themeBtn.click();
+    await expect
+      .poll(async () => (await themeState(page)).background, {
+        timeout: 10_000,
+      })
+      .toBe("#f3f6ee");
+    expect(
+      await page.evaluate(() =>
+        window.localStorage.getItem("hao-chi-map-theme-v1")
+      )
+    ).toBe("day");
+  });
+
+  test("(r) first visit defaults to day, pre-paint background included", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    await gotoMap(page);
+    const state = await themeState(page);
+    expect(state.attr).toBe("day");
+    expect(state.background).toBe("#f3f6ee");
+    // The container's own background (what shows before tiles
+    // paint) is the pastel land colour, not the night ground.
+    expect(state.prePaint).toBe("rgb(243, 246, 238)");
+  });
+
+  test("(s) a stored night choice is read on load", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("hao-chi-map-theme-v1", "night");
+    });
+    await stubTiles(page);
+    await gotoMap(page);
+    const state = await themeState(page);
+    expect(state.attr).toBe("night");
+    expect(state.background).toBe("#131715");
+    expect(state.prePaint).toBe("rgb(19, 23, 21)");
+    await expect(page.locator(".map-theme-btn")).toHaveAttribute(
+      "aria-label",
+      "Day map"
+    );
   });
 });

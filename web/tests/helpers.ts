@@ -4,8 +4,11 @@
 // columns, in the same shape lib/data.ts's fetch produces), exported
 // 2026-11-22 and refreshed 2026-11-23 for the gloss_zh column (the
 // 45 Recommended translations; null elsewhere) and again the same day
-// for the B-5 hours_checked_on backfill (every place with hours now
-// carries its checked date: 191× 2026-11-18, 19× 2026-11-20). It is deliberately a snapshot, not a live read: the
+// for the B-5 hours_checked_on backfill (200 places carry a checked
+// date: 181× 2026-11-18, 19× 2026-11-20 — Jenny's final scope was the
+// 197 Want to Try dates plus the pre-existing 41–45; the blanket
+// 2026-11-18 stamps briefly placed on Recommended 1–10 were reverted
+// the same day, in the data and here). It is deliberately a snapshot, not a live read: the
 // tests must be deterministic in CI, where there are no Supabase
 // credentials. Refresh it — in the same commit — whenever a bulk
 // data change lands in the repo; single edits Jenny makes through

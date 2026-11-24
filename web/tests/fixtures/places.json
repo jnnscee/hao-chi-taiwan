@@ -25,7 +25,7 @@
   "facebook": null,
   "hours": "Mon–Sat 14:30–18:00 · Sun Closed",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -56,7 +56,7 @@
   "facebook": "http://www.facebook.com/conwaysKHH",
   "hours": "Thu–Fri 11:00–14:00 & 18:00–21:00 · Sat–Sun 11:00–14:30 & 18:00–21:00 · Mon–Wed Closed",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -366,7 +366,7 @@
   "facebook": null,
   "hours": "Mon–Fri 11:00–21:30 · Sat–Sun 10:30–21:30",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -707,7 +707,7 @@
   "facebook": null,
   "hours": "Daily 11:00–22:00",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -1048,7 +1048,7 @@
   "facebook": null,
   "hours": "Mon 11:00–18:30 · Tue–Fri 11:30–18:30 · Sat–Sun 13:00–20:00",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -1265,7 +1265,7 @@
   "facebook": null,
   "hours": "Mon–Fri 11:30–14:00 & 16:00–21:00 · Sat–Sun 11:30–21:00",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -1296,7 +1296,7 @@
   "facebook": null,
   "hours": "Sun–Thu 11:00–22:00 · Fri–Sat 11:00–22:30",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -1327,7 +1327,7 @@
   "facebook": "https://www.facebook.com/KuanLaiShunZaoCanDian",
   "hours": "Tue–Sun 04:30–12:30 · Mon Closed",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -1358,7 +1358,7 @@
   "facebook": null,
   "hours": "Daily 11:00–14:00 & 14:30–22:30",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false
@@ -1389,7 +1389,7 @@
   "facebook": null,
   "hours": "Daily 10:00–23:00",
   "hours_note": null,
-  "hours_checked_on": "2026-11-18",
+  "hours_checked_on": null,
   "visitor_notes": null,
   "cash_only": false,
   "temporarily_closed": false

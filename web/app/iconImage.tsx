@@ -17,7 +17,21 @@ import { ImageResponse } from "next/og";
  * The pad is filled with the master's own background colour,
  * sampled from the committed file — its four corner pixels
  * (#141917 / #151a18 / #121715 / #121715) average to #131816.
+ *
+ * Artwork versioning: ICON_ARTWORK_VERSION names the artwork
+ * generation. Icon responses are cached as immutable for a
+ * year, so a new artwork under an old URL would never reach
+ * returning visitors. Bump the version whenever the master
+ * artwork changes: the version is sent as a response header
+ * here, it is re-exported by app/icon.tsx and
+ * app/apple-icon.tsx (which moves the ?<hash> Next derives for
+ * /icon and /apple-icon from those files' contents), it is the
+ * ?v= marker on the manifest icon srcs in app/manifest.ts,
+ * and the service worker version in public/sw.js must be
+ * bumped alongside so installed apps drop their cached icons.
  */
+export const ICON_ARTWORK_VERSION = "bao-bao-v2-2026-11-23";
+
 const MASTER_BACKGROUND = "#131816";
 const MASKABLE_CONTENT = 0.8;
 
@@ -55,6 +69,7 @@ export function iconImage(size: number, maskable = false) {
       height: size,
       headers: {
         "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Icon-Artwork-Version": ICON_ARTWORK_VERSION,
       },
     }
   );

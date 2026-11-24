@@ -21,7 +21,13 @@
  *    layer must never be served from, or written into, a cache.
  */
 
-const SW_VERSION = "pwa-2";
+// pwa-3 (2026-11-24): the Bao Bao icon artwork replaced the old
+// generated icon. The precache below holds the icon URLs and
+// installed apps serve them stale-while-revalidate, so without
+// this bump an installed app would keep the old icon in its
+// pwa-2 caches; the bump makes activate delete them and the
+// install step precache the new artwork.
+const SW_VERSION = "pwa-3";
 const PRECACHE = `hao-chi-precache-${SW_VERSION}`;
 const PAGES = `hao-chi-pages-${SW_VERSION}`;
 const STATIC = `hao-chi-static-${SW_VERSION}`;

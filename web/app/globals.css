@@ -660,6 +660,90 @@ body {
   }
 }
 
+/* The wrap carries the map's own tool stack over its top-right
+   corner. While the map is expanded it also holds the in-flow
+   space the fixed map vacates, at the map's own in-page height,
+   so the page behind does not jump when the overlay opens. */
+.place-map-wrap {
+  position: relative;
+}
+
+.place-map-wrap.expanded {
+  height: 420px;
+}
+
+@media (max-width: 640px) {
+  .place-map-wrap.expanded {
+    height: 320px;
+  }
+}
+
+/* The expanded map (Jenny, 2026-11-24): a full-viewport in-app
+   overlay — position fixed, not the browser Fullscreen API,
+   which iPhone Safari/PWA does not offer for elements. Its
+   z-index (38) sits above the page content, the floating search
+   button (30) and the install banner (35), and below the details
+   dialog (40) and the driver card (50), so tapping a pin while
+   expanded still opens the place's details over the big map. */
+.place-map-wrap.expanded .place-map {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  height: auto;
+  border: none;
+  border-radius: 0;
+}
+
+/* The map's own tools: Reset view and Expand/Collapse, night-
+   surfaced buttons in the map's top-right corner (MapLibre's
+   zoom control holds the top-left). While expanded the stack is
+   fixed in the viewport's same corner, one step above the map
+   (39) and still below the details dialog (40), so the ✕ that
+   collapses the map is always visible and tappable. */
+.map-tools {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-map-wrap.expanded .map-tools {
+  position: fixed;
+  z-index: 39;
+}
+
+.map-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.map-tool-btn:hover {
+  background: var(--raised);
+}
+
+.map-tool-btn:focus-visible {
+  outline: 2px solid var(--brown);
+  outline-offset: 2px;
+}
+
+.map-tool-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
 /* Numbered pins are HTML markers: the wrap carries no library
    default styling; the badge inside is the visible pin. */
 .map-pin-wrap {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Map as MLMap, Marker as MLMarker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
@@ -19,7 +19,7 @@ import {
   applyLabelLanguage,
   type StyleTarget,
 } from "@/lib/mapStyle";
-import type { Lang } from "@/lib/i18n";
+import { STRINGS, type Lang } from "@/lib/i18n";
 import type { Place } from "@/lib/places";
 
 // The real interactive map — TRIAL build (Jenny's go-ahead,
@@ -92,6 +92,27 @@ import type { Place } from "@/lib/places";
 // turns it on, and the pointer leaving the map (or the map losing
 // focus) turns it off again. Touch pinch zoom and drag pan are
 // separate handlers and are never gated.
+//
+// Two tools of Jenny's (2026-11-24) sit in a small stack over the
+// map's top-right corner, working WITH the discipline above:
+//  - Reset view re-applies the current set's fit — the same
+//    synchronous, size-gated, verified applyFit — after handing
+//    view ownership back to the fit (the visitor's gesture
+//    timestamp is cleared, because the reset IS the visitor asking
+//    for the frame back; it is the one deliberate override of the
+//    visitor-owns-view guard).
+//  - Expand opens the map as a full-viewport in-app overlay (a CSS
+//    fixed position, NOT the browser Fullscreen API, which iPhone
+//    Safari/PWA does not offer for elements) and collapses back.
+//    The size change is deliberate, so a short camera hold
+//    suppresses the size-correction refit in refitAfterResize for
+//    the transition: MapLibre itself preserves centre/zoom across
+//    a resize, and the hold keeps our machinery from "correcting"
+//    the camera to a fit computed at the other size. The hold is
+//    scoped to the transition only — a set change while expanded
+//    still reframes as usual (it never travels through
+//    refitAfterResize), and genuine resizes after the hold lapses
+//    behave exactly as before.
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
 
@@ -147,6 +168,17 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
   // The one-shot retry for a fit deferred behind an in-flight
   // camera animation (see applyFit).
   const fitRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The expand/collapse camera hold (see the header note): while
+  // it stands, refitAfterResize must not treat the deliberate
+  // size change as a size correction. Set by every expand/collapse
+  // transition and cleared on a plain timer shortly after — the
+  // resize events the transition causes land well inside the
+  // window, and nothing else is affected meanwhile (set-change
+  // fits never consult it).
+  const cameraHoldRef = useRef(false);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The expanded (full-viewport overlay) state of the map.
+  const [expanded, setExpanded] = useState(false);
   // Latest props, readable from the MapLibre callbacks and effects
   // below without re-creating the map.
   const markerSetRef = useRef(markerSet);
@@ -313,6 +345,12 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
       if (sizeSettled()) applyFit(map, markerSetRef.current);
       return;
     }
+    // An expand/collapse transition is a deliberate size change
+    // with a deliberate camera: MapLibre preserves centre/zoom
+    // across the resize, and the size-correction refit (and the
+    // verification it falls through to) must not second-guess it.
+    // The hold is short and transition-scoped — see holdCamera.
+    if (cameraHoldRef.current) return;
     const last = lastFitRef.current;
     const container = containerRef.current;
     if (!last || !container || visitorOwnsView()) return;
@@ -323,6 +361,42 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
       return;
     }
     verifyFit(map);
+  }
+
+  // Stand the camera hold for one expand/collapse transition
+  // (see the header note and refitAfterResize). The window only
+  // needs to cover the resize events the class change causes,
+  // which land within a frame or two; 900ms is generous without
+  // ever swallowing a later, genuine resize correction.
+  function holdCamera() {
+    cameraHoldRef.current = true;
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => {
+      cameraHoldRef.current = false;
+      holdTimerRef.current = null;
+    }, 900);
+  }
+
+  // Reset view (Jenny, 2026-11-24): re-frame the CURRENT set
+  // exactly as it was framed when it appeared. The visitor's
+  // ownership timestamp is cleared first — the reset is the
+  // visitor explicitly asking for the frame back, so the fit and
+  // its verification own the view again from here; the fit itself
+  // is the ordinary applyFit, with its usual size gate, deferral
+  // behind an in-flight animation, and verification.
+  function resetView() {
+    const map = mapRef.current;
+    if (!map) return;
+    userMovedAtRef.current = 0;
+    applyFit(map, markerSetRef.current);
+  }
+
+  // Expand/collapse (Jenny, 2026-11-24): every transition holds
+  // the camera first (the toggle's own click handler, and the
+  // Escape handler in the effect below, both come through here).
+  function toggleExpanded(next: boolean) {
+    holdCamera();
+    setExpanded(next);
   }
 
   function clearMarkers() {
@@ -573,6 +647,10 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
         clearTimeout(fitRetryTimerRef.current);
         fitRetryTimerRef.current = null;
       }
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
       if (containerEl) {
         if (onContainerLeave) {
           containerEl.removeEventListener("mouseleave", onContainerLeave);
@@ -615,5 +693,103 @@ export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
     applyLabelLanguage(map as unknown as StyleTarget, lang);
   }, [lang]);
 
-  return <div ref={containerRef} className="place-map" />;
+  // Expand/collapse transitions (not the first render): hold the
+  // camera again from this side of the class change, and resize
+  // the map explicitly once the new size has applied — MapLibre
+  // also watches the container itself, but the explicit resize
+  // makes the transition deterministic rather than observer-timed.
+  const firstRenderRef = useRef(true);
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
+    }
+    holdCamera();
+    const raf = requestAnimationFrame(() => {
+      mapRef.current?.resize();
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded]);
+
+  // While expanded: the page behind must not scroll, and Escape
+  // collapses (desktop). Cleanup restores the body's overflow
+  // exactly as it found it — including when the component unmounts
+  // mid-expansion.
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") toggleExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded]);
+
+  const t = STRINGS[lang];
+  return (
+    <div className={expanded ? "place-map-wrap expanded" : "place-map-wrap"}>
+      <div ref={containerRef} className="place-map" />
+      <div className="map-tools">
+        <button
+          type="button"
+          className="map-tool-btn map-reset-btn"
+          aria-label={t.map_reset_view}
+          title={t.map_reset_view}
+          onClick={resetView}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="6.5" />
+            <path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3" />
+            <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="map-tool-btn map-expand-btn"
+          aria-label={expanded ? t.map_collapse : t.map_expand}
+          aria-expanded={expanded}
+          title={expanded ? t.map_collapse : t.map_expand}
+          onClick={() => toggleExpanded(!expanded)}
+        >
+          {expanded ? (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 4.5H4.5V9M15 4.5h4.5V9M9 19.5H4.5V15M15 19.5h4.5V15" />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
+  );
 }

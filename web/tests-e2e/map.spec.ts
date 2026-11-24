@@ -825,3 +825,163 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
     expect(map).toBeTruthy();
   });
 });
+
+// The map's own tools (Jenny, 2026-11-24): Reset view returns the
+// map to the current set's opening frame after the visitor has
+// taken the view elsewhere, and Expand opens the map as a
+// full-viewport in-app overlay — same camera, still rendering —
+// that Collapse (or Escape) returns from, restoring the pre-expand
+// camera and the in-page size exactly. The expand/collapse size
+// change is deliberate, so these tests also guard the camera hold:
+// without it, the size-correction refit would reframe the set at
+// the new size and the camera assertions below would fail.
+test.describe("map tools: reset view + expand", () => {
+  test("(n) reset view returns the camera to the set's fitted frame after a pan/zoom", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    await gotoMap(page);
+    await page.locator("input.search").first().fill("noodle");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".map-pin").length === 14,
+      { timeout: 15_000 }
+    );
+    await page.waitForTimeout(900);
+    const fitted = (await viewFromMap(page)).centre!;
+    expect(fitted).not.toBeNull();
+    // The visitor takes the view away: two zoom-ins.
+    const zoomIn = page.locator(".maplibregl-ctrl-zoom-in");
+    await zoomIn.click();
+    await page.waitForTimeout(500);
+    await zoomIn.click();
+    await expect
+      .poll(async () => (await viewFromMap(page)).centre?.z ?? -1, {
+        timeout: 15_000,
+      })
+      .toBeGreaterThan(fitted.z + 1.5);
+    // Reset — found by its accessible name, which is also the
+    // aria-label assertion.
+    await page
+      .getByRole("button", { name: "Reset map view" })
+      .click();
+    await expect
+      .poll(
+        async () => {
+          const v = (await viewFromMap(page)).centre;
+          if (!v) return false;
+          return (
+            Math.abs(v.z - fitted.z) < 0.01 &&
+            Math.abs(v.lat - fitted.lat) < 0.002 &&
+            Math.abs(v.lng - fitted.lng) < 0.002
+          );
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+    // The set itself never changed: still the 14 noodle pins.
+    expect((await viewFromMap(page)).pins).toBe(14);
+  });
+
+  test("(o) expand opens the map full-viewport with the same camera, still rendering", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    const before = (await viewFromMap(page)).centre!;
+    expect(before).not.toBeNull();
+    const boxBefore = (await map.boundingBox())!;
+    expect(boxBefore.height).toBe(420);
+    await page.getByRole("button", { name: "Expand map" }).click();
+    // The container becomes the full-viewport overlay.
+    await expect
+      .poll(
+        async () => {
+          const b = await map.boundingBox();
+          return b ? b.width >= 1279 && b.height >= 899 : false;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+    // The camera did NOT move: expanding is a resize, not a refit.
+    const during = (await viewFromMap(page)).centre!;
+    expect(Math.abs(during.z - before.z)).toBeLessThan(0.01);
+    expect(Math.abs(during.lat - before.lat)).toBeLessThan(0.001);
+    expect(Math.abs(during.lng - before.lng)).toBeLessThan(0.001);
+    // The whole set is still drawn, and the canvas genuinely
+    // paints at the new size.
+    expect((await viewFromMap(page)).total).toBe(242);
+    await expect
+      .poll(async () => (await centrePixel(page))[3], { timeout: 15_000 })
+      .toBe(255);
+    // The page behind is scroll-locked, and the toggle now offers
+    // the collapse (✕) with its own label.
+    expect(
+      await page.evaluate(() => document.body.style.overflow)
+    ).toBe("hidden");
+    await expect(
+      page.getByRole("button", { name: "Collapse map" })
+    ).toBeVisible();
+  });
+
+  test("(p) collapse restores the pre-expand camera and in-page size; Escape collapses too", async ({
+    page,
+  }) => {
+    await stubTiles(page);
+    const map = await gotoMap(page);
+    const before = (await viewFromMap(page)).centre!;
+    expect(before).not.toBeNull();
+    await page.getByRole("button", { name: "Expand map" }).click();
+    await expect
+      .poll(
+        async () => {
+          const b = await map.boundingBox();
+          return b ? b.height >= 899 : false;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+    await page.getByRole("button", { name: "Collapse map" }).click();
+    // Back to the in-page size…
+    await expect
+      .poll(
+        async () => {
+          const b = await map.boundingBox();
+          return b ? Math.abs(b.height - 420) <= 1 && b.width < 1279 : false;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+    // …with the pre-expand camera intact (the collapse resize must
+    // not trigger the size-correction refit either)…
+    const after = (await viewFromMap(page)).centre!;
+    expect(Math.abs(after.z - before.z)).toBeLessThan(0.01);
+    expect(Math.abs(after.lat - before.lat)).toBeLessThan(0.001);
+    expect(Math.abs(after.lng - before.lng)).toBeLessThan(0.001);
+    // …and the page scrolls again.
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+    // Escape collapses as well (desktop).
+    await page.getByRole("button", { name: "Expand map" }).click();
+    await expect
+      .poll(
+        async () => {
+          const b = await map.boundingBox();
+          return b ? b.height >= 899 : false;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+    await page.keyboard.press("Escape");
+    await expect
+      .poll(
+        async () => {
+          const b = await map.boundingBox();
+          return b ? Math.abs(b.height - 420) <= 1 : false;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+    await expect(
+      page.getByRole("button", { name: "Expand map" })
+    ).toBeVisible();
+  });
+});

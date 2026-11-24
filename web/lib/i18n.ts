@@ -168,6 +168,12 @@ export type Strings = {
   label_contact: string;
   contact_none: string;
   place_no: (n: number) => string;
+  // The vector map's own tool buttons (reset view / expand /
+  // collapse, added 2026-11-24 at Jenny's request): aria labels
+  // and titles, no live-app counterpart.
+  map_reset_view: string;
+  map_expand: string;
+  map_collapse: string;
 };
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -458,6 +464,12 @@ export const STRINGS: Record<Lang, Strings> = {
     // The quiet list number at the end of a card's meta line / a
     // row's food line (Jenny, 2026-11-22): a reference, not a badge.
     place_no: (n) => "No. " + n,
+    // The vector map's tool buttons (2026-11-24): reset returns
+    // the map to the current set's opening frame; expand opens
+    // the map full-screen in-app and collapses back.
+    map_reset_view: "Reset map view",
+    map_expand: "Expand map",
+    map_collapse: "Collapse map",
   },
   zh: {
     stat_total: "家店（全部）",
@@ -735,6 +747,11 @@ export const STRINGS: Record<Lang, Strings> = {
     contact_none: "尚未列出聯絡方式。",
     // The quiet list number (see the EN note): 第 N 家.
     place_no: (n) => "第 " + n + " 家",
+    // The vector map's tool buttons (see the EN note).
+    // Filled-gap translations — flagged for Jenny's spot-check.
+    map_reset_view: "重設地圖視角",
+    map_expand: "放大地圖",
+    map_collapse: "縮小地圖",
   },
 };
 

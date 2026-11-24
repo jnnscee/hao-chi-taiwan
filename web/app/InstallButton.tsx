@@ -20,18 +20,18 @@ function platformKind(): PlatformKind {
 }
 
 /**
- * The footer's "Add to Home Screen" entry, mirroring the live
- * app's footer button: where the browser offers an install prompt
- * (beforeinstallprompt) the tap fires that prompt; everywhere
- * else — iOS above all, which has no prompt — it opens a small
- * dialog with the Share → "Add to Home Screen" steps for the
- * visitor's kind of device. Hidden entirely once the guide is
- * running installed (standalone), since there is nothing to add.
+ * The one install flow behind both the footer's "Add to Home
+ * Screen" button and the install banner: capture the browser's
+ * deferred install offer (beforeinstallprompt), notice when the
+ * guide is already running installed (standalone), and on request
+ * either fire the captured offer or open the per-device steps
+ * dialog. Both entries drive this same flow — there is no second
+ * implementation for the banner to drift from.
  */
-export default function InstallButton({ lang }: { lang: Lang }) {
-  const t = INSTALL[lang];
+export function useInstallFlow() {
   const deferred = useRef<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
+  const [hasPrompt, setHasPrompt] = useState(false);
   const [showHow, setShowHow] = useState(false);
   const [kind, setKind] = useState<PlatformKind>("generic");
 
@@ -46,6 +46,7 @@ export default function InstallButton({ lang }: { lang: Lang }) {
     const onPrompt = (e: Event) => {
       e.preventDefault();
       deferred.current = e as BeforeInstallPromptEvent;
+      setHasPrompt(true);
     };
     const onInstalled = () => setInstalled(true);
     window.addEventListener("beforeinstallprompt", onPrompt);
@@ -56,21 +57,11 @@ export default function InstallButton({ lang }: { lang: Lang }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!showHow) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowHow(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showHow]);
-
-  if (installed) return null;
-
-  async function handleClick() {
+  async function startInstall() {
     const evt = deferred.current;
     if (evt) {
       deferred.current = null;
+      setHasPrompt(false);
       try {
         await evt.prompt();
         await evt.userChoice;
@@ -82,6 +73,40 @@ export default function InstallButton({ lang }: { lang: Lang }) {
     setKind(platformKind());
     setShowHow(true);
   }
+
+  return {
+    installed,
+    hasPrompt,
+    showHow,
+    kind,
+    startInstall,
+    closeHow: () => setShowHow(false),
+  };
+}
+
+/**
+ * The per-device "Add to Home Screen" steps dialog, shared by the
+ * footer button and the install banner: the steps for the
+ * visitor's own kind of device, with the matching done-note.
+ */
+export function InstallStepsDialog({
+  lang,
+  kind,
+  onClose,
+}: {
+  lang: Lang;
+  kind: PlatformKind;
+  onClose: () => void;
+}) {
+  const t = INSTALL[lang];
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const steps =
     kind === "ios"
@@ -97,38 +122,62 @@ export default function InstallButton({ lang }: { lang: Lang }) {
         : t.genericNote;
 
   return (
+    <div className="dialog-backdrop overlay-top">
+      <div
+        className="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="installTitle"
+      >
+        <button
+          type="button"
+          className="dialog-close"
+          aria-label={lang === "zh" ? "關閉" : "Close"}
+          onClick={onClose}
+        >
+          ✕
+        </button>
+        <h2 id="installTitle" className="dialog-title">
+          {t.title}
+        </h2>
+        <p className="install-text">{t.text}</p>
+        <ol className="install-steps">
+          {steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+        <p className="install-note">{note}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The footer's "Add to Home Screen" entry, mirroring the live
+ * app's footer button: where the browser offers an install prompt
+ * (beforeinstallprompt) the tap fires that prompt; everywhere
+ * else — iOS above all, which has no prompt — it opens a small
+ * dialog with the Share → "Add to Home Screen" steps for the
+ * visitor's kind of device. Hidden entirely once the guide is
+ * running installed (standalone), since there is nothing to add.
+ */
+export default function InstallButton({ lang }: { lang: Lang }) {
+  const t = INSTALL[lang];
+  const flow = useInstallFlow();
+
+  if (flow.installed) return null;
+
+  return (
     <>
-      <button type="button" className="foot-link" onClick={handleClick}>
+      <button type="button" className="foot-link" onClick={flow.startInstall}>
         {t.btn}
       </button>
-      {showHow && (
-        <div className="dialog-backdrop overlay-top">
-          <div
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="installTitle"
-          >
-            <button
-              type="button"
-              className="dialog-close"
-              aria-label={lang === "zh" ? "關閉" : "Close"}
-              onClick={() => setShowHow(false)}
-            >
-              ✕
-            </button>
-            <h2 id="installTitle" className="dialog-title">
-              {t.title}
-            </h2>
-            <p className="install-text">{t.text}</p>
-            <ol className="install-steps">
-              {steps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-            <p className="install-note">{note}</p>
-          </div>
-        </div>
+      {flow.showHow && (
+        <InstallStepsDialog
+          lang={lang}
+          kind={flow.kind}
+          onClose={flow.closeHow}
+        />
       )}
     </>
   );

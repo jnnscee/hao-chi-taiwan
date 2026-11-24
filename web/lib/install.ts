@@ -8,8 +8,24 @@
 // visitor's own kind of device, and the generic set condenses the
 // live app's Android wording for anything that is neither iOS nor
 // Android.
+//
+// The banner* entries are the live app's install-bar strings
+// (install_title / install_btn / the Dismiss aria-label), lifted
+// the same way for the restored install banner (Phase B gap B-9,
+// Jenny approved 2026-11-23). The banner's line of text reuses
+// `text` — the live app's install_text serves both its bar and
+// its dialog, exactly as here.
 
 import type { Lang } from "./i18n";
+
+/**
+ * Where the install banner remembers a dismissal, on this device
+ * only (hao-chi-install-dismissed-v1). The live app keeps its
+ * dismissal in memory for the page session; the rebuild persists
+ * it so a dismissed banner stays dismissed across visits — the
+ * Privacy page's device-storage list names this too.
+ */
+export const INSTALL_DISMISSED_KEY = "hao-chi-install-dismissed-v1";
 
 export type InstallStrings = {
   /** The footer button's label. */
@@ -18,6 +34,13 @@ export type InstallStrings = {
   title: string;
   /** The dialog's intro line (the live install_text). */
   text: string;
+  /** The install banner's heading (the live install_title). */
+  bannerTitle: string;
+  /** The install banner's action button (the live install_btn). */
+  bannerBtn: string;
+  /** The install banner's dismiss aria-label ("Dismiss" in both
+   *  of the live app's files, English and Chinese alike). */
+  bannerDismiss: string;
   iosSteps: string[];
   iosNote: string;
   androidSteps: string[];
@@ -31,6 +54,9 @@ export const INSTALL: Record<Lang, InstallStrings> = {
     btn: "Add to Home Screen",
     title: "Add to Home Screen",
     text: "The list, details and driver card keep working with no connection.",
+    bannerTitle: "Add Hao Chi Taiwan to your Home Screen",
+    bannerBtn: "Add",
+    bannerDismiss: "Dismiss",
     iosSteps: [
       "Tap the Share button in Safari — the square with an arrow pointing up, at the bottom of the screen (on an iPad it's at the top).",
       "Scroll down the list and tap “Add to Home Screen”.",
@@ -57,6 +83,9 @@ export const INSTALL: Record<Lang, InstallStrings> = {
     btn: "加到主畫面",
     title: "加到主畫面",
     text: "沒有網路連線時，清單、詳情和司機卡都還能用。",
+    bannerTitle: "把好吃台灣加到主畫面",
+    bannerBtn: "加入",
+    bannerDismiss: "Dismiss",
     iosSteps: [
       "點 Safari 的「分享」按鈕 — 一個方框加上向上箭頭，在畫面下方（iPad 在上方）。",
       "往下捲，點「加入主畫面」。",

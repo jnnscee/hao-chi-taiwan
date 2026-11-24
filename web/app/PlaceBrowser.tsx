@@ -45,6 +45,7 @@ import {
 } from "@/lib/i18n";
 import PlaceDetails from "./PlaceDetails";
 import ContactForm, { type ContactOpenRequest } from "./ContactForm";
+import InstallBanner from "./InstallBanner";
 import LangSwitch from "./LangSwitch";
 import SiteFooter from "./SiteFooter";
 
@@ -1159,6 +1160,14 @@ export default function PlaceBrowser({
         </svg>
         {badge != null ? <span className="float-badge">{badge}</span> : null}
       </button>
+
+      {/* The install banner (the live app's Add to Home Screen
+          bar, restored as Phase B gap B-9): a fixed bottom card
+          that shows under the live app's rules and runs the same
+          install flow as the footer button. While it shows, the
+          floating search button above lifts clear of it (the
+          has-install rule in globals.css). */}
+      <InstallBanner lang={lang} />
 
       {/* Search & filter panel: the same controls, bound to the same
           state, so the panel always shows the search exactly as the

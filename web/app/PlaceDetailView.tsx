@@ -10,6 +10,7 @@ import {
   type TravelMode,
 } from "@/lib/details";
 import { placeUrl } from "@/lib/routes";
+import { trackAction } from "@/lib/track";
 import { STRINGS, cityLabel, type Lang } from "@/lib/i18n";
 
 type Props = {
@@ -97,6 +98,9 @@ export default function PlaceDetailView({
   const checkedText = lastCheckedText(place.hours_checked_on, lang);
 
   async function share() {
+    // The anonymous counter (lib/track.ts): one count per Share
+    // tap, however the share itself ends (sheet, copy, dismiss).
+    trackAction("share", place.legacy_id);
     // Mirrors the live app: the share title uses the place's English
     // name in English mode and its Chinese name in Chinese mode, plus
     // the language-matched suffix; the link is the place's own page
@@ -293,6 +297,7 @@ export default function PlaceDetailView({
               href={directionsUrlForMode(place, mode, visitorOrigin)}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackAction("directions", place.legacy_id)}
             >
               {dirModeLabels[mode]}
             </a>
@@ -362,6 +367,7 @@ export default function PlaceDetailView({
           href={calendarUrl(place, pageUrl, new Date(), t.cal_view_in)}
           target="_blank"
           rel="noreferrer"
+          onClick={() => trackAction("calendar", place.legacy_id)}
         >
           {t.cal_btn}
         </a>

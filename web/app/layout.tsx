@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "./ServiceWorkerRegister";
+import WebAnalytics from "./WebAnalytics";
 
 export const metadata: Metadata = {
   title: "Hao Chi Taiwan",
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body>
         {children}
         <ServiceWorkerRegister />
+        <WebAnalytics />
       </body>
     </html>
   );

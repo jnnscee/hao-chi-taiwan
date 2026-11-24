@@ -8,6 +8,7 @@ import {
   toggleSavedId,
 } from "@/lib/details";
 import { STRINGS, type Lang } from "@/lib/i18n";
+import { trackAction } from "@/lib/track";
 import { homePath } from "@/lib/routes";
 import PlaceDetailView from "./PlaceDetailView";
 import ContactForm, { type ContactOpenRequest } from "./ContactForm";
@@ -50,6 +51,12 @@ export default function PlacePageClient({ place, lang }: Props) {
   }, []);
 
   function toggleSave(target: Place) {
+    // The anonymous counter (lib/track.ts), as on the home list:
+    // save vs unsave from the state before the toggle.
+    trackAction(
+      savedIds.includes(target.legacy_id) ? "unsave" : "save",
+      target.legacy_id
+    );
     setSavedIds((current) => {
       const next = toggleSavedId(current, target.legacy_id);
       try {

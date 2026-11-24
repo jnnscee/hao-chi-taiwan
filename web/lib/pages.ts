@@ -44,6 +44,19 @@
 //     remembers its dismissal on the device
 //     (hao-chi-install-dismissed-v1), so an "install reminder"
 //     bullet joins the device-storage list in both languages.
+//  9. The anonymous-stats slice (Jenny's approval, 2026-11-24)
+//     added Vercel's cookieless visit counts and the anonymous
+//     per-day button-tap counters (lib/track.ts, stored as
+//     totals in the Supabase action_counts table). The Privacy
+//     text's flat claims — "nothing about your visit is sent
+//     to us" and "no analytics" — no longer hold as worded, so:
+//     the short version and the "No tracking" section now scope
+//     the promise to what stays true (no profile, nothing that
+//     identifies or follows a person, nothing counted per
+//     person), a new "Anonymous counts" section in both
+//     languages describes both layers and names the Vercel
+//     analytics script that loads with the page, and the
+//     Vercel services bullet cross-references those counts.
 // About and Terms are verbatim, unadapted.
 
 import type { Lang } from "./i18n";
@@ -90,9 +103,14 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>Help keep it accurate</h3>" +
       "<p>Shops close, move and change their hours. If you spot a place that has closed, moved, or has wrong hours or a broken link, please tell us with the Contact &amp; feedback button below — problem reports get checked and fixed.</p>",
     privacy_html:
-      "<p><b>The short version:</b> there are no accounts and no sign-up, and this guide does not track you. Nothing about your visit is sent to us.</p>" +
+      "<p><b>The short version:</b> there are no accounts and no sign-up, and this guide does not track you. It counts visits and a few button taps as anonymous totals — never anything that identifies you.</p>" +
       "<h3>No tracking</h3>" +
-      "<p>This page contains no analytics, no advertising trackers and no tracking cookies. We do not build a profile of you, and we cannot see which places you looked at.</p>" +
+      "<p>This guide has no advertising trackers and no tracking cookies, and we do not build a profile of you. We cannot see which places you personally looked at — the only counting is the anonymous totals described next.</p>" +
+      "<h3>Anonymous counts</h3>" +
+      "<p>To learn whether the guide is useful, two things are counted — always as totals, never per person:</p>" +
+      "<ul><li><b>Visits.</b> The guide's host, Vercel, counts page views, how visitors arrive (for example, a search engine or a shared link) and which country they are in, using its cookieless analytics. A small analytics script from Vercel loads with the page to make those counts. No cookies are set, and nothing stored identifies a visitor.</li>" +
+      "<li><b>Button taps.</b> When someone taps Save, Share, Add to calendar or one of the Get directions choices, one is added to that action's total for the day, stored in the guide's database (Supabase) together with the place it belongs to. Only the action, the place and the day are recorded — no name, no device details, no exact time, and no way to tell who tapped.</li></ul>" +
+      "<p>Jenny uses these totals to see which places people find useful. They are never used to follow anyone, and they are never sold or shared.</p>" +
       "<h3>What stays on your own device</h3>" +
       "<ul><li><b>Saved places</b> — when you tap Save (the heart) on a place, that choice is stored in this browser on this device only, so your saved list is there when you come back. It is never sent to us and does not sync to other phones or browsers.</li>" +
       "<li><b>Your view choice</b> — whether you last used Cards or Compact list is also remembered on this device only, so the list opens the way you left it.</li>" +
@@ -107,7 +125,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<p>The contact form does not send anything itself. When you tap “Open in email app” or “Open in Gmail”, it opens your own email app with your message filled in, addressed to <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — nothing is sent until you press Send in your email app, and you can edit or delete the message before you do. Emails that reach that inbox are read only to reply to you and to fix problems you report. Please do not send sensitive personal information in a feedback email.</p>" +
       "<h3>Other services this page uses or links to</h3>" +
       "<ul><li>The map pictures are drawn by OpenStreetMap's map service. As with any website, that service receives the technical information a browser sends to load a page, such as your IP address. The guide's place list is kept in its database service (Supabase) and served to your browser with the page, and the guide uses the typefaces already on your device, so no font service is loaded.</li>" +
-      "<li>The guide is hosted by Vercel, which keeps basic server logs (such as which pages were requested and IP addresses) to run and protect the site, as any web host does.</li>" +
+      "<li>The guide is hosted by Vercel, which keeps basic server logs (such as which pages were requested and IP addresses) to run and protect the site, as any web host does. Vercel also provides the anonymous visit counts described above.</li>" +
       "<li>Links to Google Maps, shop websites, Instagram and Facebook are followed only when you tap them. Once you leave this guide, that site's own privacy policy applies.</li></ul>" +
       "<h3>Changes and questions</h3>" +
       "<p>If the guide ever starts doing something different with your information, this page will be updated to say so. Questions about privacy are welcome through Contact &amp; feedback below.</p>",
@@ -154,9 +172,14 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<h3>幫我們保持資訊正確</h3>" +
       "<p>店家會歇業、搬家、更改營業時間。如果你發現某家店已經歇業、搬家，或營業時間錯誤、連結壞掉，請用下方的「聯絡與意見回饋」告訴我們 — 問題回報都會逐一確認並修正。</p>",
     privacy_html:
-      "<p><b>簡單版：</b>這裡沒有帳號、不用註冊，這份指南不會追蹤你。你造訪的任何資訊都不會傳送給我們。</p>" +
+      "<p><b>簡單版：</b>這裡沒有帳號、不用註冊，這份指南不會追蹤你。它只會把造訪次數和幾個按鈕的點按計算成匿名總數 — 絕不會記錄任何能辨識你身分的資訊。</p>" +
       "<h3>沒有追蹤</h3>" +
-      "<p>這個頁面沒有分析工具、沒有廣告追蹤器，也沒有追蹤用的 Cookie。我們不會建立你的個人檔案，也看不到你看過哪些店。</p>" +
+      "<p>這份指南沒有廣告追蹤器，也沒有追蹤用的 Cookie，我們不會建立你的個人檔案，也看不到你個人看過哪些店 — 唯一的計算是下面說明的匿名總數。</p>" +
+      "<h3>匿名計算</h3>" +
+      "<p>為了了解這份指南是否有用，我們只計算兩種總數，永遠不針對個人：</p>" +
+      "<ul><li><b>造訪次數。</b>這份指南的主機 Vercel 會用它無 Cookie 的分析工具，計算頁面瀏覽次數、訪客是怎麼來的（例如搜尋引擎或分享的連結），以及訪客所在的國家。頁面載入時會一併載入 Vercel 的小型分析程式來做這些計算。它不會設定任何 Cookie，也不會儲存能辨識訪客身分的資訊。</li>" +
+      "<li><b>按鈕點按。</b>當有人點下「收藏」、「分享」、「加到行事曆」或「怎麼去」的任一選項時，那個動作當天的總數就會加一，並連同所屬的店一起存放在指南的資料庫（Supabase）。記錄的只有動作、店和日期 — 沒有姓名、沒有裝置資訊、沒有確切時間，也沒有辦法知道是誰點的。</li></ul>" +
+      "<p>Jenny 用這些總數來了解大家覺得哪些店有用。它們永遠不會用來追蹤任何人，也不會被出售或分享。</p>" +
       "<h3>只留在你自己裝置上的東西</h3>" +
       "<ul><li><b>收藏的店</b> — 當你在某家店點「收藏」（愛心）時，那個選擇只會存在這台裝置的這個瀏覽器裡，讓你下次回來時收藏清單還在。它不會傳送給我們，也不會同步到其他手機或瀏覽器。</li>" +
       "<li><b>你的檢視選擇</b> — 你上次用的是「卡片」還是「緊湊清單」，也只會記在這台裝置上，讓清單以你離開時的樣子開啟。</li>" +
@@ -171,7 +194,7 @@ export const INFO_PAGES: Record<Lang, InfoPageSet> = {
       "<p>聯絡表單本身不會傳送任何東西。當你點下「開啟郵件 App」或「用 Gmail 開啟」時，它會開啟你自己的郵件 App，並自動填好訊息，收件人是 <a href=\"mailto:haochitaiwan@muse.ai\">haochitaiwan@muse.ai</a> — 在你在郵件 App 裡按下傳送之前，什麼都不會寄出，你也可以先修改或刪除訊息。寄到該信箱的信件，只會用來回覆你，以及修正你回報的問題。請不要在意見信裡寄送敏感的個人資訊。</p>" +
       "<h3>這個頁面使用或連結的其他服務</h3>" +
       "<ul><li>地圖圖片由 OpenStreetMap 的地圖服務繪製。和任何網站一樣，該服務會收到瀏覽器為了載入頁面而傳送的技術資訊，例如你的 IP 位址。這份指南的店家清單存放在它的資料庫服務（Supabase），並隨頁面一起傳送到你的瀏覽器。這份指南使用你裝置上已有的字型，不會載入任何字型服務。</li>" +
-      "<li>這份指南由 Vercel 代管，它會保留基本的伺服器紀錄（例如被請求的頁面和 IP 位址），來運作和保護網站，和任何網站主機一樣。</li>" +
+      "<li>這份指南由 Vercel 代管，它會保留基本的伺服器紀錄（例如被請求的頁面和 IP 位址），來運作和保護網站，和任何網站主機一樣。Vercel 也提供上面說明的匿名造訪次數計算。</li>" +
       "<li>前往 Google Maps、店家網站、Instagram 和 Facebook 的連結，只在你點下時才會前往。離開這份指南後，適用該網站自己的隱私政策。</li></ul>" +
       "<h3>變更與問題</h3>" +
       "<p>如果這份指南日後對你的資訊有不同的處理方式，本頁會更新說明。關於隱私的問題，歡迎用下方的「聯絡與意見回饋」告訴我們。</p>",

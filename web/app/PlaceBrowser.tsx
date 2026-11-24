@@ -33,6 +33,7 @@ import {
   toggleSavedId,
 } from "@/lib/details";
 import type { ContactCategoryKey } from "@/lib/contact";
+import { trackAction } from "@/lib/track";
 import {
   LANG_STORAGE_KEY,
   STRINGS,
@@ -263,6 +264,13 @@ export default function PlaceBrowser({
   }
 
   function toggleSave(place: Place) {
+    // The anonymous counter (lib/track.ts) counts the tap as a
+    // save or an unsave from the state BEFORE the toggle; the
+    // toggle itself is untouched if counting fails.
+    trackAction(
+      savedIds.includes(place.legacy_id) ? "unsave" : "save",
+      place.legacy_id
+    );
     setSavedIds((current) => {
       const next = toggleSavedId(current, place.legacy_id);
       try {

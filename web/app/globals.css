@@ -1150,7 +1150,8 @@ body {
 }
 
 .hours-note,
-.hours-checked {
+.hours-checked,
+.hours-reminder {
   color: var(--muted);
   font-size: 0.88rem;
 }

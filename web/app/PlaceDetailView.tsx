@@ -205,6 +205,12 @@ export default function PlaceDetailView({
           {checkedText ? (
             <p className="hours-checked">{checkedText}</p>
           ) : null}
+          {/* The Google Maps stamp (Phase B fix B-5, Jenny
+              2026-11-23): v1's hours_reminder attribution sits
+              alongside the last-checked line, so visitors know the
+              listed hours come from Google Maps and when Jenny's
+              side last verified them. */}
+          <p className="hours-reminder">{t.hours_reminder}</p>
           {place.maps_url ? (
             <p>
               <a href={place.maps_url} target="_blank" rel="noreferrer">

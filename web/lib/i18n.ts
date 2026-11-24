@@ -71,6 +71,10 @@ export type Strings = {
   f_instagram: string;
   f_facebook: string;
   check_todays_hours: string;
+  // v1's hours_reminder: the Google Maps attribution for the listed
+  // hours, shown in the hours section alongside the last-checked line
+  // (Phase B fix B-5, Jenny's stamp request 2026-11-23).
+  hours_reminder: string;
   good_to_know: string;
   cash_only_place: string;
   open_maps: string;
@@ -223,6 +227,8 @@ export const STRINGS: Record<Lang, Strings> = {
     f_instagram: "Instagram",
     f_facebook: "Facebook",
     check_todays_hours: "Check today's hours",
+    hours_reminder:
+      "These are the opening hours listed on Google Maps. Hours can change — especially on holidays — so please check them yourself on Google Maps before you go.",
     good_to_know: "Good to know",
     cash_only_place: "This place is cash only — cards are not accepted here, so bring cash.",
     open_maps: "Open in Google Maps",
@@ -505,6 +511,8 @@ export const STRINGS: Record<Lang, Strings> = {
     f_instagram: "Instagram",
     f_facebook: "Facebook",
     check_todays_hours: "查看今日營業時間",
+    hours_reminder:
+      "以上是 Google Maps 刊登的營業時間。營業時間可能有變動（尤其假日），出發前請自行在 Google Maps 再確認一次。",
     good_to_know: "小提醒",
     cash_only_place: "這家店只收現金，不接受刷卡，請記得帶現金。",
     open_maps: "在 Google Maps 打開",

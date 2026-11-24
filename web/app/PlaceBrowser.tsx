@@ -656,6 +656,31 @@ export default function PlaceBrowser({
     );
   }
 
+  // The Saved view toggle itself (Phase B fix B-1): the one
+  // button behind every door into the Saved view — the saved-bar
+  // in the shared control set (in-page + floating panel copies)
+  // and the phone toolbar's shortcut. All call sites bind the
+  // same filters.savedOnly, so the doors can never disagree.
+  function renderSavedToggle(toolbar: boolean) {
+    return (
+      <button
+        type="button"
+        className={toolbar ? "saved-toggle saved-shortcut" : "saved-toggle"}
+        aria-pressed={filters.savedOnly}
+        onClick={() => updateFilters({ savedOnly: !filters.savedOnly })}
+      >
+        <span className="heart-off" aria-hidden="true">
+          ♡
+        </span>
+        <span className="heart-on" aria-hidden="true">
+          ♥
+        </span>{" "}
+        <span>{t.saved_view}</span>
+        {savedIds.length ? <span>({savedIds.length})</span> : null}
+      </button>
+    );
+  }
+
   // The full search & filter control set: tabs, search box, the
   // City/District/Cuisine/Sort selects, the view toggle, the Saved
   // toggle and Near me.
@@ -777,24 +802,11 @@ export default function PlaceBrowser({
             It is part of the shared control set, so the in-page
             controls and the floating panel's copy agree — and on
             phone, where the in-page area leaves the flow, the
-            panel copy is the way in, exactly as v1's is. The
-            hearts swap on aria-pressed, as v1's do. */}
+            panel copy and the phone toolbar's shortcut (below)
+            are the ways in. The hearts swap on aria-pressed, as
+            v1's do. */}
         <div className="saved-bar">
-          <button
-            type="button"
-            className="saved-toggle"
-            aria-pressed={filters.savedOnly}
-            onClick={() => updateFilters({ savedOnly: !filters.savedOnly })}
-          >
-            <span className="heart-off" aria-hidden="true">
-              ♡
-            </span>
-            <span className="heart-on" aria-hidden="true">
-              ♥
-            </span>{" "}
-            <span>{t.saved_view}</span>
-            {savedIds.length ? <span>({savedIds.length})</span> : null}
-          </button>
+          {renderSavedToggle(false)}
           <span className="saved-note">{t.saved_device_only}</span>
         </div>
 
@@ -905,11 +917,17 @@ export default function PlaceBrowser({
 
       {/* Phone only (≤640px, CSS): the view and language toggles stay
           reachable beside the count line while the search area lives
-          in the panel. Bound to the same state as everywhere else. */}
+          in the panel — and so does a Saved shortcut (Jenny,
+          2026-11-23: hunting for the Saved view inside the search
+          panel felt unintuitive). The shortcut is the same toggle
+          as the saved-bar's, bound to the same state; the panel
+          copy stays as the other door. Bound to the same state as
+          everywhere else. */}
       <div className="phone-toolbar">
         <div className="view-toggle" aria-label={t.label_view}>
           {renderViewButtons()}
         </div>
+        {renderSavedToggle(true)}
         {renderLangToggle()}
       </div>
 

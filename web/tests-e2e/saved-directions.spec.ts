@@ -11,7 +11,12 @@
 // The phone run repeats the toggle from the floating panel's copy
 // of the controls (on phone the in-page controls leave the flow,
 // so the panel copy is the only way in) and checks the hero —
-// intro paragraph included — still fits the width.
+// intro paragraph included — still fits the width. A second phone
+// run covers the phone toolbar's Saved shortcut (added later the
+// same day at Jenny's report that hunting inside the search panel
+// felt unintuitive): the same toggle beside the Cards/Compact
+// switch, panel never opened, with the panel copy checked after
+// the fact to prove both doors bind the one state.
 
 import { expect, test } from "@playwright/test";
 
@@ -158,5 +163,58 @@ test.describe("phone at 390px", () => {
       () => document.documentElement.scrollWidth
     );
     expect(scrollWidth, "scrollWidth at 390px").toBeLessThanOrEqual(390);
+  });
+
+  test("saved view works from the phone toolbar shortcut; panel toggle agrees", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // Phone default (no saved view choice) is Compact at <= 640px.
+    const firstRow = page.locator(".place-list.compact .place").first();
+    await firstRow.waitFor({ state: "visible", timeout: 30_000 });
+    await page.waitForTimeout(500);
+
+    const name = await firstRow.locator(".place-name-zh").innerText();
+    await firstRow.locator(".card-save").click();
+
+    // The toolbar shortcut — the panel is never opened to get
+    // here. It carries the saved count; tapping it lists only
+    // the saved place under v1's count line.
+    const shortcut = page.locator(".phone-toolbar .saved-toggle");
+    await expect(shortcut).toBeVisible();
+    await expect(shortcut).toContainText("(1)");
+    await expect(shortcut).toHaveAttribute("aria-pressed", "false");
+    await shortcut.click();
+    await expect(shortcut).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".result-count")).toHaveText(
+      "Showing your 1 saved place"
+    );
+    const rows = page.locator(".place-list.compact .place");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first().locator(".place-name-zh")).toHaveText(name);
+
+    // The widened toolbar does not overflow the phone width.
+    const scrollWidth = await page.evaluate(
+      () => document.documentElement.scrollWidth
+    );
+    expect(scrollWidth, "scrollWidth at 390px").toBeLessThanOrEqual(390);
+
+    // Sync proof: the panel's copy of the toggle — opened only
+    // now, after the fact — shows the same on-state and count,
+    // because both doors bind the one savedOnly state.
+    await page.locator(".float-search").click();
+    const panelToggle = page.locator(".spanel .saved-toggle");
+    await expect(panelToggle).toHaveAttribute("aria-pressed", "true");
+    await expect(panelToggle).toContainText("(1)");
+    await page.locator(".panel-close").click();
+
+    // Tapping the shortcut again restores the full list (the
+    // first Compact batch of the whole set).
+    await shortcut.click();
+    await expect(shortcut).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator(".result-count")).toHaveText(
+      "Showing 242 places"
+    );
+    await expect(rows).toHaveCount(15);
   });
 });

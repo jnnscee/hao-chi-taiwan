@@ -1,7 +1,7 @@
 // Pure marker logic for the rebuild's interactive map: turns the
 // currently displayed set (tab + search + filters + sort, with display
-// numbers assigned) into the marker set the Leaflet component draws.
-// Kept free of Leaflet and React imports so the behaviour can be
+// numbers assigned) into the marker set the map component draws.
+// Kept free of map-library and React imports so the behaviour can be
 // unit-checked in plain node against the real data, like lib/places.ts.
 
 import type { LatLng, Place } from "./places";
@@ -149,7 +149,7 @@ export const TAIWAN_BOUNDS: LatLngBounds = {
 export const FIT_MAX_ZOOM = 15;
 
 /**
- * Padding (px) applied on every fit. Leaflet's fitBounds frames the
+ * Padding (px) applied on every fit. fitBounds frames the
  * marker POINTS; a numbered pin extends 15px beyond its point and a
  * cluster badge 20px, so the old 24px padding left edge pins nearly
  * touching — and, once the map sized itself late, clipped at — the
@@ -177,7 +177,7 @@ export function frameBounds(set: MapMarkerSet): LatLngBounds {
 // pile holds. Now large sets are grouped into clusters whose badges
 // carry the count, so the counts on screen always add up to the
 // size of the filtered set. The grouping is a pure function of the
-// markers and the zoom, kept here (Leaflet-free) so the sums can be
+// markers and the zoom, kept here (library-free) so the sums can be
 // unit-checked; the component re-runs it whenever the zoom changes.
 
 /** Pixel distance (at the current zoom) within which dots cluster. */
@@ -191,8 +191,8 @@ const MAX_PROJECTED_LAT = 85.05112878;
 
 /**
  * Project a coordinate to Web Mercator world pixel coordinates at a
- * zoom level (256px tiles) — the same space Leaflet positions tiles
- * and markers in, computed here so clustering needs no Leaflet.
+ * zoom level (256px tiles) — the same space the map positions tiles
+ * and markers in, computed here so clustering needs no map library.
  */
 export function projectToPixels(
   lat: number,

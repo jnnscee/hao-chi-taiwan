@@ -56,8 +56,8 @@ served from the repo root until the rebuild is ready to take over.
   "Report a problem with this place" button that opens the contact
   form pre-filled for the place. The dialog closes via
   its ✕ or Escape and leaves the list state untouched.
-- A **real interactive map** (`app/PlaceMap.tsx`, Leaflet with
-  OpenStreetMap tiles, loaded client-side only) sits below the
+- A **real interactive map** (`app/PlaceMap.tsx`, loaded
+  client-side only) sits below the
   list (the old site's order), headed by the live app's own map strings
   ("Where they are" / 「地圖」 and its tap-a-pin hint, in `lib/i18n.ts`).
   It draws exactly the current filtered set: numbered pins (number =
@@ -70,13 +70,30 @@ served from the repo root until the rebuild is ready to take over.
   frame (56px padding so no pin or badge touches the edge; fit zoom
   capped at 15; an empty set frames the whole of Taiwan) only when
   the set itself changes — panning or zooming and then toggling
-  Cards/Compact keeps the visitor's view. Wheel/drag/pinch zoom runs
-  to street level. The marker and clustering logic is pure functions
+  Cards/Compact keeps the visitor's view. Wheel zoom is
+  click-to-activate (a wheel that merely passes over the map while
+  page-scrolling never zooms it); drag/pinch zoom runs to street
+  level. The marker and clustering logic is pure functions
   in `lib/map.ts`, unit-checked against the real data. (Phase A map
   legibility, 2026-11-23: padded fit, clustering, Taiwan framing for
-  no-match searches, rapid-zoom tile hardening, and re-measuring the
-  map once the page settles and whenever it scrolls into view, so no
-  grey unpainted strips survive first paint.)
+  no-match searches, and the fit discipline — synchronous
+  set-change fits, deferred-and-verified behind animations and
+  unsettled sizes — that the 2026-11-23 live failure proved
+  necessary.)
+  **TRIAL (2026-11-24, staging only, awaiting Jenny's verdict):**
+  the map library is MapLibre GL JS drawing OpenStreetMap data as
+  VECTOR tiles from OpenFreeMap's hosted OpenMapTiles service
+  (the calm "positron" base style), repainted toward the app's
+  night palette and with labels that follow the EN/中文 toggle —
+  both live-style changes computed by the pure functions in
+  `lib/mapStyle.ts` and applied by `app/PlaceMap.tsx`. Vector
+  tiles zoom smoothly instead of loading a new picture per level
+  (the pinch-zoom lag of the previous Leaflet + raster-tile
+  build). The Phase A fit discipline is ported control for
+  control; the component exposes its map instance on the
+  container element as `__haoChiMap` for the e2e specs. If the
+  trial is rejected, the Leaflet build is one revert away (last
+  in commit 04e56b4d).
 - **Near me**, mirroring the live app: the Near me button asks for the
   visitor's location only when tapped (`navigator.geolocation`, the
   live app's options). The position is held in memory (filter state)
@@ -209,8 +226,10 @@ served from the repo root until the rebuild is ready to take over.
   network-first (so ISR freshness still wins online) with the
   cache as the offline fallback and `public/offline.html` for
   never-visited pages. Static assets are stale-while-revalidate;
-  OpenStreetMap tiles are cache-first in a ~200-entry capped
-  cache. `/admin`, Supabase requests and non-GET requests are
+  map tiles are cache-first in an 800-entry capped cache
+  (OpenStreetMap raster tiles for the Leaflet build;
+  tiles.openfreemap.org's style/vector-tile/glyph files for the
+  trial vector map). `/admin`, Supabase requests and non-GET requests are
   never cached. The manifest (`app/manifest.ts`) and the icons
   (generated routes — `app/icon.tsx`, `app/apple-icon.tsx`,
   `app/icons/[name]/route.ts` — no binary files) make the guide
@@ -311,9 +330,12 @@ Two suites, both added by the engineering-backbone slice
   counts plus dots sum to 242 and a cluster tap zooms in, a
   no-match search leaves the map framed on Taiwan, and four rapid
   zoom-ins never leave the map blank. The map spec stubs the
-  OpenStreetMap tile endpoint with a locally drawn PNG (the
+  OpenFreeMap endpoints with a minimal local style and a
+  hand-built vector tile (the
   sandbox/CI cannot reliably reach the real tile service, and
-  its usage policy discourages test traffic anyway) and blocks
+  hammering a free service from tests would be poor manners
+  anyway), reads the view from the live map instance the
+  component exposes, and blocks
   the service worker, whose cache-first tile serving would
   otherwise bypass the stub nondeterministically.
 

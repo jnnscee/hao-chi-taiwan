@@ -50,9 +50,10 @@ import InstallBanner from "./InstallBanner";
 import LangSwitch from "./LangSwitch";
 import SiteFooter from "./SiteFooter";
 
-// The interactive map is client-only: Leaflet needs `window`, so it is
-// dynamically imported with ssr:false and hydrates after the static
-// prerender. The placeholder keeps the section's height while it loads.
+// The interactive map is client-only: MapLibre needs `window` and
+// WebGL, so it is dynamically imported with ssr:false and hydrates
+// after the static prerender. The placeholder keeps the section's
+// height while it loads.
 const PlaceMap = dynamic(() => import("./PlaceMap"), {
   ssr: false,
   loading: () => <div className="place-map" aria-hidden="true" />,
@@ -1095,7 +1096,7 @@ export default function PlaceBrowser({
       <section className="map-section" aria-label={t.map_h}>
         <h2 className="map-heading">{t.map_h}</h2>
         <p className="map-sub">{t.map_sub}</p>
-        <PlaceMap markerSet={markerSet} onSelect={openDetails} />
+        <PlaceMap markerSet={markerSet} onSelect={openDetails} lang={lang} />
       </section>
 
       {/* Contact & feedback section, as on the live app: a heading,

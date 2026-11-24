@@ -12,27 +12,40 @@
  *    navigation that was never cached gets /offline.html.
  *  - Static assets (/_next/static, icons, manifest, fonts…):
  *    stale-while-revalidate.
- *  - OpenStreetMap tiles: cache-first into a capped runtime cache
- *    (~200 tiles, oldest evicted), so areas already viewed keep
- *    working offline.
+ *  - Map tiles: cache-first into a capped runtime cache, so
+ *    areas already viewed keep working offline. The Leaflet build
+ *    cached OpenStreetMap raster tiles; the trial vector map
+ *    (2026-11-24) fetches its style, vector tiles, glyphs and
+ *    sprites from tiles.openfreemap.org, which gets the same
+ *    treatment (the raster host stays listed — its cache entries
+ *    simply age out under the same cap).
  *  - NEVER cached, always network-only: /admin, every Supabase
  *    request (place data + auth), any non-GET request, and any
  *    other cross-origin request. The admin area and the auth/data
  *    layer must never be served from, or written into, a cache.
  */
 
+// pwa-4 (2026-11-24): the trial vector map's tile host joins the
+// cache-first tile route below. Without the bump, installed apps
+// would keep the pwa-3 worker, whose fetch handler lets the new
+// host's requests fall through to the network-only rule — online
+// fine, but the offline map would silently stop working.
 // pwa-3 (2026-11-24): the Bao Bao icon artwork replaced the old
 // generated icon. The precache below holds the icon URLs and
 // installed apps serve them stale-while-revalidate, so without
 // this bump an installed app would keep the old icon in its
 // pwa-2 caches; the bump makes activate delete them and the
 // install step precache the new artwork.
-const SW_VERSION = "pwa-3";
+const SW_VERSION = "pwa-4";
 const PRECACHE = `hao-chi-precache-${SW_VERSION}`;
 const PAGES = `hao-chi-pages-${SW_VERSION}`;
 const STATIC = `hao-chi-static-${SW_VERSION}`;
 const TILES = `hao-chi-tiles-${SW_VERSION}`;
-const TILE_LIMIT = 200;
+/* The cap counts ENTRIES, and the vector map's cache holds more,
+ * smaller files than the raster build's did (a vector tile is a
+ * few KB; glyph ranges and the style/sprite files share the same
+ * cache), so the cap rises from 200 to 800 entries. */
+const TILE_LIMIT = 800;
 const OFFLINE_URL = "/offline.html";
 
 /* The offline core: the two home pages, the info/contact pages in
@@ -208,7 +221,10 @@ self.addEventListener("fetch", (event) => {
   if (url.hostname === "supabase.co" || url.hostname.endsWith(".supabase.co")) return;
 
   /* --- Map tiles: cache-first, capped --- */
-  if (url.hostname === "tile.openstreetmap.org") {
+  if (
+    url.hostname === "tile.openstreetmap.org" ||
+    url.hostname === "tiles.openfreemap.org"
+  ) {
     event.respondWith(tileFirst(request));
     return;
   }

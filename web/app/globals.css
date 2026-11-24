@@ -612,7 +612,7 @@ body {
   flex: none;
 }
 
-/* --- Interactive map (Leaflet) --- */
+/* --- Interactive map (MapLibre vector trial, 2026-11-24) --- */
 
 /* The map section now sits below the list (the old site's order);
    the gap above it follows the old sections' rhythm. */
@@ -638,8 +638,10 @@ body {
 }
 
 /* position + z-index make the container a stacking context, so
-   Leaflet's internal panes/controls (z-index up to 1000) stay below
-   the details dialog (z-index 40) and driver overlay (50). */
+   the map's internal controls stay below the details dialog
+   (z-index 40) and driver overlay (50). The background is the
+   night ground: it is what shows for the moment before the
+   vector tiles first paint, and around them ever after. */
 .place-map {
   position: relative;
   z-index: 0;
@@ -647,7 +649,7 @@ body {
   border: 1px solid var(--sand);
   border-radius: 1rem;
   overflow: hidden;
-  background: #eef2ea;
+  background: #131715;
   font-family: inherit;
   box-shadow: var(--shadow-card);
 }
@@ -658,8 +660,8 @@ body {
   }
 }
 
-/* Numbered pins are divIcons: the wrap carries no Leaflet default
-   styling; the badge inside is the visible pin. */
+/* Numbered pins are HTML markers: the wrap carries no library
+   default styling; the badge inside is the visible pin. */
 .map-pin-wrap {
   background: transparent;
   border: none;
@@ -683,8 +685,9 @@ body {
 
 /* Cluster badges (large sets): a dark disc in the night surface
    tone with the count in salmon (gold until Jenny's 2026-11-23
-   swap), so the number reads at a glance against the pale map
-   tiles and matches the app's own headings.
+   swap), so the number reads at a glance against the map and
+   matches the app's own headings; the salmon ring separates the
+   disc from the dark vector tiles.
    The badge counts plus any ungrouped dots always add up to the
    filtered set's size. */
 .map-cluster-wrap {
@@ -707,6 +710,27 @@ body {
     0 0 0 4px rgba(255, 130, 102, 0.18);
   font-size: 0.85rem;
   font-weight: 800;
+  cursor: pointer;
+}
+
+/* Ungrouped dots in a large set: the same mustard disc the
+   Leaflet build drew as an SVG circle marker (radius 8, white
+   stroke), as an HTML marker — sized to the same ~20px tappable
+   disc. */
+.map-dot-wrap {
+  background: transparent;
+  border: none;
+}
+
+.map-dot {
+  display: block;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(122, 74, 18, 0.9);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   cursor: pointer;
 }
 

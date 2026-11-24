@@ -1,79 +1,144 @@
-// Map legibility spec (Phase A, 2026-11-23).
+// Map legibility spec — rewritten for the trial VECTOR map
+// (MapLibre GL JS + OpenFreeMap vector tiles, 2026-11-24). The
+// Leaflet version of this spec (Phase A, 2026-11-23) guarded:
 //
-// Guards the audit findings against the interactive map:
 //   (a) a filtered set's numbered pins sit fully inside the frame
 //       (the audit found noodle-search pins cut off at the top edge);
 //   (b) the 242 baseline is verifiable on screen: cluster badge
 //       counts plus ungrouped dots sum to the set's size;
 //   (c) a no-match search leaves the map framed on Taiwan with no
 //       pins (the audit caught it sitting on a wide SE Asia view);
-//   (d) four rapid zoom-ins never leave the map blank: once settled,
-//       every tile is loaded and the tiles cover the container.
+//   (d) four rapid zoom-ins never leave the map blank.
+//
+// Every test's INTENT is preserved; what changed is the evidence,
+// because the rendering technology changed:
+//
+//  - The view (centre/zoom) is read from the live map instance,
+//    which the component exposes on its container element as
+//    `__haoChiMap` — the Leaflet spec had to reconstruct the view
+//    from the tile <img>s on screen because no instance was
+//    reachable. Direct reads are stricter, not weaker.
+//  - "Not blank" is proven by reading the centre pixel of the
+//    WebGL canvas during a render pass (a blank/broken canvas
+//    reads back transparent black), instead of counting loaded
+//    tile <img>s — vector tiles have no <img>s.
+//  - Dots are HTML markers (.map-dot) instead of SVG paths.
+//  - The zoom control is MapLibre's (.maplibregl-ctrl-zoom-in).
+//  - Fractional zooms: Leaflet's fit snapped to whole zooms, so
+//    the old spec asserted exact integers (6, 8); MapLibre's
+//    fitBounds lands on fractional zooms, so zoom assertions use
+//    the same envelopes and deltas instead of exact integers.
 //
 // The sandbox (and CI) cannot be relied on to reach
-// tile.openstreetmap.org — in this environment the browser's proxy
-// refuses it outright — and hammering the real tile service from CI
-// would breach its usage policy anyway. So the spec stubs the tile
-// endpoint at the network layer with a locally drawn PNG (with a
-// small artificial latency, closer to real tiles than an instant
-// reply). The framing assertion in (c) reads the z/x/y of the tile
-// <img>s the map ends up showing.
+// tiles.openfreemap.org — and hammering a free tile service from
+// CI would be poor manners anyway. So the spec stubs the
+// OpenFreeMap endpoints at the network layer: the style request
+// gets a minimal local style (background + water fill + one label
+// layer over the same vector source), and every vector tile gets
+// a hand-built tile whose single "water" polygon covers the whole
+// tile — the canvas genuinely paints geometry everywhere, which
+// is what the not-blank check reads. Glyph requests get an empty
+// glyph stack (the stub tiles carry no label features, so labels
+// are never laid out; the language behaviour of labels is covered
+// by the lib/mapStyle.ts unit tests).
 //
-// The service worker is blocked for this spec: by design it serves
-// tiles cache-first, and its fetches bypass page-level route
-// interception (in this sandbox they fail through the proxy while
-// stubbed page requests succeed), which would make every tile
+// The service worker is blocked for this spec: by design it
+// serves the map host cache-first, and its fetches bypass
+// page-level route interception, which would make every stubbed
 // assertion nondeterministic. The worker's own caching behaviour
 // was verified in the offline/PWA slice and is untouched here.
 
 import { expect, test } from "@playwright/test";
-import { deflateSync } from "node:zlib";
 
-// --- A 256×256 PNG tile, drawn in-process (green land-ish fill with
-// a darker border, so tiles are distinguishable in screenshots). ---
-function crc32(buf: Buffer): number {
-  let c = ~0;
-  for (let i = 0; i < buf.length; i++) {
-    c ^= buf[i];
-    for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
-  }
-  return ~c >>> 0;
+// --- A minimal protobuf writer, just enough for a vector tile ---
+function varint(n: number): number[] {
+  const out: number[] = [];
+  let v = n >>> 0;
+  do {
+    let b = v & 0x7f;
+    v >>>= 7;
+    if (v) b |= 0x80;
+    out.push(b);
+  } while (v);
+  return out;
 }
-function chunk(type: string, data: Buffer): Buffer {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([len, body, crc]);
+function fieldVarint(field: number, value: number): number[] {
+  return [...varint((field << 3) | 0), ...varint(value)];
 }
-function tilePng(): Buffer {
-  const size = 256;
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // colour type RGB
-  const raw = Buffer.alloc(size * (size * 3 + 1));
-  for (let y = 0; y < size; y++) {
-    const row = y * (size * 3 + 1);
-    raw[row] = 0; // filter: none
-    for (let x = 0; x < size; x++) {
-      const o = row + 1 + x * 3;
-      const border = x < 2 || y < 2 || x >= size - 2 || y >= size - 2;
-      raw[o] = border ? 90 : 173;
-      raw[o + 1] = border ? 120 : 199;
-      raw[o + 2] = border ? 90 : 165;
-    }
-  }
-  return Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk("IHDR", ihdr),
-    chunk("IDAT", deflateSync(raw)),
-    chunk("IEND", Buffer.alloc(0)),
+function fieldBytes(field: number, data: Buffer | number[]): number[] {
+  const bytes = Array.from(data);
+  return [...varint((field << 3) | 2), ...varint(bytes.length), ...bytes];
+}
+function zigzag(n: number): number {
+  return (n << 1) ^ (n >> 31);
+}
+
+/** A valid vector tile holding one water polygon that covers the
+ * whole 4096-extent tile: every stubbed tile paints as water. */
+function waterTile(): Buffer {
+  const geometry = [
+    1 | (1 << 3), zigzag(0), zigzag(0), // MoveTo (0,0)
+    2 | (3 << 3), // LineTo, 3 points
+    zigzag(4096), zigzag(0),
+    zigzag(0), zigzag(4096),
+    zigzag(-4096), zigzag(0),
+    7 | (1 << 3), // ClosePath
+  ];
+  const packed: number[] = [];
+  for (const g of geometry) packed.push(...varint(g));
+  const feature = Buffer.from([
+    ...fieldVarint(1, 3), // type = POLYGON
+    ...fieldBytes(3, packed),
   ]);
+  const layer = Buffer.from([
+    ...fieldBytes(1, Buffer.from("water", "ascii")),
+    ...fieldBytes(2, feature),
+    ...fieldVarint(5, 4096), // extent
+    ...fieldVarint(15, 2), // version
+  ]);
+  return Buffer.from(fieldBytes(3, layer));
 }
-const TILE_PNG = tilePng();
+const WATER_TILE = waterTile();
+
+const TEST_STYLE = {
+  version: 8,
+  name: "hao-chi-test-style",
+  sources: {
+    openmaptiles: {
+      type: "vector",
+      tiles: ["https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf"],
+      minzoom: 0,
+      maxzoom: 14,
+    },
+  },
+  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  layers: [
+    {
+      id: "background",
+      type: "background",
+      paint: { "background-color": "#eef2ea" },
+    },
+    {
+      id: "water",
+      type: "fill",
+      source: "openmaptiles",
+      "source-layer": "water",
+      paint: { "fill-color": "#bcd2e0" },
+    },
+    {
+      id: "label_city",
+      type: "symbol",
+      source: "openmaptiles",
+      "source-layer": "place",
+      layout: {
+        "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"]],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 12,
+      },
+      paint: { "text-color": "#333333" },
+    },
+  ],
+};
 
 type TileStub = { requested: string[] };
 async function stubTiles(
@@ -81,85 +146,120 @@ async function stubTiles(
   delayMs = 150
 ): Promise<TileStub> {
   const stub: TileStub = { requested: [] };
-  await page.route("https://tile.openstreetmap.org/**", async (route) => {
+  await page.route(
+    "https://tiles.openfreemap.org/styles/positron",
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(TEST_STYLE),
+      });
+    }
+  );
+  await page.route("https://tiles.openfreemap.org/planet/**", async (route) => {
     stub.requested.push(route.request().url());
     if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
-    await route.fulfill({ contentType: "image/png", body: TILE_PNG });
+    await route.fulfill({
+      contentType: "application/x-protobuf",
+      body: WATER_TILE,
+    });
+  });
+  await page.route("https://tiles.openfreemap.org/fonts/**", async (route) => {
+    // An empty glyph stack: parses as a font stack with no glyphs.
+    await route.fulfill({
+      contentType: "application/x-protobuf",
+      body: Buffer.alloc(0),
+    });
   });
   return stub;
 }
 
-/** Parse a tile URL's z/x/y and return its geographic bounds. */
-function tileBounds(url: string) {
-  const parts = url.split("/");
-  const z = Number(parts[3]);
-  const x = Number(parts[4]);
-  const y = Number(parts[5].replace(".png", ""));
-  const n = 2 ** z;
-  const lngWest = (x / n) * 360 - 180;
-  const lngEast = ((x + 1) / n) * 360 - 180;
-  const latOf = (ty: number) => {
-    const m = Math.PI - (2 * Math.PI * ty) / n;
-    return (Math.atan(Math.sinh(m)) * 180) / Math.PI;
-  };
-  return { z, west: lngWest, east: lngEast, north: latOf(y), south: latOf(y + 1) };
-}
-
 test.use({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block" });
+
+/** The slice of the live MapLibre map the specs read through the
+ * component's `__haoChiMap` hook on the container element. */
+type HookMap = {
+  getCenter(): { lat: number; lng: number };
+  getZoom(): number;
+  isStyleLoaded(): boolean;
+  isEasing(): boolean;
+  once(event: string, cb: () => void): void;
+  triggerRepaint(): void;
+  getCanvas(): HTMLCanvasElement;
+};
 
 async function gotoMap(page: import("@playwright/test").Page) {
   await page.goto("/");
-  const map = page.locator(".place-map.leaflet-container");
+  const map = page.locator(".place-map.maplibregl-map");
   await map.waitFor({ state: "visible", timeout: 30_000 });
   await map.scrollIntoViewIfNeeded();
-  await page.waitForSelector(".leaflet-tile-loaded", { timeout: 30_000 });
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector(".place-map") as unknown as {
+        __haoChiMap?: HookMap;
+      };
+      return !!el?.__haoChiMap && el.__haoChiMap.isStyleLoaded();
+    },
+    { timeout: 30_000 }
+  );
   await page.waitForTimeout(600);
   return map;
 }
 
-/** The map's current view, reconstructed from the tile <img> under
- * the container's centre (its z/x/y give the zoom and the centre's
- * coordinates), plus the DOM marker accounting. */
-async function viewFromTiles(page: import("@playwright/test").Page) {
+/** The map's current view, read from the live map instance, plus
+ * the DOM marker accounting (pins, cluster badge counts, dots). */
+async function viewFromMap(page: import("@playwright/test").Page) {
   return page.evaluate(() => {
-    const container = document.querySelector(".place-map")!;
-    const cr = container.getBoundingClientRect();
-    const cx = cr.left + cr.width / 2;
-    const cy = cr.top + cr.height / 2;
-    let centre: { z: number; lat: number; lng: number } | null = null;
-    for (const t of Array.from(
-      document.querySelectorAll(".leaflet-tile")
-    ) as HTMLImageElement[]) {
-      const r = t.getBoundingClientRect();
-      if (cx >= r.left && cx < r.right && cy >= r.top && cy < r.bottom) {
-        const parts = t.src.split("/");
-        const z = Number(parts[3]);
-        const x = Number(parts[4]);
-        const y = Number(parts[5].replace(".png", ""));
-        const size = 256 * 2 ** z;
-        const px = (x + (cx - r.left) / r.width) * 256;
-        const py = (y + (cy - r.top) / r.height) * 256;
-        centre = {
-          z,
-          lng: (px / size) * 360 - 180,
-          lat:
-            (Math.atan(Math.sinh(Math.PI - (2 * Math.PI * py) / size)) *
-              180) /
-            Math.PI,
-        };
-        break;
-      }
-    }
+    const el = document.querySelector(".place-map") as unknown as {
+      __haoChiMap?: HookMap;
+    };
+    const map = el?.__haoChiMap;
+    const centre = map
+      ? { z: map.getZoom(), lat: map.getCenter().lat, lng: map.getCenter().lng }
+      : null;
     const badges = Array.from(document.querySelectorAll(".map-cluster")).map(
-      (el) => parseInt(el.textContent || "0", 10)
+      (n) => parseInt(n.textContent || "0", 10)
     );
     const badgeSum = badges.reduce((s, n) => s + n, 0);
-    const dots = document.querySelectorAll(
-      ".leaflet-overlay-pane path.leaflet-interactive"
-    ).length;
+    const dots = document.querySelectorAll(".map-dot").length;
     const pins = document.querySelectorAll(".map-pin").length;
     return { centre, badgeSum, dots, pins, total: badgeSum + dots + pins };
   });
+}
+
+/** The canvas's centre pixel, read back with readPixels inside a
+ * render pass (with preserveDrawingBuffer off, reading after the
+ * frame has been composited would return zeros even on a healthy
+ * canvas). A painted map reads back its water/ground colour; a
+ * blank or broken one reads transparent black. */
+async function centrePixel(
+  page: import("@playwright/test").Page
+): Promise<number[]> {
+  return page.evaluate(
+    () =>
+      new Promise<number[]>((resolve) => {
+        const el = document.querySelector(".place-map") as unknown as {
+          __haoChiMap?: HookMap;
+        };
+        const map = el.__haoChiMap!;
+        map.once("render", () => {
+          const canvas = map.getCanvas();
+          const gl = (canvas.getContext("webgl2") ||
+            canvas.getContext("webgl")) as WebGLRenderingContext;
+          const px = new Uint8Array(4);
+          gl.readPixels(
+            Math.floor(canvas.width / 2),
+            Math.floor(canvas.height / 2),
+            1,
+            1,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            px
+          );
+          resolve([px[0], px[1], px[2], px[3]]);
+        });
+        map.triggerRepaint();
+      })
+  );
 }
 
 test.describe("map legibility", () => {
@@ -171,7 +271,7 @@ test.describe("map legibility", () => {
       () => document.querySelectorAll(".map-pin").length === 14,
       { timeout: 15_000 }
     );
-    // Let the fit animation finish before measuring.
+    // Let the view settle before measuring.
     await page.waitForTimeout(900);
     const mapBox = (await map.boundingBox())!;
     const pins = await page.locator(".map-pin").evaluateAll((els) =>
@@ -197,9 +297,7 @@ test.describe("map legibility", () => {
     const total = async () => {
       const badges = await page.locator(".map-cluster").allTextContents();
       const badgeSum = badges.reduce((sum, t) => sum + parseInt(t, 10), 0);
-      const dots = await page
-        .locator(".leaflet-overlay-pane path.leaflet-interactive")
-        .count();
+      const dots = await page.locator(".map-dot").count();
       return { badgeSum, dots, total: badgeSum + dots, badges: badges.length };
     };
     // Poll until the drawn set stabilises at the full 242 (the
@@ -212,20 +310,11 @@ test.describe("map legibility", () => {
     expect(result.badgeSum).toBeGreaterThan(0);
 
     // Tapping a cluster expands it: the map zooms toward the
-    // cluster's bounds (the tiles on screen move to a deeper zoom).
-    const maxTileZoom = async () =>
-      page.locator(".leaflet-tile").evaluateAll((els) =>
-        Math.max(
-          ...els.map((el) =>
-            Number((el as HTMLImageElement).src.split("/")[3])
-          )
-        )
-      );
-    const before = await maxTileZoom();
+    // cluster's bounds (the camera's zoom increases).
+    const zoom = async () => (await viewFromMap(page)).centre?.z ?? -1;
+    const before = await zoom();
     await page.locator(".map-cluster").first().click();
-    await expect
-      .poll(maxTileZoom, { timeout: 15_000 })
-      .toBeGreaterThan(before);
+    await expect.poll(zoom, { timeout: 15_000 }).toBeGreaterThan(before);
   });
 
   test("(c) no-match search: map frames Taiwan, zero pins", async ({ page }) => {
@@ -242,91 +331,63 @@ test.describe("map legibility", () => {
     await page.waitForFunction(
       () =>
         document.querySelectorAll(".map-pin").length === 0 &&
-        document.querySelectorAll(".map-cluster").length === 0,
+        document.querySelectorAll(".map-cluster").length === 0 &&
+        document.querySelectorAll(".map-dot").length === 0,
       { timeout: 15_000 }
     );
-    expect(
-      await page.locator(".leaflet-overlay-pane path.leaflet-interactive").count()
-    ).toBe(0);
-    // Evidence for the frame: the tile <img>s the map ends up
-    // showing. (Network requests are not usable evidence here —
-    // Leaflet and the browser serve a return to a recent view from
-    // cache without new requests.) Once the refit settles, every
-    // tile on screen sits at a Taiwan-fit zoom inside a generous
-    // Taiwan envelope; a leftover street-level frame (zoom 13+) or
-    // the audit's wide SE Asia frame (zoom ≤5, tiles reaching far
-    // west/south) both fail this.
-    const domTiles = async () =>
-      page.locator(".leaflet-tile").evaluateAll((els) =>
-        els.map((el) => (el as HTMLImageElement).src)
-      );
+    // The frame, read from the map itself: a Taiwan fit — a
+    // leftover street-level frame (zoom 13+) or the audit's wide
+    // SE Asia frame (zoom ≤5 with the centre far off the island)
+    // both fail; the centre envelope below is the real guard.
     await expect
       .poll(
         async () => {
-          const srcs = await domTiles();
-          if (srcs.length < 4) return false;
-          return srcs.every((src) => {
-            const z = tileBounds(src).z;
-            return z >= 6 && z <= 8;
-          });
+          const v = await viewFromMap(page);
+          if (!v.centre) return false;
+          return v.centre.z >= 5 && v.centre.z <= 8.5;
         },
         { timeout: 15_000 }
       )
       .toBe(true);
-    for (const src of await domTiles()) {
-      const b = tileBounds(src);
-      expect(b.west).toBeGreaterThanOrEqual(108);
-      expect(b.east).toBeLessThanOrEqual(133);
-      expect(b.south).toBeGreaterThanOrEqual(12);
-      expect(b.north).toBeLessThanOrEqual(35);
-    }
+    const view = await viewFromMap(page);
+    expect(view.centre!.lat).toBeGreaterThanOrEqual(21.5);
+    expect(view.centre!.lat).toBeLessThanOrEqual(25.6);
+    expect(view.centre!.lng).toBeGreaterThanOrEqual(119.0);
+    expect(view.centre!.lng).toBeLessThanOrEqual(122.3);
   });
 
   test("(d) four rapid zoom-ins never leave the map blank", async ({ page }) => {
     await stubTiles(page, 300);
-    const map = await gotoMap(page);
-    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    await gotoMap(page);
+    const zBefore = (await viewFromMap(page)).centre!.z;
+    const zoomIn = page.locator(".maplibregl-ctrl-zoom-in");
     for (let i = 0; i < 4; i++) {
       await zoomIn.click({ timeout: 5_000 });
     }
-    // Once settled, every tile on screen is loaded and together the
-    // tiles cover (nearly) the whole container — no bare pane.
+    // The zooms landed: each click eases from wherever the camera
+    // currently is toward one level deeper, so four rapid clicks
+    // net roughly two levels — far deeper than the Taiwan fit,
+    // which is what this asserts (Leaflet's queued zooms netted
+    // the full four; the not-blank intent is identical).
     await expect
       .poll(
-        async () =>
-          page.evaluate(() => {
-            const tiles = Array.from(
-              document.querySelectorAll(".leaflet-tile")
-            ) as HTMLImageElement[];
-            if (tiles.length === 0) return 0;
-            const loaded = tiles.filter(
-              (t) => t.complete && t.naturalWidth > 0
-            ).length;
-            return loaded / tiles.length;
-          }),
+        async () => {
+          const v = await viewFromMap(page);
+          return v.centre ? v.centre.z : -1;
+        },
         { timeout: 25_000 }
       )
-      .toBe(1);
-    const coverage = await page.evaluate(() => {
-      const container = document
-        .querySelector(".place-map")!
-        .getBoundingClientRect();
-      const tiles = Array.from(
-        document.querySelectorAll(".leaflet-tile")
-      ) as HTMLImageElement[];
-      let covered = 0;
-      for (const t of tiles) {
-        const r = t.getBoundingClientRect();
-        const w =
-          Math.min(r.right, container.right) - Math.max(r.left, container.left);
-        const h =
-          Math.min(r.bottom, container.bottom) - Math.max(r.top, container.top);
-        if (w > 0 && h > 0) covered += w * h;
-      }
-      return covered / (container.width * container.height);
-    });
-    expect(coverage).toBeGreaterThan(0.95);
-    expect(map).toBeTruthy();
+      .toBeGreaterThan(zBefore + 1.5);
+    await expect
+      .poll(async () => (await viewFromMap(page)).total, { timeout: 20_000 })
+      .toBe(242);
+    // And the canvas is genuinely painted, not a blank pane: the
+    // centre pixel is the stub tiles' water colour (repainted to
+    // the night water tone by the dark adaptation), not
+    // transparent black.
+    const px = await centrePixel(page);
+    expect(px[3]).toBe(255);
+    expect(px[0] + px[1] + px[2]).toBeGreaterThan(0);
   });
 });
 
@@ -337,32 +398,34 @@ test.describe("map legibility", () => {
 // above passed, because they all scroll the map into view before
 // asserting and never check that a search actually MOVED the view.
 // The tests below close those blind spots: they assert the map's
-// geographic bounds (reconstructed from the tiles on screen), not
-// just its markers. Tests (l) and (m) cover the third failure of
-// the same day: Leaflet's animated fitBounds could defer a
-// set-change fit to an animation frame that never came, or drop it
-// outright when a zoom animation was in flight, while the
-// component recorded it as applied — they reproduce both shapes
-// against the production build (both failed before the fix).
+// geographic view (read from the live instance), not just its
+// markers. Tests (l) and (m) cover the third failure of the same
+// day: a set-change fit could be deferred to an animation frame
+// that never came, or dropped outright when it landed during a
+// zoom animation, while the component recorded it as applied —
+// they reproduce both shapes against the production build (both
+// failed before the Leaflet fix; the MapLibre port keeps the same
+// synchronous-fit + defer-and-verify discipline, and these tests
+// now guard THAT).
 test.describe("fit integrity (2026-11-23 regression)", () => {
   test("(e) below-the-fold load: after scrolling into view the map frames Taiwan and sums to 242", async ({
     page,
   }) => {
     await stubTiles(page);
     await page.goto("/");
-    const map = page.locator(".place-map.leaflet-container");
+    const map = page.locator(".place-map.maplibregl-map");
     await map.waitFor({ state: "visible", timeout: 30_000 });
     // Deliberately do NOT scroll: the map sits below the fold while
     // the page settles, exactly as a real visitor's first seconds go.
     await page.waitForTimeout(1800);
     await map.scrollIntoViewIfNeeded();
     await page.waitForTimeout(1200);
-    const view = await viewFromTiles(page);
+    const view = await viewFromMap(page);
     expect(view.centre).not.toBeNull();
-    // A Taiwan fit, not a world view: zoom 5–8 and the centre inside
-    // a generous Taiwan envelope.
+    // A Taiwan fit, not a world view: zoom 5–8.5 (fractional under
+    // MapLibre) and the centre inside a generous Taiwan envelope.
     expect(view.centre!.z).toBeGreaterThanOrEqual(5);
-    expect(view.centre!.z).toBeLessThanOrEqual(8);
+    expect(view.centre!.z).toBeLessThanOrEqual(8.5);
     expect(view.centre!.lat).toBeGreaterThanOrEqual(21.5);
     expect(view.centre!.lat).toBeLessThanOrEqual(25.6);
     expect(view.centre!.lng).toBeGreaterThanOrEqual(119.0);
@@ -377,7 +440,7 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
   }) => {
     await stubTiles(page);
     await gotoMap(page);
-    const before = await viewFromTiles(page);
+    const before = await viewFromMap(page);
     expect(before.centre).not.toBeNull();
     await page.locator("input.search").first().fill("noodle");
     await page.waitForFunction(
@@ -385,7 +448,7 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
       { timeout: 15_000 }
     );
     await page.waitForTimeout(900);
-    const after = await viewFromTiles(page);
+    const after = await viewFromMap(page);
     expect(after.centre).not.toBeNull();
     // The view MOVED to the noodle set's Kaohsiung-area envelope at
     // district zoom — the live failure left it on the previous frame
@@ -422,11 +485,10 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
   }) => {
     await stubTiles(page);
     // Force the map container to 120×120 for the first 2.5s of the
-    // page's life — the size band in which a padded fit collapses to
-    // a near-world zoom — then let it take its real size. The
-    // pre-fix code computed the fit against the small size and
-    // stranded the map there (Leaflet's size corrections only pan,
-    // never refit); the fit must land on Taiwan once the size
+    // page's life — the size band in which a padded fit collapses —
+    // then let it take its real size. A fit computed against the
+    // small size and never revisited would strand the map at an
+    // extreme zoom; the fit must land on Taiwan once the size
     // corrects.
     await page.addInitScript(() => {
       const style = document.createElement("style");
@@ -438,7 +500,7 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
       setTimeout(() => style.remove(), 2500);
     });
     await page.goto("/");
-    const map = page.locator(".place-map.leaflet-container");
+    const map = page.locator(".place-map.maplibregl-map");
     await map.waitFor({ state: "visible", timeout: 30_000 });
     await expect
       .poll(
@@ -451,10 +513,10 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
       .toBeGreaterThan(600);
     await map.scrollIntoViewIfNeeded();
     await page.waitForTimeout(1500);
-    const view = await viewFromTiles(page);
+    const view = await viewFromMap(page);
     expect(view.centre).not.toBeNull();
     expect(view.centre!.z).toBeGreaterThanOrEqual(5);
-    expect(view.centre!.z).toBeLessThanOrEqual(8);
+    expect(view.centre!.z).toBeLessThanOrEqual(8.5);
     expect(view.centre!.lat).toBeGreaterThanOrEqual(21.5);
     expect(view.centre!.lat).toBeLessThanOrEqual(25.6);
     expect(view.centre!.lng).toBeGreaterThanOrEqual(119.0);
@@ -467,7 +529,7 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
   }) => {
     await stubTiles(page);
     const map = await gotoMap(page);
-    const before = await viewFromTiles(page);
+    const before = await viewFromMap(page);
     expect(before.centre).not.toBeNull();
     expect(before.total).toBe(242);
     const box = (await map.boundingBox())!;
@@ -485,7 +547,7 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
       })
       .toBeGreaterThan(scrollBefore + 200);
     await page.waitForTimeout(600);
-    const after = await viewFromTiles(page);
+    const after = await viewFromMap(page);
     expect(after.centre).not.toBeNull();
     expect(after.centre!.z).toBe(before.centre!.z);
     expect(after.centre!.lat).toBeGreaterThanOrEqual(21.5);
@@ -500,25 +562,25 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
   }) => {
     await stubTiles(page);
     const map = await gotoMap(page);
-    const before = await viewFromTiles(page);
+    const before = await viewFromMap(page);
     expect(before.centre).not.toBeNull();
     const box = (await map.boundingBox())!;
     // Click a bare patch of map (top-right: open sea at the Taiwan
     // framing, no markers, no controls) to activate wheel zoom.
     await page.mouse.click(box.x + box.width - 60, box.y + 50);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    // Wheel down — the page-scroll direction, which Leaflet reads
+    // Wheel down — the page-scroll direction, which the map reads
     // as zoom OUT (wheel up zooms in).
     await page.mouse.wheel(0, 360);
     await expect
       .poll(
         async () => {
-          const v = await viewFromTiles(page);
+          const v = await viewFromMap(page);
           return v.centre?.z ?? -1;
         },
         { timeout: 15_000 }
       )
-      .toBeLessThan(before.centre!.z);
+      .toBeLessThan(before.centre!.z - 0.2);
   });
 
   test("(k) after the pointer leaves the map, the wheel scrolls the page again instead of zooming", async ({
@@ -533,7 +595,7 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
     await page.mouse.move(box.x + box.width / 2, Math.max(10, box.y - 120), {
       steps: 10,
     });
-    const before = await viewFromTiles(page);
+    const before = await viewFromMap(page);
     expect(before.centre).not.toBeNull();
     // Back over the map and wheel down: no zoom, the page scrolls.
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -546,29 +608,26 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
       })
       .toBeGreaterThan(scrollBefore + 200);
     await page.waitForTimeout(600);
-    const after = await viewFromTiles(page);
+    const after = await viewFromMap(page);
     expect(after.centre).not.toBeNull();
     expect(after.centre!.z).toBe(before.centre!.z);
     expect(after.total).toBe(242);
   });
 
-  test("(l) a set-change fit lands even when no animation frame ever comes (animated-band deferral)", async ({
+  test("(l) a set-change fit lands even when no animation frame ever comes (frame-starved renderer)", async ({
     page,
   }) => {
-    // Regression for the third live failure (2026-11-23): Leaflet's
-    // ANIMATED fitBounds, inside its animated band (zoom delta <=
-    // zoomAnimationThreshold = 4, zoom origin within one screen),
-    // defers the entire view change to a single
-    // requestAnimationFrame callback — and the component recorded
-    // the fit as applied, so no retry ever fired when the frame
-    // never came (a frame-starved renderer: occluded or
-    // agent-driven browser, composited scrolling). From the Taiwan
-    // fit (zoom 6) the noodle fit (zoom 12, delta 6) is synchronous
-    // and could never show this; at zoom 8 (delta 4) it can. So:
-    // zoom in twice first, scroll back up, starve rAF, then run the
-    // diagnostic's Experiment 1 sequence. The rAF gate is installed
-    // before any page script runs (Leaflet captures
-    // window.requestAnimationFrame at module load).
+    // Regression for the third live failure (2026-11-23): a fit
+    // deferred to a single requestAnimationFrame callback that a
+    // frame-starved renderer never delivers, while the component
+    // recorded the fit as applied. The MapLibre port issues
+    // set-change fits synchronously (animate: false), so the
+    // CAMERA must already sit on the new frame while the renderer
+    // is starved — that is the assertion below. (Marker POSITIONS
+    // are painted by the render loop, so the pins' spread is only
+    // asserted after the gate is released; under Leaflet the
+    // markers were DOM-positioned by the fit itself, which is why
+    // the old spec could assert the spread mid-starvation.)
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     await page.addInitScript(() => {
@@ -594,18 +653,27 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
     });
     await stubTiles(page);
     await page.goto("/");
-    const map = page.locator(".place-map.leaflet-container");
+    const map = page.locator(".place-map.maplibregl-map");
     await map.waitFor({ state: "visible", timeout: 30_000 });
     await map.scrollIntoViewIfNeeded();
-    await page.waitForSelector(".leaflet-tile-loaded", { timeout: 30_000 });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector(".place-map") as unknown as {
+          __haoChiMap?: HookMap;
+        };
+        return !!el?.__haoChiMap && el.__haoChiMap.isStyleLoaded();
+      },
+      { timeout: 30_000 }
+    );
     await page.waitForTimeout(600);
-    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    const zoomIn = page.locator(".maplibregl-ctrl-zoom-in");
+    const zFit = (await viewFromMap(page)).centre!.z;
     await zoomIn.click();
     await page.waitForTimeout(700);
     await zoomIn.click();
     await page.waitForTimeout(900);
-    const atEight = await viewFromTiles(page);
-    expect(atEight.centre?.z).toBe(8);
+    const atZoomed = await viewFromMap(page);
+    expect(atZoomed.centre!.z).toBeGreaterThan(zFit + 1.8);
     // Back up to the search box; starve the renderer from here on.
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(400);
@@ -632,9 +700,23 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
       await page.waitForTimeout(300);
     }
     await page.waitForTimeout(5000);
-    // While STILL starved, the pins must already be spread across
-    // the frame — the pre-fix code left them piled on one spot
-    // (measured spread 16px) until a frame happened to arrive.
+    // While STILL starved, the camera must already be the noodle
+    // set's Kaohsiung frame — the pre-fix failure left the view on
+    // the old frame indefinitely.
+    const starved = await viewFromMap(page);
+    expect(starved.centre).not.toBeNull();
+    expect(starved.centre!.z).toBeGreaterThanOrEqual(10);
+    expect(starved.centre!.lat).toBeGreaterThanOrEqual(22.55);
+    expect(starved.centre!.lat).toBeLessThanOrEqual(22.8);
+    expect(starved.centre!.lng).toBeGreaterThanOrEqual(120.2);
+    expect(starved.centre!.lng).toBeLessThanOrEqual(120.45);
+    // Release the gate: the pins paint spread across the frame.
+    await page.evaluate(() =>
+      (
+        window as unknown as { __setStarveRaf: (v: boolean) => void }
+      ).__setStarveRaf(false)
+    );
+    await page.waitForTimeout(1200);
     const centres = await page.locator(".map-pin").evaluateAll((els) =>
       els.map((el) => {
         const r = el.getBoundingClientRect();
@@ -647,48 +729,30 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
     expect(
       new Set(centres.map((c) => `${Math.round(c.x)},${Math.round(c.y)}`)).size
     ).toBeGreaterThanOrEqual(12);
-    // And the frame is the noodle set's Kaohsiung frame (checked
-    // after releasing the gate so tiles can paint).
-    await page.evaluate(() =>
-      (
-        window as unknown as { __setStarveRaf: (v: boolean) => void }
-      ).__setStarveRaf(false)
-    );
-    await page.waitForTimeout(1200);
-    const view = await viewFromTiles(page);
-    expect(view.centre).not.toBeNull();
-    expect(view.centre!.z).toBeGreaterThanOrEqual(10);
-    expect(view.centre!.lat).toBeGreaterThanOrEqual(22.55);
-    expect(view.centre!.lat).toBeLessThanOrEqual(22.8);
-    expect(view.centre!.lng).toBeGreaterThanOrEqual(120.2);
-    expect(view.centre!.lng).toBeLessThanOrEqual(120.45);
   });
 
   test("(m) a search dispatched during a zoom animation is not dropped", async ({
     page,
   }) => {
-    // The other half of the same root cause: Leaflet's
-    // _tryAnimatedZoom returns "handled" immediately when a zoom
-    // animation is already in flight, silently DISCARDING a
-    // fitBounds that arrives mid-animation — while the component
-    // recorded it as applied (the live diagnostic's pins redrew,
-    // the view completed the OLD animation and stayed). Start a
-    // zoom-in, and the moment Leaflet's own leaflet-zoom-anim class
-    // shows the animation is running, dispatch the search as a real
-    // input event in the same task, so the set-change fit is
-    // guaranteed to land mid-animation.
+    // The other half of the same root cause: a fitBounds arriving
+    // mid-animation was silently DISCARDED by the old library
+    // while the component recorded it as applied. The port defers
+    // a fit that arrives while the camera is easing and retries it
+    // on the animation's own moveend (and a plain timer). Start a
+    // zoom-in, and the moment the map reports itself easing,
+    // dispatch the search as a real input event in the same task,
+    // so the set-change fit is guaranteed to land mid-animation.
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     await stubTiles(page);
     const map = await gotoMap(page);
-    await page.locator(".leaflet-control-zoom-in").click();
+    await page.locator(".maplibregl-ctrl-zoom-in").click();
     await page.evaluate(async () => {
-      const pane = document.querySelector(".leaflet-map-pane");
-      for (
-        let i = 0;
-        i < 400 && !pane?.classList.contains("leaflet-zoom-anim");
-        i++
-      ) {
+      const el = document.querySelector(".place-map") as unknown as {
+        __haoChiMap?: HookMap;
+      };
+      const hook = el.__haoChiMap!;
+      for (let i = 0; i < 400 && !hook.isEasing(); i++) {
         await new Promise((r) => setTimeout(r, 5));
       }
       const input = document.querySelector(
@@ -708,7 +772,7 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
         { timeout: 20_000 }
       )
       .toBe(14);
-    // Long past the animation's 250ms: a dropped fit never retries.
+    // Long past the animation: a dropped fit never retries.
     await page.waitForTimeout(2500);
     const centres = await page.locator(".map-pin").evaluateAll((els) =>
       els.map((el) => {
@@ -718,9 +782,10 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
     );
     expect(centres).toHaveLength(14);
     const xs = centres.map((c) => c.x);
-    // Pre-fix: spread ~9px (pins piled at the old frame's zoom).
+    // The dropped-fit failure: spread ~9px (pins piled at the old
+    // frame's zoom).
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(100);
-    const view = await viewFromTiles(page);
+    const view = await viewFromMap(page);
     expect(view.centre).not.toBeNull();
     expect(view.centre!.z).toBeGreaterThanOrEqual(10);
     expect(view.centre!.lat).toBeGreaterThanOrEqual(22.55);
@@ -735,23 +800,22 @@ test.describe("fit integrity (2026-11-23 regression)", () => {
   }) => {
     await stubTiles(page);
     const map = await gotoMap(page);
-    // The visitor takes over the view: two zoom-ins from the Taiwan
-    // fit (zoom 6 → 8).
-    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    // The visitor takes over the view: two zoom-ins from the
+    // Taiwan fit.
+    const zoomIn = page.locator(".maplibregl-ctrl-zoom-in");
     await zoomIn.click();
     await page.waitForTimeout(500);
     await zoomIn.click();
     await page.waitForTimeout(900);
-    const before = await viewFromTiles(page);
+    const before = await viewFromMap(page);
     expect(before.centre).not.toBeNull();
-    expect(before.centre!.z).toBe(8);
     // A material size change (the window narrows; the map column
     // follows) must not yank the visitor's view back to a fit.
     await page.setViewportSize({ width: 760, height: 900 });
     await page.waitForTimeout(1500);
-    const after = await viewFromTiles(page);
+    const after = await viewFromMap(page);
     expect(after.centre).not.toBeNull();
-    expect(after.centre!.z).toBe(8);
+    expect(after.centre!.z).toBe(before.centre!.z);
     expect(
       Math.abs(after.centre!.lat - before.centre!.lat)
     ).toBeLessThan(0.05);

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type * as Leaflet from "leaflet";
-import "leaflet/dist/leaflet.css";
+import type { Map as MLMap, Marker as MLMarker } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import {
   CLUSTER_FIT_MAX_ZOOM,
   FIT_MAX_ZOOM,
@@ -14,94 +14,106 @@ import {
   markerSetSignature,
   type MapMarkerSet,
 } from "@/lib/map";
+import {
+  applyDarkPaint,
+  applyLabelLanguage,
+  type StyleTarget,
+} from "@/lib/mapStyle";
+import type { Lang } from "@/lib/i18n";
 import type { Place } from "@/lib/places";
 
-// The real interactive map: Leaflet with OpenStreetMap tiles (the tile
-// source the live app already discloses on its privacy page). This
-// component is only ever imported via next/dynamic with ssr:false from
-// PlaceBrowser, so Leaflet — which needs `window` — never runs during
-// the server render or the static prerender. Plain Leaflet in effects,
-// no react-leaflet.
+// The real interactive map — TRIAL build (Jenny's go-ahead,
+// 2026-11-24, staging only): MapLibre GL JS drawing OpenStreetMap
+// data as VECTOR tiles (OpenFreeMap's hosted OpenMapTiles service,
+// the calm "positron" base style repainted toward the app's night
+// palette by lib/mapStyle.ts), replacing the Leaflet map's borrowed
+// raster tile pictures. What the swap buys: vector tiles zoom
+// smoothly instead of loading a new picture per level (the lag
+// Jenny felt on pinch zoom), the labels are data the app can
+// restyle — they follow the EN/中文 toggle and wear the night
+// palette — and the map is styled as the app's own. Attribution to
+// the OpenStreetMap contributors rides in the style's own
+// attribution, shown by the attribution control, as before.
+// This component is only ever imported via next/dynamic with
+// ssr:false from PlaceBrowser, so MapLibre — which needs `window`
+// and WebGL — never runs during the server render or the static
+// prerender. Plain MapLibre in effects, no wrapper library.
 //
-// The map draws the CURRENT filtered set (the same places as the list):
-// numbered pins at ≤60 results; above that, places group into count
-// badges (clusters) that separate as the visitor zooms in, with any
-// ungrouped place drawn as the plain dot it always was — the badge
-// counts plus the dots always add up to the set's size. The view fits
-// the set's frame (with generous padding, and whole Taiwan for an
-// empty set) only when the set itself changes — panning/zooming and
-// then toggling Cards/Compact does not move the visitor's view.
+// The map draws the CURRENT filtered set (the same places as the
+// list): numbered pins at ≤60 results; above that, places group
+// into count badges (clusters) that separate as the visitor zooms
+// in, with any ungrouped place drawn as the plain dot it always
+// was — the badge counts plus the dots always add up to the set's
+// size. The view fits the set's frame (with generous padding, and
+// whole Taiwan for an empty set) only when the set itself changes
+// — panning/zooming and then toggling Cards/Compact does not move
+// the visitor's view.
 //
-// A fit is only ever computed against a settled size: if the
-// container has not reached its real size when a fit comes due (the
-// map sits below the fold while the page settles), the fit is queued
-// rather than computed against the wrong size, and a ResizeObserver
-// plus the settle remedies land it — or re-apply the current fit
-// exactly once — when the size corrects. A fit computed against an
-// unsettled size zooms to an extreme and strands the map there,
-// because Leaflet's own size corrections only pan, never refit.
+// The fit discipline is the one Phase A (2026-11-23) proved on the
+// Leaflet build, ported control for control, because the failure
+// it guards against — a set change whose pins redraw while the
+// view stays on the old frame — must stay impossible:
 //
-// A set-change fit is never trusted to Leaflet's animated path —
-// it is issued synchronously (animate: false), deferred while a
-// zoom animation is in flight, and afterwards VERIFIED. Leaflet's
-// animated setView is
-// fire-and-forget: inside its animated band (zoom delta within
-// zoomAnimationThreshold, zoom origin within one screen) it defers
-// the whole view change to a single requestAnimationFrame callback
-// — which a frame-starved renderer (an occluded or agent-driven
-// browser, composited scrolling that never runs a main frame) may
-// never deliver — and when a zoom animation is already in flight
-// it silently DROPS the request, returning as if it had complied.
-// The 2026-11-23 live failure was exactly this: the pins redrew for
-// the searched set while the view stayed on the old frame, and
-// because the fit had been recorded as applied, no retry ever
-// fired. So set-change fits are issued two ways, neither of which
-// trusts the call: with animate: false when no zoom animation is
-// running (setView then resets the view synchronously, before
-// fitBounds returns — it cannot defer), and DEFERRED through the
-// pending-fit mechanism when one is (the drop check precedes the
-// animate check in Leaflet, and nothing can cancel a zoom
-// animation mid-flight; the fit retries on the animation's own
-// zoomend and on a plain timer until the view is free). Either
-// way, the landed fit's centre/zoom are recorded so the settle
-// remedies and two plain timers can verify the view actually
-// arrived and re-apply it if anything ever swallows one anyway.
-// A set change ALWAYS ends with the map framed on the new
-// set: regardless of whether the map is on- or off-screen, and
-// regardless of size-settle state (a queued fit lands via the
-// pending retries). The visitor-owned guard below may only ever
-// suppress these verification/size-correction refits — never the
-// set-change fit itself.
+//  - A fit is only ever computed against a settled size: if the
+//    container has not reached its real size when a fit comes due
+//    (the map sits below the fold while the page settles), the fit
+//    is queued rather than computed against the wrong size, and
+//    the map's own resize event lands it — or re-applies the
+//    current fit exactly once — when the size corrects. A fit
+//    computed against an unsettled size zooms to an extreme and
+//    strands the map there.
+//  - A set-change fit is issued SYNCHRONOUSLY (animate: false),
+//    never into an in-flight camera animation (it is deferred
+//    through the pending-fit mechanism and retried on the
+//    animation's own moveend and on a plain timer), and afterwards
+//    VERIFIED: the landed centre/zoom are recorded, and plain
+//    timers plus resize/load triggers re-check that the view
+//    actually arrived, re-applying the fit if anything ever
+//    swallows one. (MapLibre's camera is better behaved than
+//    Leaflet's animated path was — a non-animated fit applies
+//    before the call returns, and a new camera command replaces
+//    rather than drops behind an in-flight animation — but the
+//    verification costs nothing and keeps the guarantee structural
+//    rather than faith in either library.)
+//  - A set change ALWAYS ends with the map framed on the new set:
+//    on- or off-screen, settled size or not (a queued fit lands via
+//    the pending retries). The visitor-owned guard below may only
+//    ever suppress these verification/size-correction refits —
+//    never the set-change fit itself.
 //
-// Wheel zoom is click-to-activate: with Leaflet's default
-// scrollWheelZoom, a desktop visitor scrolling down the page with
-// the pointer over the map has the wheel captured by the map — the
-// page scroll stalls and the map zooms itself away from its framing
-// (the confirmed cause of the 2026-11-23 live failure; programmatic
-// test scrolls never produce wheel events, which is why the sandbox
-// could not see it). So the map is created with scrollWheelZoom off,
-// a click/tap into the map (or keyboard focus) turns it on, and the
-// pointer leaving the map (or the map losing focus) turns it off
-// again. Touch pinch zoom and drag pan are separate Leaflet
-// handlers and are never gated.
+// Wheel zoom is click-to-activate, exactly as on the Leaflet build:
+// with wheel zoom live, a desktop visitor scrolling down the page
+// with the pointer over the map has the wheel captured by the map
+// — the page scroll stalls and the map zooms itself away from its
+// framing (the confirmed cause of the 2026-11-23 live failure;
+// programmatic test scrolls never produce wheel events, which is
+// why the sandbox could not see it). So the map is created with
+// scrollZoom off, a click/tap into the map (or keyboard focus)
+// turns it on, and the pointer leaving the map (or the map losing
+// focus) turns it off again. Touch pinch zoom and drag pan are
+// separate handlers and are never gated.
+
+const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
 
 type PlaceMapProps = {
   markerSet: MapMarkerSet;
   onSelect: (place: Place) => void;
+  lang: Lang;
 };
 
-export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
+export default function PlaceMap({ markerSet, onSelect, lang }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const leafletRef = useRef<typeof Leaflet | null>(null);
-  const mapRef = useRef<Leaflet.Map | null>(null);
-  const layerRef = useRef<Leaflet.LayerGroup | null>(null);
+  const mapRef = useRef<MLMap | null>(null);
+  const mlRef = useRef<typeof import("maplibre-gl") | null>(null);
+  const markersRef = useRef<MLMarker[]>([]);
   const fittedSignatureRef = useRef<string | null>(null);
   // Fit bookkeeping for the size gate below: a fit is only ever
   // computed against a SETTLED size, and a later material size
   // correction re-applies the current set's fit exactly once.
   // lastFitRef records what was fitted and at what container size;
-  // pendingFitRef marks a fit that is waiting for a settled size;
-  // view ownership is tracked by the timestamps further below.
+  // pendingFitRef marks a fit that is waiting for a settled size or
+  // a free camera; view ownership is tracked by the timestamps
+  // further below.
   const lastFitRef = useRef<{
     signature: string;
     width: number;
@@ -119,93 +131,57 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
   // fitAtRef records when the latest fit was applied. The visitor
   // owns the view only against fits from BEFORE their gesture — a
   // gesture that predates a set-change fit must not suppress that
-  // fit's verification (the gesture's own zoom animation can still
-  // be in flight when the fit lands, and its completion callback
-  // would otherwise drag the view back to the animation's target),
-  // while any gesture after a fit suppresses verification and
-  // size-correction refits, as it should.
+  // fit's verification, while any gesture after a fit suppresses
+  // verification and size-correction refits, as it should.
   const userMovedAtRef = useRef(0);
   const fitAtRef = useRef(0);
   const visitorOwnsView = () => userMovedAtRef.current > fitAtRef.current;
   // True only during the synchronous body of one of our own fits:
   // a fit's own zoomstart fires inside that window, so a zoomstart
   // observed outside it is the visitor's (or another animation's),
-  // never our fit's. (This replaces a 600ms timing beat that tried
-  // to guess the same distinction for animated fits and misjudged
-  // it more than once; synchronous fits make it exact.)
+  // never our fit's.
   const fitSyncRef = useRef(false);
   // The fit-verification timers (plain setTimeout — they fire
   // regardless of animation frames).
   const verifyTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  // The one-shot retry for a fit deferred behind an in-flight zoom
-  // animation (see applyFit).
+  // The one-shot retry for a fit deferred behind an in-flight
+  // camera animation (see applyFit).
   const fitRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Latest props, readable from the Leaflet callbacks and effects below
-  // without re-creating the map.
+  // Latest props, readable from the MapLibre callbacks and effects
+  // below without re-creating the map.
   const markerSetRef = useRef(markerSet);
   const onSelectRef = useRef(onSelect);
+  const langRef = useRef(lang);
 
   // Keep the refs current (declared first so they run before the
   // marker-update effect below).
   useEffect(() => {
     markerSetRef.current = markerSet;
     onSelectRef.current = onSelect;
+    langRef.current = lang;
   });
 
-  // A size is settled when the container has a real size, the padded
-  // viewport (size minus the fit padding on both sides) is still
-  // positive — a fit computed against a zero/negative viewport zooms
-  // to an extreme and strands the map there — and Leaflet's cached
-  // size agrees with the container's actual size.
-  function sizeSettled(map: Leaflet.Map): boolean {
+  // A size is settled when the container has a real size and the
+  // padded viewport (size minus the fit padding on both sides) is
+  // still positive — a fit computed against a zero/negative
+  // viewport zooms to an extreme and strands the map there.
+  // (MapLibre tracks its canvas size itself, so unlike the Leaflet
+  // build there is no cached-size comparison to make.)
+  function sizeSettled(): boolean {
     const container = containerRef.current;
     if (!container) return false;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    if (width <= FIT_PADDING_PX * 2 || height <= FIT_PADDING_PX * 2) {
-      return false;
-    }
-    const size = map.getSize();
-    return Math.abs(size.x - width) <= 1 && Math.abs(size.y - height) <= 1;
+    return (
+      container.clientWidth > FIT_PADDING_PX * 2 &&
+      container.clientHeight > FIT_PADDING_PX * 2
+    );
   }
 
-  // Fit the current set, but only against a settled size and never
-  // into an in-flight zoom animation. When the size is not settled,
-  // or a zoom animation is running, the fit is queued
-  // (pendingFitRef) instead of computed — the settle remedies, the
-  // ResizeObserver, the animation's own zoomend and a plain timer
-  // retry it until it lands. Returns whether the fit was applied.
-  //
-  // The fit itself is SYNCHRONOUS (animate: false — see the header
-  // note): Leaflet's animated setView can defer the view change to
-  // an animation frame that never comes, or silently drop it when a
-  // zoom animation is already in flight, while reporting success
-  // either way. A synchronous fit stops any in-flight animation and
-  // resets the view before fitBounds returns, so the centre/zoom
-  // read back immediately afterwards ARE the fitted view — and are
-  // recorded for the verification below.
-  // Whether a zoom animation is currently in flight. Leaflet marks
-  // the whole duration by putting its zoom-animation class on the
-  // map pane (and removes it before firing zoomend) — a public,
-  // observable signal for a state that decides whether a fitBounds
-  // would be silently discarded: _tryAnimatedZoom returns
-  // "handled" at once while a zoom animation is running, BEFORE it
-  // ever looks at the animate option, and no Leaflet API cancels a
-  // zoom animation mid-flight. So a fit due during one is never
-  // issued into the void — it is deferred (the pending mechanism)
-  // and retried when the animation ends.
-  function zoomAnimationInFlight(map: Leaflet.Map): boolean {
-    return !!map.getContainer().querySelector(".leaflet-zoom-anim");
-  }
-
-  // Retry a deferred fit on plain passage of time: a zoom
-  // animation runs 250ms, so a 400ms beat lands after it — and
-  // timers fire even in a frame-starved renderer, where the
-  // zoomend trigger below might be the only other retry that
-  // demonstrably fires. Each retry re-arms while an animation is
-  // still in flight (a visitor mid-pinch, say), so the fit lands
-  // the moment the view is free.
-  function scheduleFitRetry(map: Leaflet.Map) {
+  // Retry a deferred fit on plain passage of time: a camera
+  // animation runs ~500ms at most, so a 400ms beat lands after it
+  // — and timers fire even in a frame-starved renderer. Each retry
+  // re-arms while an animation is still in flight (a visitor
+  // mid-pinch, say), so the fit lands the moment the view is free.
+  function scheduleFitRetry(map: MLMap) {
     if (fitRetryTimerRef.current) clearTimeout(fitRetryTimerRef.current);
     fitRetryTimerRef.current = setTimeout(() => {
       fitRetryTimerRef.current = null;
@@ -215,24 +191,29 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     }, 400);
   }
 
+  // Fit the current set, but only against a settled size and never
+  // into an in-flight camera animation. When the size is not
+  // settled, or the camera is animating, the fit is queued
+  // (pendingFitRef) instead — the resize event, the animation's
+  // own moveend and a plain timer retry it until it lands. Returns
+  // whether the fit was applied.
+  //
+  // The fit itself is SYNCHRONOUS (animate: false — see the header
+  // note): the centre/zoom read back immediately afterwards ARE
+  // the fitted view, and are recorded for the verification below.
   function applyFit(
-    map: Leaflet.Map,
+    map: MLMap,
     set: MapMarkerSet,
     scheduleVerify = true
   ): boolean {
-    if (zoomAnimationInFlight(map)) {
+    if (map.isEasing()) {
       pendingFitRef.current = true;
       scheduleFitRetry(map);
       return false;
     }
-    if (!sizeSettled(map)) {
-      // Leaflet's cached size may simply be stale; re-measuring now
-      // can settle it immediately.
-      map.invalidateSize();
-      if (!sizeSettled(map)) {
-        pendingFitRef.current = true;
-        return false;
-      }
+    if (!sizeSettled()) {
+      pendingFitRef.current = true;
+      return false;
     }
     pendingFitRef.current = false;
     if (fitRetryTimerRef.current) {
@@ -250,13 +231,14 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     try {
       map.fitBounds(
         [
-          [bounds.south, bounds.west],
-          [bounds.north, bounds.east],
+          [bounds.west, bounds.south],
+          [bounds.east, bounds.north],
         ],
         {
-          padding: [FIT_PADDING_PX, FIT_PADDING_PX],
+          padding: FIT_PADDING_PX,
           maxZoom: FIT_MAX_ZOOM,
           animate: false,
+          duration: 0,
         }
       );
     } finally {
@@ -268,9 +250,9 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
       signature: markerSetSignature(set),
       width: container?.clientWidth ?? 0,
       height: container?.clientHeight ?? 0,
-      lat: centre?.lat ?? 0,
-      lng: centre?.lng ?? 0,
-      zoom: map.getZoom() ?? 0,
+      lat: centre.lat,
+      lng: centre.lng,
+      zoom: map.getZoom(),
     };
     fittedSignatureRef.current = lastFitRef.current.signature;
     fitAtRef.current = performance.now();
@@ -281,27 +263,23 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
   // The fit verification: if the map's actual view is not the view
   // the current set's fit produced, re-apply that fit. Synchronous
   // fits make this a formality — it exists so that no present or
-  // future swallow in the view machinery (a deferred animation, a
-  // stale gesture animation landing after our fit) can ever leave a
-  // set change unframed: the check runs on every size re-measurement
-  // (the settle remedies, the ResizeObserver, and scroll-into-view
-  // via the IntersectionObserver — all triggers that demonstrably
-  // fire in the live sequence) and on plain timers after each fit
-  // (timers fire regardless of animation frames). It never touches
-  // a visitor-owned view: a drag, zoom or cluster tap AFTER the fit
-  // suppresses it, exactly as it suppresses size-correction refits —
-  // but a gesture from BEFORE the fit does not (see the ownership
-  // timestamps below: that gesture's animation may be what moved
-  // the view away). It also stands down while a
-  // fit is queued behind an unsettled size (the pending retries own
-  // that case) and when the recorded fit belongs to an older set.
-  function verifyFit(map: Leaflet.Map) {
+  // future swallow in the view machinery can ever leave a set
+  // change unframed: the check runs on every size re-measurement
+  // (the map's resize event, window load) and on plain timers
+  // after each fit (timers fire regardless of animation frames).
+  // It never touches a visitor-owned view: a drag, zoom or cluster
+  // tap AFTER the fit suppresses it, exactly as it suppresses
+  // size-correction refits — but a gesture from BEFORE the fit does
+  // not (see the ownership timestamps: that gesture's animation may
+  // be what moved the view away). It also stands down while a fit
+  // is queued (the pending retries own that case) and when the
+  // recorded fit belongs to an older set.
+  function verifyFit(map: MLMap) {
     const last = lastFitRef.current;
     if (!last || pendingFitRef.current || visitorOwnsView()) return;
     if (last.signature !== markerSetSignature(markerSetRef.current)) return;
     const centre = map.getCenter();
     const zoom = map.getZoom();
-    if (!centre || zoom === undefined) return;
     if (
       Math.abs(zoom - last.zoom) > 0.001 ||
       Math.abs(centre.lat - last.lat) > 0.0001 ||
@@ -314,7 +292,7 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
   // After each fit, check at two plain-timer beats that the view
   // really arrived (and stayed). Re-scheduling replaces the
   // previous fit's timers; unmount clears them.
-  function scheduleFitVerification(map: Leaflet.Map) {
+  function scheduleFitVerification(map: MLMap) {
     for (const timer of verifyTimersRef.current) clearTimeout(timer);
     verifyTimersRef.current = [600, 1800].map((delay) =>
       setTimeout(() => {
@@ -323,16 +301,16 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     );
   }
 
-  // Called after every size re-measurement (the settle remedies and
-  // the ResizeObserver): if a fit is still pending, land it now that
-  // the size may have settled; otherwise, if the container's size has
+  // Called on every map resize (MapLibre watches the container
+  // itself): if a fit is still pending, land it now that the size
+  // may have settled; otherwise, if the container's size has
   // materially changed since the current fit was computed and the
-  // visitor has not taken over the view, re-apply the current set's
-  // fit exactly once at the corrected size; and in all cases give
-  // the fit verification its chance to catch a swallowed fit.
-  function refitAfterResize(map: Leaflet.Map) {
+  // visitor has not taken over the view, re-apply the current
+  // set's fit exactly once at the corrected size; and in all cases
+  // give the fit verification its chance to catch a swallowed fit.
+  function refitAfterResize(map: MLMap) {
     if (pendingFitRef.current) {
-      if (sizeSettled(map)) applyFit(map, markerSetRef.current);
+      if (sizeSettled()) applyFit(map, markerSetRef.current);
       return;
     }
     const last = lastFitRef.current;
@@ -347,58 +325,71 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
     verifyFit(map);
   }
 
-  function drawMarkers(L: typeof Leaflet, map: Leaflet.Map, refit: boolean) {
-    const layer = layerRef.current;
-    if (!layer) return;
+  function clearMarkers() {
+    for (const marker of markersRef.current) marker.remove();
+    markersRef.current = [];
+  }
+
+  function drawMarkers(ml: typeof import("maplibre-gl"), map: MLMap, refit: boolean) {
+    // Replace, never accumulate: every marker is removed on redraw.
+    clearMarkers();
     const set = markerSetRef.current;
-    // Replace, never accumulate: the layer is emptied on every draw.
-    layer.clearLayers();
+    const addMarker = (
+      element: HTMLDivElement,
+      lng: number,
+      lat: number,
+      onTap?: () => void
+    ) => {
+      if (onTap) element.addEventListener("click", onTap);
+      const marker = new ml.Marker({ element })
+        .setLngLat([lng, lat])
+        .addTo(map);
+      markersRef.current.push(marker);
+      return marker;
+    };
+    const badge = (wrapClass: string, innerClass: string, text?: string) => {
+      const wrap = document.createElement("div");
+      wrap.className = wrapClass;
+      const inner = document.createElement("span");
+      inner.className = innerClass;
+      if (text != null) inner.textContent = text;
+      wrap.appendChild(inner);
+      return wrap;
+    };
+
     if (set.markers.length > 0 && set.markers[0].kind === "numbered") {
       for (const marker of set.markers) {
-        const icon = L.divIcon({
-          className: "map-pin-wrap",
-          html: `<span class="map-pin">${marker.number}</span>`,
-          iconSize: [30, 30],
-          iconAnchor: [15, 15],
-        });
-        L.marker([marker.lat, marker.lng], { icon, keyboard: false })
-          .on("click", () => onSelectRef.current(marker.place))
-          .addTo(layer);
+        addMarker(
+          badge("map-pin-wrap", "map-pin", String(marker.number)),
+          marker.lng,
+          marker.lat,
+          () => onSelectRef.current(marker.place)
+        );
       }
     } else if (set.markers.length > 0) {
-      // Large set: group the dots at the current zoom. A group of one
-      // is drawn as the plain dot; a larger group as a count badge
-      // whose tap fits the group's own bounds, so taps keep
-      // separating clusters as the visitor dives in. getZoom is only
-      // unset before the first fit, which the mount effect performs
-      // before the first draw — the fallback is whole-Taiwan zoom.
-      // (Nullish, not ||: zoom 0 is a real zoom and must not be
-      // silently regrouped as zoom 8.)
-      const zoom = map.getZoom() ?? 8;
+      // Large set: group the dots at the current zoom. A group of
+      // one is drawn as the plain dot; a larger group as a count
+      // badge whose tap fits the group's own bounds, so taps keep
+      // separating clusters as the visitor dives in. getZoom is 0
+      // only before the first fit, which the mount effect performs
+      // before the first draw settles — the fitted zoom's moveend
+      // regroups at the real zoom immediately after.
+      const zoom = map.getZoom();
       for (const group of clusterMarkers(set.markers, zoom)) {
         if (group.count === 1) {
           const marker = group.markers[0];
-          // Circle markers give the dot a tappable area larger than
-          // its visible radius via the stroke; radius 8 reads clearly
-          // at whole-Taiwan zoom without swamping the map.
-          L.circleMarker([marker.lat, marker.lng], {
-            radius: 8,
-            color: "#ffffff",
-            weight: 2,
-            fillColor: "#7a4a12",
-            fillOpacity: 0.9,
-          })
-            .on("click", () => onSelectRef.current(marker.place))
-            .addTo(layer);
+          addMarker(
+            badge("map-dot-wrap", "map-dot"),
+            marker.lng,
+            marker.lat,
+            () => onSelectRef.current(marker.place)
+          );
         } else {
-          const icon = L.divIcon({
-            className: "map-cluster-wrap",
-            html: `<span class="map-cluster">${group.count}</span>`,
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-          });
-          L.marker([group.lat, group.lng], { icon, keyboard: false })
-            .on("click", () => {
+          addMarker(
+            badge("map-cluster-wrap", "map-cluster", String(group.count)),
+            group.lng,
+            group.lat,
+            () => {
               const bounds = markerBounds(group.markers);
               if (!bounds) return;
               // The visitor is steering the view now; a later size
@@ -406,40 +397,33 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
               userMovedAtRef.current = performance.now();
               map.fitBounds(
                 [
-                  [bounds.south, bounds.west],
-                  [bounds.north, bounds.east],
+                  [bounds.west, bounds.south],
+                  [bounds.east, bounds.north],
                 ],
                 {
-                  padding: [FIT_PADDING_PX, FIT_PADDING_PX],
+                  padding: FIT_PADDING_PX,
                   maxZoom: CLUSTER_FIT_MAX_ZOOM,
                 }
               );
-            })
-            .addTo(layer);
+            }
+          );
         }
       }
     }
     // The visitor's own position, when known: a distinct blue dot,
-    // drawn last so it sits above the place markers. Not interactive —
-    // it is not a place.
+    // drawn last so it sits above the place markers. Not
+    // interactive — it is not a place.
     if (set.user) {
-      const icon = L.divIcon({
-        className: "map-you-wrap",
-        html: '<span class="map-you"></span>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-      });
-      L.marker([set.user.lat, set.user.lng], {
-        icon,
-        keyboard: false,
-        interactive: false,
-      }).addTo(layer);
+      const element = badge("map-you-wrap", "map-you");
+      element.style.pointerEvents = "none";
+      addMarker(element, set.user.lng, set.user.lat);
     }
     // Refit only when the set's identity actually changed, and only
     // on a set-driven draw — a zoom-driven redraw (clusters
     // regrouping) must never move the visitor's view. A fit that is
-    // still pending (queued behind an unsettled size) is retried on
-    // every set-driven draw until it lands.
+    // still pending (queued behind an unsettled size or an
+    // in-flight animation) is retried on every set-driven draw
+    // until it lands.
     if (!refit) return;
     const signature = markerSetSignature(set);
     if (signature !== fittedSignatureRef.current || pendingFitRef.current) {
@@ -450,59 +434,62 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
   // Create the map once, on mount.
   useEffect(() => {
     let cancelled = false;
-    let map: Leaflet.Map | null = null;
+    let map: MLMap | null = null;
     let containerEl: HTMLDivElement | null = null;
     let onContainerLeave: (() => void) | null = null;
-    let observer: IntersectionObserver | null = null;
-    let resizeObserver: ResizeObserver | null = null;
-    let settleTimer: ReturnType<typeof setTimeout> | null = null;
-    // Every size re-measurement also gives a queued or size-invalidated
-    // fit its chance to land at the corrected size.
-    const remeasure = () => {
-      if (!map) return;
-      map.invalidateSize();
-      refitAfterResize(map);
+    let onFocusIn: (() => void) | null = null;
+    let onFocusOut: ((event: FocusEvent) => void) | null = null;
+    const onWindowLoad = () => {
+      if (map) verifyFit(map);
     };
-    const onWindowLoad = () => remeasure();
     (async () => {
-      const L = (await import("leaflet")).default;
+      const ml = await import("maplibre-gl");
       if (cancelled || !containerRef.current) return;
-      leafletRef.current = L;
+      mlRef.current = ml;
       containerEl = containerRef.current;
-      // scrollWheelZoom off at creation (see the header note): page
+      // scrollZoom off at creation (see the header note): page
       // scrolling must never be captured by the map. It is switched
       // on only while the visitor is deliberately engaged with the
       // map, by the activation wiring right below.
-      map = L.map(containerEl, { scrollWheelZoom: false });
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      map = new ml.Map({
+        container: containerEl,
+        style: STYLE_URL,
+        scrollZoom: false,
         maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        // Rapid-zoom hardening: with the default (updateWhenZooming
-        // on), every frame of every queued zoom animation discards
-        // the current tiles and requests the next level's, and on a
-        // slow connection the pane can be left showing bare
-        // background long after the zooms settle — the audit's
-        // "solid blank" after four fast zoom-ins. Keeping the current
-        // tiles (scaled) until the zoom ends, then loading the new
-        // level once, removes the thrash; a deeper keepBuffer means
-        // the pane is never bare while those tiles arrive.
-        updateWhenZooming: false,
-        keepBuffer: 4,
-      }).addTo(map);
-      layerRef.current = L.layerGroup().addTo(map);
+        attributionControl: { compact: false },
+      });
       mapRef.current = map;
+      // The zoom control where Leaflet's sat, without the compass
+      // (the app never rotates the map).
+      map.addControl(
+        new ml.NavigationControl({ showCompass: false, visualizePitch: false }),
+        "top-left"
+      );
+      // A handle for the e2e specs (and console debugging): the
+      // live map instance on its container element. Harmless in
+      // production — one expando property, removed on unmount.
+      (containerEl as unknown as { __haoChiMap?: MLMap }).__haoChiMap = map;
+
+      // The night repaint and the language-following labels apply
+      // the moment the base style lands; both are live-style
+      // changes (lib/mapStyle.ts), no reload.
+      map.on("style.load", () => {
+        if (!map) return;
+        const target = map as unknown as StyleTarget;
+        applyDarkPaint(target);
+        applyLabelLanguage(target, langRef.current);
+      });
       // Clusters regroup with the zoom; the numbered pins don't
-      // depend on it. A zoom-driven redraw never refits. And a fit
-      // that was deferred behind THIS animation gets its retry the
-      // moment the animation ends (Leaflet has already removed its
-      // zoom-animation class by the time zoomend fires, so the
-      // retry's own in-flight check passes).
-      map.on("zoomend", () => {
-        if (!map || !leafletRef.current) return;
+      // depend on it. A zoom-driven redraw never refits. moveend is
+      // the one completion signal every camera change — animated
+      // or synchronous, visitor's or ours — ends with, so it also
+      // carries the deferred fit's retry: a fit queued behind an
+      // in-flight animation lands the moment the animation ends.
+      map.on("moveend", () => {
+        if (!map) return;
         const set = markerSetRef.current;
         if (set.markers.length > 0 && set.markers[0].kind === "dot") {
-          drawMarkers(leafletRef.current, map, false);
+          drawMarkers(ml, map, false);
         }
         if (pendingFitRef.current) {
           applyFit(map, markerSetRef.current);
@@ -523,121 +510,110 @@ export default function PlaceMap({ markerSet, onSelect }: PlaceMapProps) {
           userMovedAtRef.current = performance.now();
         }
       });
-      // Click-to-activate wheel zoom: a click/tap into the map (the
-      // map click also fires for badge taps, which is fine — that is
-      // deliberate engagement) or keyboard focus on the map turns
-      // wheel zoom on; the pointer leaving the container or the map
-      // losing focus turns it off again, so a wheel that merely
-      // passes over the map while page-scrolling can never zoom it.
-      // Only the wheel handler is gated — touchZoom and dragging
-      // stay enabled throughout.
+      // MapLibre watches the container's size itself and fires
+      // resize after correcting the canvas: the hook the fit
+      // machinery needs to land a queued fit, or re-apply the
+      // current fit exactly once at a corrected size.
+      map.on("resize", () => {
+        if (map) refitAfterResize(map);
+      });
+      // Click-to-activate wheel zoom: a click/tap into the map (a
+      // pin or badge tap bubbles up to a map click too, which is
+      // fine — that is deliberate engagement) or keyboard focus on
+      // the map turns wheel zoom on; the pointer leaving the
+      // container or focus leaving the map turns it off again, so
+      // a wheel that merely passes over the map while
+      // page-scrolling can never zoom it. Only the wheel handler is
+      // gated — touch pinch and dragging stay enabled throughout.
       const activateWheel = () => {
-        map?.scrollWheelZoom.enable();
+        map?.scrollZoom.enable();
       };
       const deactivateWheel = () => {
-        map?.scrollWheelZoom.disable();
+        map?.scrollZoom.disable();
       };
       map.on("click", activateWheel);
-      map.on("focus", activateWheel);
-      map.on("blur", deactivateWheel);
+      onFocusIn = activateWheel;
+      containerEl.addEventListener("focusin", onFocusIn);
+      onFocusOut = (event: FocusEvent) => {
+        if (!containerEl?.contains(event.relatedTarget as Node | null)) {
+          deactivateWheel();
+        }
+      };
+      containerEl.addEventListener("focusout", onFocusOut);
       onContainerLeave = deactivateWheel;
       containerEl.addEventListener("mouseleave", onContainerLeave);
       // Pre-frame Taiwan only if the size is already settled; the
-      // draw below applies the real (gated) set fit either way, and a
-      // queued fit lands via the remedies below once the size settles.
-      // Synchronous like every set fit, with the same guard flag, so
-      // its zoomstart is not mistaken for a visitor gesture.
-      if (sizeSettled(map)) {
+      // draw below applies the real (gated) set fit either way, and
+      // a queued fit lands via the resize event once the size
+      // settles. Synchronous like every set fit, with the same
+      // guard flag, so its zoomstart is not mistaken for a visitor
+      // gesture.
+      if (sizeSettled()) {
         fitSyncRef.current = true;
         try {
           map.fitBounds(
             [
-              [TAIWAN_BOUNDS.south, TAIWAN_BOUNDS.west],
-              [TAIWAN_BOUNDS.north, TAIWAN_BOUNDS.east],
+              [TAIWAN_BOUNDS.west, TAIWAN_BOUNDS.south],
+              [TAIWAN_BOUNDS.east, TAIWAN_BOUNDS.north],
             ],
-            { animate: false }
+            { animate: false, duration: 0 }
           );
         } finally {
           fitSyncRef.current = false;
         }
       }
-      drawMarkers(L, map, true);
-      // Grey-hole remedies: the map sits below the list, and the page
-      // around it is still settling when it first sizes itself
-      // (fonts, the hero photo, the list's first batch) — a size
-      // Leaflet measured early leaves unpainted strips where tiles
-      // were never requested. Re-measure once the page has settled,
-      // again when it finishes loading, and whenever the map scrolls
-      // into view; invalidateSize is cheap and idempotent.
-      map.whenReady(() => {
-        requestAnimationFrame(() => remeasure());
-      });
-      settleTimer = setTimeout(() => remeasure(), 400);
+      drawMarkers(ml, map, true);
       window.addEventListener("load", onWindowLoad);
-      if (containerRef.current && "IntersectionObserver" in window) {
-        observer = new IntersectionObserver(
-          (entries) => {
-            if (entries.some((entry) => entry.isIntersecting)) {
-              remeasure();
-            }
-          },
-          { rootMargin: "200px" }
-        );
-        observer.observe(containerRef.current);
-      }
-      // The direct watch: any change to the container's own size —
-      // the page settling, a window resize, a layout shift — re-
-      // measures Leaflet and gives the fit machinery its chance to
-      // land a queued fit or re-apply the current fit exactly once at
-      // the corrected size. (invalidateSize never changes the
-      // container's own size, so this cannot loop.)
-      if (containerRef.current && "ResizeObserver" in window) {
-        let raf = 0;
-        resizeObserver = new ResizeObserver(() => {
-          cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(() => remeasure());
-        });
-        resizeObserver.observe(containerRef.current);
-      }
     })();
     return () => {
       cancelled = true;
-      if (settleTimer) clearTimeout(settleTimer);
       for (const timer of verifyTimersRef.current) clearTimeout(timer);
       verifyTimersRef.current = [];
       if (fitRetryTimerRef.current) {
         clearTimeout(fitRetryTimerRef.current);
         fitRetryTimerRef.current = null;
       }
-      if (containerEl && onContainerLeave) {
-        containerEl.removeEventListener("mouseleave", onContainerLeave);
+      if (containerEl) {
+        if (onContainerLeave) {
+          containerEl.removeEventListener("mouseleave", onContainerLeave);
+        }
+        if (onFocusIn) containerEl.removeEventListener("focusin", onFocusIn);
+        if (onFocusOut) containerEl.removeEventListener("focusout", onFocusOut);
+        delete (containerEl as unknown as { __haoChiMap?: MLMap }).__haoChiMap;
       }
       window.removeEventListener("load", onWindowLoad);
-      if (observer) observer.disconnect();
-      if (resizeObserver) resizeObserver.disconnect();
+      clearMarkers();
       if (map) map.remove();
-      leafletRef.current = null;
       mapRef.current = null;
-      layerRef.current = null;
+      mlRef.current = null;
       fittedSignatureRef.current = null;
       lastFitRef.current = null;
       pendingFitRef.current = false;
       userMovedAtRef.current = 0;
       fitAtRef.current = 0;
     };
-    // Mount-only: later set changes are handled by the effect below.
+    // Mount-only: later set changes are handled by the effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Redraw when the filtered set changes. If Leaflet has not loaded yet
-  // this is a no-op — the mount effect draws the latest set on arrival.
+  // Redraw when the filtered set changes. If MapLibre has not
+  // loaded yet this is a no-op — the mount effect draws the latest
+  // set on arrival.
   useEffect(() => {
-    const L = leafletRef.current;
+    const ml = mlRef.current;
     const map = mapRef.current;
-    if (!L || !map) return;
-    drawMarkers(L, map, true);
+    if (!ml || !map) return;
+    drawMarkers(ml, map, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markerSet]);
+
+  // Labels follow the app language: rewrite the label layers'
+  // text-field on the live style — no map reload, no view change.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    applyLabelLanguage(map as unknown as StyleTarget, lang);
+  }, [lang]);
 
   return <div ref={containerRef} className="place-map" />;
 }

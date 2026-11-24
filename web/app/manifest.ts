@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
  * The web app manifest (served at /manifest.webmanifest, linked
  * into the head by Next). Icons are the generated routes — see
  * app/icon.tsx and app/icons/[name]/route.ts — covering 192 and
- * 512 plus a maskable 512, so the guide is installable without any
- * binary icon files in the repo.
+ * 512 plus a maskable 512, all rendered from the one master
+ * artwork (public/icon-master.png; see app/iconImage.tsx).
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {

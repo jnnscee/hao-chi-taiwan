@@ -489,8 +489,8 @@ export default function PlaceBrowser({
   const cuisines = useMemo(() => distinctValues(places, "cuisine"), [places]);
 
   const displayed = useMemo(
-    () => filterAndSortPlaces(places, filters),
-    [places, filters]
+    () => filterAndSortPlaces(places, filters, savedIds),
+    [places, filters, savedIds]
   );
   const numbers = useMemo(
     () => assignDisplayNumbers(displayed),
@@ -582,7 +582,22 @@ export default function PlaceBrowser({
 
   // The floating button's badge: the result count while the set is
   // narrowed below the current tab's full set, hidden otherwise.
-  const badge = badgeCountFor(displayed.length, tabCounts[filters.tab]);
+  // In the Saved view the comparison set is the tab's saved places
+  // (v1's lastTabTotal applies the saved filter too), so merely
+  // opening the Saved view shows no badge.
+  const savedTabTotal = useMemo(
+    () =>
+      places.filter(
+        (p) =>
+          (filters.tab === "all" || p.list_type === filters.tab) &&
+          savedIds.includes(p.legacy_id)
+      ).length,
+    [places, filters.tab, savedIds]
+  );
+  const badge = badgeCountFor(
+    displayed.length,
+    filters.savedOnly ? savedTabTotal : tabCounts[filters.tab]
+  );
 
   function renderLangToggle() {
     // The toggle navigates between the path twins of the current
@@ -642,7 +657,8 @@ export default function PlaceBrowser({
   }
 
   // The full search & filter control set: tabs, search box, the
-  // City/District/Cuisine/Sort selects, the view toggle and Near me.
+  // City/District/Cuisine/Sort selects, the view toggle, the Saved
+  // toggle and Near me.
   // Rendered twice — once in the page flow and once inside the
   // floating button's panel — both bound to the same state, exactly
   // as the live app's panel and in-page controls are two views of
@@ -755,6 +771,33 @@ export default function PlaceBrowser({
           )}
         </div>
 
+        {/* The Saved view toggle (Phase B fix B-1, v1's saved-bar):
+            a pill that lists only the device's saved places, with
+            the saved count and v1's device-only note beside it.
+            It is part of the shared control set, so the in-page
+            controls and the floating panel's copy agree — and on
+            phone, where the in-page area leaves the flow, the
+            panel copy is the way in, exactly as v1's is. The
+            hearts swap on aria-pressed, as v1's do. */}
+        <div className="saved-bar">
+          <button
+            type="button"
+            className="saved-toggle"
+            aria-pressed={filters.savedOnly}
+            onClick={() => updateFilters({ savedOnly: !filters.savedOnly })}
+          >
+            <span className="heart-off" aria-hidden="true">
+              ♡
+            </span>
+            <span className="heart-on" aria-hidden="true">
+              ♥
+            </span>{" "}
+            <span>{t.saved_view}</span>
+            {savedIds.length ? <span>({savedIds.length})</span> : null}
+          </button>
+          <span className="saved-note">{t.saved_device_only}</span>
+        </div>
+
         <div className="near-bar">
           <button
             type="button"
@@ -837,6 +880,12 @@ export default function PlaceBrowser({
             {t.stat_recommended} · {tabCounts.want_to_try} {t.stat_want} ·{" "}
             {kaohsiungCount} {t.stat_khh}
           </p>
+          {/* v1's hero intro paragraph (Phase B fix B-7), under
+              the title and counts; its numbers are the live list
+              totals, interpolated in the string itself. */}
+          <p className="hero-lede">
+            {t.lede(tabCounts.recommended, tabCounts.want_to_try)}
+          </p>
         </div>
       </header>
 
@@ -849,7 +898,9 @@ export default function PlaceBrowser({
       </div>
 
       <p className="result-count" aria-live="polite" ref={listTopRef}>
-        {t.showing(displayed.length)}
+        {filters.savedOnly
+          ? t.saved_showing(displayed.length)
+          : t.showing(displayed.length)}
       </p>
 
       {/* Phone only (≤640px, CSS): the view and language toggles stay
@@ -864,9 +915,11 @@ export default function PlaceBrowser({
 
       {displayed.length === 0 ? (
         <p className="empty">
-          {filters.nearActive && filters.radiusKm < ANY_DISTANCE_KM
-            ? t.near_none(filters.radiusKm)
-            : t.empty}
+          {filters.savedOnly
+            ? t.saved_empty
+            : filters.nearActive && filters.radiusKm < ANY_DISTANCE_KM
+              ? t.near_none(filters.radiusKm)
+              : t.empty}
         </p>
       ) : view === "cards" ? (
         <ul className="place-list cards">
@@ -1047,6 +1100,7 @@ export default function PlaceBrowser({
           lang={lang}
           isSaved={savedIds.includes(selectedPlace.legacy_id)}
           distanceKm={distances.get(selectedPlace.legacy_id) ?? null}
+          visitorOrigin={filters.origin}
           onToggleSave={toggleSave}
           onReport={(place) => openContact("problem", place)}
           suspended={contactRequest != null}

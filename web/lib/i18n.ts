@@ -23,6 +23,10 @@ export type Strings = {
   stat_recommended: string;
   stat_want: string;
   stat_khh: string;
+  // The hero intro paragraph (v1's lede): its counts are the live
+  // Recommended / Want to Try totals, interpolated so the sentence
+  // stays true as the lists grow.
+  lede: (recommended: number, want: number) => string;
   list_label: string;
   list_all: string;
   list_recommended: string;
@@ -48,6 +52,13 @@ export type Strings = {
   details: string;
   save: string;
   saved: string;
+  // The Saved view (Phase B fix B-1): v1's saved_view toggle label,
+  // its device-only note, the empty state and the count line, under
+  // v1's own key names and wording.
+  saved_view: string;
+  saved_device_only: string;
+  saved_empty: string;
+  saved_showing: (n: number) => string;
   google_rating: string;
   reviews_word: string;
   temp_closed: string;
@@ -65,6 +76,13 @@ export type Strings = {
   open_maps: string;
   maps_save_hint: string;
   dir_title: string;
+  // The directions mode picker (Phase B fix B-2): v1's four mode
+  // labels and its hint line, under v1's own key names.
+  dir_transit: string;
+  dir_walking: string;
+  dir_biking: string;
+  dir_driving: string;
+  dir_hint: string;
   driver: string;
   share: string;
   link_copied: string;
@@ -154,6 +172,12 @@ export const STRINGS: Record<Lang, Strings> = {
     stat_recommended: "Recommended · tried & tested",
     stat_want: "Want to Try",
     stat_khh: "in Kaohsiung",
+    lede: (recommended, want) =>
+      "Jenny's food guide to Taiwan — " +
+      recommended +
+      " places she has tried, tested and recommends, plus " +
+      want +
+      " more she wants to try. Most are in Kaohsiung, from mom-and-pop stalls to old favourites.",
     list_label: "List",
     list_all: "All places",
     list_recommended: "Recommended",
@@ -179,6 +203,14 @@ export const STRINGS: Record<Lang, Strings> = {
     details: "Details",
     save: "Save",
     saved: "Saved",
+    saved_view: "Saved",
+    saved_device_only: "Saved on this device only",
+    saved_empty:
+      "No saved places yet — tap Save on any place and it will show up here.",
+    saved_showing: (n) =>
+      n === 1
+        ? "Showing your 1 saved place"
+        : "Showing your " + n + " saved places",
     google_rating: "Google rating",
     reviews_word: "reviews",
     temp_closed: "Temporarily closed",
@@ -196,6 +228,12 @@ export const STRINGS: Record<Lang, Strings> = {
     open_maps: "Open in Google Maps",
     maps_save_hint: "Want to keep this place? Once it opens in Google Maps, tap Save there and it's in your own lists.",
     dir_title: "Get directions",
+    dir_transit: "MRT / Bus",
+    dir_walking: "Walking",
+    dir_biking: "Biking",
+    dir_driving: "Driving / Taxi",
+    dir_hint:
+      "Opens Google Maps with the route already filled in — from your location if you've shared it, otherwise Google Maps will ask there.",
     driver: "Show driver 給司機看",
     share: "Share",
     link_copied: "Link copied ✓ — paste it into any chat app.",
@@ -420,6 +458,12 @@ export const STRINGS: Record<Lang, Strings> = {
     stat_recommended: "家推薦 · 親自吃過",
     stat_want: "家想去試試",
     stat_khh: "家在高雄",
+    lede: (recommended, want) =>
+      "Jenny 的台灣美食指南 — " +
+      recommended +
+      " 家她親自吃過、真心推薦的店，加上 " +
+      want +
+      " 家她想去試試的店。大部分都在高雄，從小吃攤到老字號都有。",
     list_label: "清單",
     list_all: "全部",
     list_recommended: "推薦",
@@ -445,6 +489,10 @@ export const STRINGS: Record<Lang, Strings> = {
     details: "詳情",
     save: "收藏",
     saved: "已收藏",
+    saved_view: "已收藏",
+    saved_device_only: "只存在這台裝置上",
+    saved_empty: "還沒有收藏的店 — 在任何一家店點「收藏」，就會出現在這裡。",
+    saved_showing: (n) => "共 " + n + " 家已收藏的店",
     google_rating: "Google 評分",
     reviews_word: "則評論",
     temp_closed: "暫時停業",
@@ -462,6 +510,12 @@ export const STRINGS: Record<Lang, Strings> = {
     open_maps: "在 Google Maps 打開",
     maps_save_hint: "想收藏這家店嗎？在 Google 地圖開啟後，點按『儲存』即可存進你的清單。",
     dir_title: "怎麼去",
+    dir_transit: "捷運 / 公車",
+    dir_walking: "步行",
+    dir_biking: "騎車",
+    dir_driving: "開車 / 計程車",
+    dir_hint:
+      "在 Google Maps 開啟並填好路線 — 若你已分享位置會從你的位置出發，否則 Google Maps 會在那邊詢問。",
     driver: "給司機看",
     share: "分享",
     link_copied: "連結已複製 ✓ — 貼到任何聊天 App 就可以。",

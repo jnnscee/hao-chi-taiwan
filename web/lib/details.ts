@@ -5,7 +5,7 @@
 // (The "report a problem" flow lives in lib/contact.ts: it opens the
 // Contact & feedback form pre-filled for the place.)
 
-import type { Place } from "./places";
+import type { Place, LatLng } from "./places";
 import type { Lang } from "./i18n";
 
 export const SAVED_STORAGE_KEY = "hao-chi-saved-v1"; // same key as the live app
@@ -22,6 +22,46 @@ export function directionsUrl(place: Place): string {
   return (
     "https://www.google.com/maps/dir/?api=1&destination=" +
     encodeURIComponent(destination)
+  );
+}
+
+/** The directions travel modes, in v1's button order. The values
+ *  are Google Maps' own `travelmode` parameter values. */
+export type TravelMode = "transit" | "walking" | "bicycling" | "driving";
+
+export const TRAVEL_MODES: TravelMode[] = [
+  "transit",
+  "walking",
+  "bicycling",
+  "driving",
+];
+
+/**
+ * Directions for one travel mode (Phase B fix B-2 — v1's mode
+ * picker): the same destination rule as directionsUrl, plus v1's
+ * origin rule — the visitor's shared location when Near me has
+ * run, otherwise Google Maps' own "My Location" — and the mode as
+ * the `travelmode` parameter, in v1's parameter order.
+ */
+export function directionsUrlForMode(
+  place: Place,
+  mode: TravelMode,
+  origin: LatLng | null
+): string {
+  let destination: string;
+  if (place.lat != null && place.lng != null) {
+    destination = `${place.lat},${place.lng}`;
+  } else {
+    destination = place.address_en ?? place.name_en;
+  }
+  const originText = origin ? `${origin.lat},${origin.lng}` : "My Location";
+  return (
+    "https://www.google.com/maps/dir/?api=1&origin=" +
+    encodeURIComponent(originText) +
+    "&destination=" +
+    encodeURIComponent(destination) +
+    "&travelmode=" +
+    encodeURIComponent(mode)
   );
 }
 

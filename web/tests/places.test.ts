@@ -150,6 +150,48 @@ describe("positional numbering (Jenny's rule: numbers follow the view)", () => {
   });
 });
 
+describe("the Saved view (Phase B fix B-1)", () => {
+  const saved = ["1", "3", "r147"];
+  const savedView = (overrides: Partial<ListFilters> = {}, ids?: readonly string[]) =>
+    filterAndSortPlaces(
+      places,
+      { ...DEFAULT_FILTERS, savedOnly: true, ...overrides },
+      ids ?? saved
+    );
+
+  it("shows exactly the saved places, nothing else", () => {
+    expect(savedView().map((p) => p.legacy_id).sort()).toEqual([...saved].sort());
+  });
+
+  it("is off by default, and the saved set is ignored while it is off", () => {
+    expect(DEFAULT_FILTERS.savedOnly).toBe(false);
+    expect(view()).toHaveLength(242);
+    expect(filterAndSortPlaces(places, DEFAULT_FILTERS, saved)).toHaveLength(242);
+  });
+
+  it("ANDs with the tab and the search, as v1's savedOnly does", () => {
+    expect(
+      savedView({ tab: "recommended" }).map((p) => p.legacy_id).sort()
+    ).toEqual(["1", "3"]);
+    expect(
+      savedView({ query: "noodle" }).map((p) => p.legacy_id).sort()
+    ).toEqual(["3", "r147"]);
+  });
+
+  it("an empty (or never-loaded) saved set shows nothing", () => {
+    expect(savedView({}, [])).toEqual([]);
+    expect(
+      filterAndSortPlaces(places, { ...DEFAULT_FILTERS, savedOnly: true })
+    ).toEqual([]);
+  });
+
+  it("positional numbering follows the saved view", () => {
+    const displayed = savedView();
+    const numbers = assignDisplayNumbers(displayed);
+    expect(displayed.map((p) => numbers.get(p.legacy_id))).toEqual([1, 2, 3]);
+  });
+});
+
 describe("Near me distances from Zuoying HSR (22.6871, 120.3056)", () => {
   const origin = { lat: 22.6871, lng: 120.3056 };
 

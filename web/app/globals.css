@@ -250,6 +250,17 @@ body {
   font-size: 1.05rem;
 }
 
+/* v1's hero intro paragraph (its .lede, restored as Phase B fix
+   B-7): a step quieter than the title, capped at reading measure,
+   sitting between the counts and the hero's melt into the page. */
+.hero-lede {
+  margin: 0.9rem 0 0;
+  max-width: 34rem;
+  font-size: 1.08rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.94);
+}
+
 /* The language toggle sits on the hero's photo (over the scrim),
    so on the home pages it wears glass clothes; on the standalone
    pages (PageHeader, cream background) it keeps the light clothes
@@ -444,6 +455,61 @@ body {
   padding: 2rem 0;
   color: var(--muted);
   text-align: center;
+}
+
+/* --- Saved view (Phase B fix B-1) --- */
+
+/* v1's saved-bar, carried over with its measure: the toggle pill
+   and the quiet device-only note on one wrapping row, above the
+   Near me bar as in v1. */
+.saved-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+/* v1's saved-toggle: a pill with a 1.5px border; pressed it wears
+   the salmon (v1's --red on its dark theme) with near-black text,
+   v1's own dark-scheme pairing. The two hearts swap on
+   aria-pressed, as v1's do. */
+.saved-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  font-size: 0.92rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+
+.saved-toggle[aria-pressed="true"] {
+  background: var(--brown-deep);
+  border-color: var(--brown-deep);
+  color: #1c130e;
+}
+
+.saved-toggle .heart-on {
+  display: none;
+}
+
+.saved-toggle[aria-pressed="true"] .heart-on {
+  display: inline;
+}
+
+.saved-toggle[aria-pressed="true"] .heart-off {
+  display: none;
+}
+
+.saved-note {
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 /* --- Near me --- */
@@ -1193,6 +1259,22 @@ body {
   font-size: 0.88rem;
 }
 
+/* The directions mode picker (Phase B fix B-2): v1's four mode
+   buttons as a 2×2 grid of action-styled links, under the
+   section's heading, with v1's hint line below. */
+.dir-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.dir-section .hint {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .share-note {
   flex: 1 1 100%;
   margin: 0;
@@ -1809,6 +1891,10 @@ a.foot-link {
 
   .hero-body {
     padding: 1rem 1.1rem 2.4rem;
+  }
+
+  .hero-lede {
+    font-size: 1rem;
   }
 
   /* The title scales with the screen on phones and may not break:

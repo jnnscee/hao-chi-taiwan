@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Place } from "@/lib/places";
+import type { LatLng, Place } from "@/lib/places";
 import { STRINGS, type Lang } from "@/lib/i18n";
 import PlaceDetailView from "./PlaceDetailView";
 
@@ -11,6 +11,8 @@ type Props = {
   isSaved: boolean;
   /** Distance from the visitor in km while a location is known, else null. */
   distanceKm: number | null;
+  /** The visitor's shared location, for the directions origin. */
+  visitorOrigin: LatLng | null;
   onToggleSave: (place: Place) => void;
   /** Opens the Contact & feedback form pre-filled for this place. */
   onReport: (place: Place) => void;
@@ -30,6 +32,7 @@ export default function PlaceDetails({
   lang,
   isSaved,
   distanceKm,
+  visitorOrigin,
   onToggleSave,
   onReport,
   suspended,
@@ -80,6 +83,7 @@ export default function PlaceDetails({
           lang={lang}
           isSaved={isSaved}
           distanceKm={distanceKm}
+          visitorOrigin={visitorOrigin}
           onToggleSave={onToggleSave}
           onReport={onReport}
           driverOpen={driverOpen}

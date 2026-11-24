@@ -60,6 +60,15 @@ export type ListFilters = {
   nearActive: boolean;
   /** Near me range in km; ANY_DISTANCE_KM means "any distance". */
   radiusKm: number;
+  /**
+   * The Saved view (v1's saved toggle, restored as Phase B fix
+   * B-1): while on, only places in the visitor's saved set show.
+   * It ANDs with the tab, search and dropdown filters exactly as
+   * v1's savedOnly does. The set itself is device-local state the
+   * caller passes to filterAndSortPlaces — it is not part of the
+   * filters' identity, so DEFAULT_FILTERS stays save-free.
+   */
+  savedOnly: boolean;
 };
 
 export const DEFAULT_FILTERS: ListFilters = {
@@ -72,6 +81,7 @@ export const DEFAULT_FILTERS: ListFilters = {
   origin: null,
   nearActive: false,
   radiusKm: 5,
+  savedOnly: false,
 };
 
 /** Near me range choices (km), the live app's set. */
@@ -214,7 +224,8 @@ export function formatDist(km: number | null): string {
 }
 
 /**
- * Apply tab, search, dropdown and Near me radius filters, then sort.
+ * Apply tab, search, dropdown, the Saved view and Near me radius
+ * filters, then sort.
  * Pure: input untouched. The radius filter layers on top of the other
  * filters exactly as the live app does, and — also as there — a place
  * with no coordinates is never dropped by it (its distance is unknown,
@@ -223,7 +234,8 @@ export function formatDist(km: number | null): string {
  */
 export function filterAndSortPlaces(
   places: Place[],
-  filters: ListFilters
+  filters: ListFilters,
+  savedIds?: readonly string[]
 ): Place[] {
   const distances = new Map<string, number | null>(
     places.map((place) => [
@@ -231,8 +243,11 @@ export function filterAndSortPlaces(
       placeDistanceKm(place, filters.origin),
     ])
   );
+  const savedSet = savedIds ? new Set(savedIds) : null;
   const filtered = places.filter((place) => {
     if (filters.tab !== "all" && place.list_type !== filters.tab) return false;
+    if (filters.savedOnly && !(savedSet && savedSet.has(place.legacy_id)))
+      return false;
     if (filters.city && place.city !== filters.city) return false;
     if (filters.district && place.district !== filters.district) return false;
     if (filters.cuisine && place.cuisine !== filters.cuisine) return false;

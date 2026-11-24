@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDist, glossFor, type Place } from "@/lib/places";
-import { calendarUrl, directionsUrl, lastCheckedText } from "@/lib/details";
+import { formatDist, glossFor, type LatLng, type Place } from "@/lib/places";
+import {
+  TRAVEL_MODES,
+  calendarUrl,
+  directionsUrlForMode,
+  lastCheckedText,
+  type TravelMode,
+} from "@/lib/details";
 import { placeUrl } from "@/lib/routes";
 import { STRINGS, cityLabel, type Lang } from "@/lib/i18n";
 
@@ -12,6 +18,14 @@ type Props = {
   isSaved: boolean;
   /** Distance from the visitor in km while a location is known, else null. */
   distanceKm: number | null;
+  /**
+   * The visitor's shared location (Near me's, memory-only), used
+   * as the directions origin; null when no location has been
+   * shared — the directions links then start from Google Maps'
+   * "My Location", as v1's do. Place pages pass nothing: there is
+   * no Near me there, so no location is ever known on them.
+   */
+  visitorOrigin?: LatLng | null;
   onToggleSave: (place: Place) => void;
   /** Opens the Contact & feedback form pre-filled for this place. */
   onReport: (place: Place) => void;
@@ -39,12 +53,19 @@ export default function PlaceDetailView({
   lang,
   isSaved,
   distanceKm,
+  visitorOrigin = null,
   onToggleSave,
   onReport,
   driverOpen: driverControlled,
   onDriverOpenChange,
 }: Props) {
   const t = STRINGS[lang];
+  const dirModeLabels: Record<TravelMode, string> = {
+    transit: t.dir_transit,
+    walking: t.dir_walking,
+    bicycling: t.dir_biking,
+    driving: t.dir_driving,
+  };
   const [driverInternal, setDriverInternal] = useState(false);
   const driverOpen = driverControlled ?? driverInternal;
   const setDriverOpen = onDriverOpenChange ?? setDriverInternal;
@@ -250,6 +271,30 @@ export default function PlaceDetailView({
         </section>
       ) : null}
 
+      {/* Get directions, with v1's travel-mode picker restored
+          (Phase B fix B-2): one link per mode, each a Google Maps
+          directions URL carrying its travelmode and starting from
+          the visitor's shared location when Near me has run,
+          otherwise from "My Location". It is a section of its
+          own, as in v1, above the action row. */}
+      <section className="dialog-section dir-section">
+        <h3>{t.dir_title}</h3>
+        <div className="dir-modes" role="group" aria-label={t.dir_title}>
+          {TRAVEL_MODES.map((mode) => (
+            <a
+              key={mode}
+              className="action dir-mode"
+              href={directionsUrlForMode(place, mode, visitorOrigin)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {dirModeLabels[mode]}
+            </a>
+          ))}
+        </div>
+        <p className="hint">{t.dir_hint}</p>
+      </section>
+
       <div className="dialog-actions">
         {place.maps_url ? (
           <div className="maps-action">
@@ -264,15 +309,6 @@ export default function PlaceDetailView({
             <p className="hint">{t.maps_save_hint}</p>
           </div>
         ) : null}
-
-        <a
-          className="action"
-          href={directionsUrl(place)}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {t.dir_title}
-        </a>
 
         {place.address_zh ? (
           <button

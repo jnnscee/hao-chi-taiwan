@@ -4,8 +4,10 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  TRAVEL_MODES,
   calendarUrl,
   directionsUrl,
+  directionsUrlForMode,
   lastCheckedLabel,
   lastCheckedText,
   parseSavedIds,
@@ -30,6 +32,47 @@ describe("directionsUrl", () => {
     );
     const byName = makePlace({ lat: null, lng: null, address_en: null });
     expect(directionsUrl(byName)).toContain(encodeURIComponent("Test Place"));
+  });
+});
+
+describe("directionsUrlForMode (Phase B fix B-2: v1's mode picker)", () => {
+  it("carries the mode, and 'My Location' as origin while no location is shared", () => {
+    const place = makePlace({ lat: 22.6871, lng: 120.3056 });
+    const url = new URL(directionsUrlForMode(place, "transit", null));
+    expect(url.origin + url.pathname).toBe("https://www.google.com/maps/dir/");
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("origin")).toBe("My Location");
+    expect(url.searchParams.get("destination")).toBe("22.6871,120.3056");
+    expect(url.searchParams.get("travelmode")).toBe("transit");
+  });
+
+  it("starts from the visitor's shared location when Near me has run", () => {
+    const place = makePlace({ lat: 22.6871, lng: 120.3056 });
+    const url = new URL(
+      directionsUrlForMode(place, "driving", { lat: 22.62, lng: 120.3 })
+    );
+    expect(url.searchParams.get("origin")).toBe("22.62,120.3");
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+  });
+
+  it("offers exactly v1's four modes, in v1's order", () => {
+    expect(TRAVEL_MODES).toEqual(["transit", "walking", "bicycling", "driving"]);
+    const place = makePlace();
+    for (const mode of TRAVEL_MODES) {
+      expect(
+        new URL(directionsUrlForMode(place, mode, null)).searchParams.get(
+          "travelmode"
+        )
+      ).toBe(mode);
+    }
+  });
+
+  it("keeps the address destination fallback", () => {
+    const place = makePlace({ lat: null, lng: null });
+    const url = new URL(directionsUrlForMode(place, "walking", null));
+    expect(url.searchParams.get("destination")).toBe(
+      "1 Test Rd, Zuoying District, Kaohsiung"
+    );
   });
 });
 

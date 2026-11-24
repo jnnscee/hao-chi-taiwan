@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDist, type Place } from "@/lib/places";
+import { formatDist, glossFor, type Place } from "@/lib/places";
 import { calendarUrl, directionsUrl, lastCheckedText } from "@/lib/details";
 import { placeUrl } from "@/lib/routes";
 import { STRINGS, cityLabel, type Lang } from "@/lib/i18n";
@@ -115,7 +115,9 @@ export default function PlaceDetailView({
 
       <h2 className="dialog-name-zh">{place.name_zh}</h2>
       <p className="dialog-name-en">{place.name_en}</p>
-      {place.gloss ? <p className="dialog-gloss">{place.gloss}</p> : null}
+      {glossFor(place, lang) ? (
+        <p className="dialog-gloss">{glossFor(place, lang)}</p>
+      ) : null}
 
       {/* The v1 details meta row (Jenny, 2026-11-22): cuisine chip
           + Google rating chip, replacing the plain rating fact that

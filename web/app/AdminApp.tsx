@@ -40,7 +40,7 @@ import {
 import { legacyNumber } from "@/lib/places";
 
 const ADMIN_PLACE_COLUMNS =
-  "id, legacy_id, list_type, name_zh, name_en, name_rom, gloss, cuisine, " +
+  "id, legacy_id, list_type, name_zh, name_en, name_rom, gloss, gloss_zh, cuisine, " +
   "rating_value, rating_count, city, district, address_en, address_zh, " +
   "lat, lng, maps_url, maps_short_url, phone, website, instagram, " +
   "instagram_handle, facebook, hours, hours_note, hours_checked_on, " +
@@ -468,6 +468,11 @@ export default function AdminApp() {
                   label="Short gloss (English)"
                   value={form.gloss}
                   onChange={(v) => setField("gloss", v)}
+                />
+                <TextField
+                  label="Description (Chinese)"
+                  value={form.gloss_zh}
+                  onChange={(v) => setField("gloss_zh", v)}
                 />
                 <TextField
                   label="Cuisine *"

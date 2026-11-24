@@ -2,7 +2,8 @@
 //
 // places.json is a SNAPSHOT of the Supabase `places` table (the same
 // columns, in the same shape lib/data.ts's fetch produces), exported
-// 2026-11-22. It is deliberately a snapshot, not a live read: the
+// 2026-11-22 and refreshed 2026-11-23 for the gloss_zh column (the
+// 45 Recommended translations; null elsewhere). It is deliberately a snapshot, not a live read: the
 // tests must be deterministic in CI, where there are no Supabase
 // credentials. Refresh it — in the same commit — whenever a bulk
 // data change lands in the repo; single edits Jenny makes through
@@ -24,6 +25,7 @@ export function makePlace(overrides: Partial<Place> = {}): Place {
     name_en: "Test Place",
     name_rom: null,
     gloss: null,
+    gloss_zh: null,
     cuisine: null,
     rating_value: null,
     rating_count: null,

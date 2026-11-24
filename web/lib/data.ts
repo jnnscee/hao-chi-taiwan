@@ -20,7 +20,7 @@ import type { Place } from "./places";
 const CACHE_TTL_MS = 30_000;
 
 const PLACE_COLUMNS =
-  "legacy_id, list_type, name_zh, name_en, name_rom, gloss, cuisine, " +
+  "legacy_id, list_type, name_zh, name_en, name_rom, gloss, gloss_zh, cuisine, " +
   "rating_value, rating_count, city, district, address_en, address_zh, " +
   "lat, lng, maps_url, maps_short_url, phone, website, instagram, " +
   "instagram_handle, facebook, hours, hours_note, hours_checked_on, " +

@@ -8,6 +8,7 @@ import {
   distinctValues,
   filterAndSortPlaces,
   formatDist,
+  glossFor,
   placeDistanceKm,
   ANY_DISTANCE_KM,
   DEFAULT_FILTERS,
@@ -558,7 +559,7 @@ export default function PlaceBrowser({
 
   function detailsLabel(place: Place): string {
     // Mirrors the live app's card aria-label: "Details: <name> — <gloss>".
-    const food = place.gloss ?? place.cuisine;
+    const food = glossFor(place, lang) ?? place.cuisine;
     return `${t.details}: ${place.name_zh}${food ? ` — ${food}` : ""}`;
   }
 
@@ -887,8 +888,8 @@ export default function PlaceBrowser({
                 {renderSaveHeart(place)}
               </div>
               <p className="place-name-en">{place.name_en}</p>
-              {place.gloss ? (
-                <p className="place-gloss">{place.gloss}</p>
+              {glossFor(place, lang) ? (
+                <p className="place-gloss">{glossFor(place, lang)}</p>
               ) : null}
               <p className="place-meta">
                 {[place.cuisine, place.district, cityLabel(lang, place.city ?? "")]
@@ -944,12 +945,13 @@ export default function PlaceBrowser({
                 <span className="place-name-zh">{place.name_zh}</span>
                 <span className="place-name-en">{place.name_en}</span>
                 {/* The food line under the names, as on the old
-                    app's rows: the English gloss when the place
-                    has one, otherwise its cuisine (the same
+                    app's rows: the gloss in the current language
+                    (Chinese where a translation is loaded) when the
+                    place has one, otherwise its cuisine (the same
                     fallback detailsLabel uses). */}
-                {place.gloss || place.cuisine ? (
+                {glossFor(place, lang) || place.cuisine ? (
                   <span className="row-food">
-                    {place.gloss || place.cuisine}
+                    {glossFor(place, lang) || place.cuisine}
                     {/* The current-view number, flowing on the left
                         right after the food text — not right-aligned
                         and not beside the heart (Jenny, 2026-11-22). */}

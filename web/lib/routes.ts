@@ -12,7 +12,7 @@
 // keeps its ?lang= → stored → English resolution.
 
 import type { Metadata } from "next";
-import type { Place } from "./places";
+import { glossFor, type Place } from "./places";
 import { INFO_PAGES, type InfoPageKey } from "./pages";
 import {
   STRINGS,
@@ -173,9 +173,10 @@ export function placeTitle(place: Place, lang: Lang): string {
 
 /**
  * A place page's share description, from its gloss, cuisine and
- * location, in the page's language. (The gloss itself is stored
- * English-only data, as everywhere else in the app; the cuisine /
- * city / district labels follow the page's language.)
+ * location, in the page's language. (The gloss follows the page's
+ * language via glossFor — Chinese where a translation has been
+ * loaded, English otherwise; the cuisine / city / district labels
+ * follow the page's language too.)
  */
 export function placeDescription(place: Place, lang: Lang): string {
   const where = [
@@ -184,7 +185,7 @@ export function placeDescription(place: Place, lang: Lang): string {
   ]
     .filter(Boolean)
     .join(", ");
-  return [place.gloss, place.cuisine ? cuisineLabel(lang, place.cuisine) : null, where]
+  return [glossFor(place, lang), place.cuisine ? cuisineLabel(lang, place.cuisine) : null, where]
     .filter(Boolean)
     .join(" · ");
 }

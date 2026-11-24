@@ -67,7 +67,7 @@ describe("tabs, search and dropdown filters", () => {
 });
 
 describe("matchesQuery / SEARCH_FIELDS (shared with the admin manager)", () => {
-  it("SEARCH_FIELDS is the agreed nine fields", () => {
+  it("SEARCH_FIELDS is the agreed ten fields", () => {
     expect([...SEARCH_FIELDS].sort()).toEqual(
       [
         "address_en",
@@ -76,6 +76,7 @@ describe("matchesQuery / SEARCH_FIELDS (shared with the admin manager)", () => {
         "cuisine",
         "district",
         "gloss",
+        "gloss_zh",
         "name_en",
         "name_rom",
         "name_zh",

@@ -2,6 +2,8 @@
 // numbering) for the rebuild. Kept free of React and Supabase imports so the
 // behaviour can be unit-checked in plain node against the real data.
 
+import type { Lang } from "./i18n";
+
 export type Place = {
   legacy_id: string;
   list_type: "recommended" | "want_to_try";
@@ -9,6 +11,7 @@ export type Place = {
   name_en: string;
   name_rom: string | null;
   gloss: string | null;
+  gloss_zh: string | null;
   cuisine: string | null;
   rating_value: number | null;
   rating_count: number | null;
@@ -101,6 +104,7 @@ export const SEARCH_FIELDS: Array<keyof Place> = [
   "name_en",
   "name_rom",
   "gloss",
+  "gloss_zh",
   "cuisine",
   "city",
   "district",
@@ -116,6 +120,20 @@ export function matchesQuery(place: Place, query: string): boolean {
     const value = place[field];
     return typeof value === "string" && value.toLowerCase().includes(q);
   });
+}
+
+/**
+ * The gloss to display for a place in a language: the Chinese gloss
+ * in Chinese mode when one has been loaded, otherwise the English
+ * gloss. Translations land in batches (the 45 Recommended places
+ * first, 2026-11-23 — Jenny's decision that toggling Chinese shows
+ * Chinese descriptions), so a place with no gloss_zh yet keeps its
+ * English gloss in Chinese mode — never a blank where an English
+ * gloss exists.
+ */
+export function glossFor(place: Place, lang: Lang): string | null {
+  if (lang === "zh" && place.gloss_zh) return place.gloss_zh;
+  return place.gloss;
 }
 
 function byName(a: Place, b: Place): number {

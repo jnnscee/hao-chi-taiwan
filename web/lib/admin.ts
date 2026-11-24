@@ -57,6 +57,7 @@ export type PlaceFormState = {
   name_en: string;
   name_rom: string;
   gloss: string;
+  gloss_zh: string;
   cuisine: string;
   rating_value: string;
   rating_count: string;
@@ -98,6 +99,7 @@ export function emptyPlaceForm(
     name_en: "",
     name_rom: "",
     gloss: "",
+    gloss_zh: "",
     cuisine: "",
     rating_value: "",
     rating_count: "",
@@ -135,6 +137,7 @@ export function placeToForm(row: AdminPlaceRow): PlaceFormState {
     name_en: row.name_en,
     name_rom: str(row.name_rom),
     gloss: str(row.gloss),
+    gloss_zh: str(row.gloss_zh),
     cuisine: str(row.cuisine),
     rating_value: num(row.rating_value),
     rating_count: num(row.rating_count),
@@ -195,6 +198,7 @@ export function formToPlaceRow(
     name_en: form.name_en.trim(),
     name_rom: orNull(form.name_rom),
     gloss: orNull(form.gloss),
+    gloss_zh: orNull(form.gloss_zh),
     cuisine: form.cuisine.trim(),
     rating_value: floatOrNull(form.rating_value),
     rating_count: intOrNull(form.rating_count),

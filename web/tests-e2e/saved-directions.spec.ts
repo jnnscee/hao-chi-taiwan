@@ -121,6 +121,23 @@ test.describe("desktop", () => {
     await expect(page.locator(".hero-lede")).toHaveText(
       "Jenny's food guide to Taiwan — 45 places she has tried, tested and recommends, plus 197 more she wants to try. Most are in Kaohsiung, from mom-and-pop stalls to old favourites."
     );
+
+    // The 2026-11-25 banner redesign: the title and intro sit in
+    // the taller artwork's sky (its top ~27%). On desktop too,
+    // the intro's bottom edge stays within the photo frame's
+    // top 30% — the words live in the sky, not over the stalls.
+    const sky = await page.evaluate(() => {
+      const media = document
+        .querySelector(".hero-media")!
+        .getBoundingClientRect();
+      const lede = document
+        .querySelector(".hero-lede")!
+        .getBoundingClientRect();
+      return { ledeBottom: lede.bottom - media.top, mediaHeight: media.height };
+    });
+    expect(sky.ledeBottom, "hero intro bottom within the sky").toBeLessThanOrEqual(
+      sky.mediaHeight * 0.3
+    );
   });
 });
 

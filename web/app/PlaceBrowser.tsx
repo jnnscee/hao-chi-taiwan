@@ -873,19 +873,22 @@ export default function PlaceBrowser({
   return (
     <div className="browser">
       <header className="hero">
-        {/* The old site's signature banner photo, carrying the
-            band the way the old site's top does: the title and
-            counts sit on the photo itself, over a soft green→blue
-            scrim, and the band's bottom edge fades into the page.
-            The photo is self-hosted at /banner.jpg and precached
-            by the service worker: it used to load cross-origin
-            from the old site's address (the og:image URL), which
-            the service worker never caches, so a cold home-screen
-            launch often missed it until a reopen (Jenny's report,
-            2026-11-23). Decorative: the title text beside it names
-            the guide. If it cannot load (offline before a first
-            online visit, say), the frame's gradient simply fills
-            the band. */}
+        {/* The banner photo, carrying the band the way the old
+            site's top does — with the arrangement Jenny approved
+            on 2026-11-25: the artwork was redrawn taller (4:3)
+            with a calm band of sky at the top, and the title and
+            intro paragraph sit IN that sky, where they read
+            easily; the counts ride at the photo's foot, over the
+            melt into the page. The photo is self-hosted at
+            /banner.jpg and precached by the service worker: it
+            used to load cross-origin from the old site's address
+            (the og:image URL), which the service worker never
+            caches, so a cold home-screen launch often missed it
+            until a reopen (Jenny's report, 2026-11-23).
+            Decorative: the title text beside it names the guide.
+            If it cannot load (offline before a first online
+            visit, say), the frame's gradient simply fills the
+            band. */}
         <div className="hero-media" aria-hidden="true">
           <img className="hero-photo" src="/banner.jpg" alt="" />
         </div>
@@ -897,16 +900,19 @@ export default function PlaceBrowser({
             </h1>
             {renderLangToggle()}
           </div>
+          {/* v1's hero intro paragraph (Phase B fix B-7), under
+              the title, inside the banner's sky; its numbers are
+              the live list totals, interpolated in the string
+              itself. */}
+          <p className="hero-lede">
+            {t.lede(tabCounts.recommended, tabCounts.want_to_try)}
+          </p>
+        </div>
+        <div className="hero-foot">
           <p className="counts">
             {places.length} {t.stat_total} · {tabCounts.recommended}{" "}
             {t.stat_recommended} · {tabCounts.want_to_try} {t.stat_want} ·{" "}
             {kaohsiungCount} {t.stat_khh}
-          </p>
-          {/* v1's hero intro paragraph (Phase B fix B-7), under
-              the title and counts; its numbers are the live list
-              totals, interpolated in the string itself. */}
-          <p className="hero-lede">
-            {t.lede(tabCounts.recommended, tabCounts.want_to_try)}
           </p>
         </div>
       </header>

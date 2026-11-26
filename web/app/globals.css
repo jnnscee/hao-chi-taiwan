@@ -134,9 +134,12 @@ body {
 /* --- Hero: the old site's banner, mountains → sea --- */
 
 /* Photo-led, the way the old site's top is: the banner photo
-   carries the whole band, and the title and counts sit on the
-   photo over a soft scrim — no flat colour block beneath it.
-   The band's bottom edge melts directly into the page ground
+   carries the whole band — no flat colour block beneath it.
+   Since 2026-11-25 the photo is the taller redraw (4:3) whose
+   top is a calm band of sky, and the title and intro sit in
+   that sky (Jenny's direction: the words up where they are
+   easy to read); the counts ride at the photo's foot. The
+   band's bottom edge melts directly into the page ground
    (Jenny's night theme: the photo fades into the page itself,
    no separate band colour in between). The frame keeps the
    ground behind the photo, so if the photo cannot load (it
@@ -147,8 +150,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 21rem;
+  min-height: 40rem;
   border-radius: 1.25rem;
   overflow: hidden;
   background: var(--cream);
@@ -161,22 +163,27 @@ body {
   background: var(--cream);
 }
 
-/* The scrim: the mountains→sea gradient as a soft shadow behind
-   the text — a hint of sea blue high up, gone before the photo's
-   top — with its low end deepened into the page ground (the
-   rgba stops are the ground's components), so the white title
-   stays readable where it overlaps the melt and the title zone
-   hands off smoothly into it. */
+/* The scrim: a soft dusk shade behind the words at both ends
+   of the photo — deepened at the very top, so the cream title
+   and intro stay readable over the pale sky, clear through
+   the photo's middle, and deepened again into the page ground
+   at the low end (the rgba stops are the ground's components),
+   so the counts at the foot read clearly where they overlap
+   the melt. On phone the media frame runs taller than the
+   hero (see the phone block), so the stops are percentages of
+   the photo's own height, not of the visible window. */
 .hero-media::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    to top,
-    rgba(19, 23, 21, 0.85) 0%,
-    rgba(23, 52, 66, 0.5) 36%,
-    rgba(31, 111, 150, 0.22) 64%,
-    rgba(31, 111, 150, 0) 86%
+    to bottom,
+    rgba(13, 26, 31, 0.42) 0%,
+    rgba(13, 26, 31, 0.18) 20%,
+    rgba(13, 26, 31, 0) 38%,
+    rgba(23, 52, 66, 0) 60%,
+    rgba(23, 52, 66, 0.32) 82%,
+    rgba(19, 23, 21, 0.78) 100%
   );
 }
 
@@ -185,6 +192,10 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* The sky is the text's home: anchor the photo to the top,
+     so any cropping falls on the photo's sides or foot, never
+     on the sky. */
+  object-position: 50% 0%;
 }
 
 /* The bottom edge melts into the page: the photo dissolves
@@ -211,9 +222,12 @@ body {
 
 .hero-body {
   position: relative;
-  padding: 1.4rem 1.5rem 2.6rem;
-  color: #fff;
-  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  padding: 1.4rem 1.5rem 0;
+  color: var(--ink);
+  text-shadow:
+    0 1px 3px rgba(8, 20, 24, 0.65),
+    0 2px 18px rgba(8, 20, 24, 0.5);
 }
 
 .hero-top {
@@ -246,19 +260,34 @@ body {
 
 .counts {
   margin: 0;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(240, 237, 227, 0.88);
   font-size: 1.05rem;
 }
 
 /* v1's hero intro paragraph (its .lede, restored as Phase B fix
    B-7): a step quieter than the title, capped at reading measure,
-   sitting between the counts and the hero's melt into the page. */
+   sitting under the title inside the banner's sky. */
 .hero-lede {
   margin: 0.9rem 0 0;
   max-width: 34rem;
   font-size: 1.08rem;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.94);
+  color: rgba(240, 237, 227, 0.95);
+}
+
+/* The hero's foot: the counts line, pushed to the photo's
+   bottom edge by the auto margin, over the melt into the page.
+   It paints above the melt gradient (::after) so the words
+   themselves are never dimmed by it; the scrim's deepened low
+   end keeps them readable against the photo. */
+.hero-foot {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  padding: 0 1.5rem 1.35rem;
+  text-shadow:
+    0 1px 3px rgba(8, 20, 24, 0.65),
+    0 2px 18px rgba(8, 20, 24, 0.5);
 }
 
 /* The language toggle sits on the hero's photo (over the scrim),
@@ -2098,12 +2127,11 @@ a.foot-link {
 }
 
 @media (max-width: 640px) {
-  /* The hero band is a touch shorter on phone, and (Jenny's
-     request) it goes full-bleed: the photo meets the phone's
-     edges, the way the old app's banner does. The negative
-     margins exactly cancel the .page padding at this width —
-     top 1.25rem (the .page phone override in this block),
-     sides 1.375rem —
+  /* The hero goes full-bleed on phone (Jenny's request): the
+     photo meets the phone's edges, the way the old app's banner
+     does. The negative margins exactly cancel the .page padding
+     at this width — top 1.25rem (the .page phone override in
+     this block), sides 1.375rem —
      so the band spans the screen with no sideways overflow,
      and the rounded corners go square. The bottom fade, the
      scrim and everything below the hero keep their padded
@@ -2111,15 +2139,44 @@ a.foot-link {
      cover, and the frame's page ground keeps the band full if
      the photo is missing. */
   .hero {
-    min-height: 19rem;
+    min-height: 34rem;
     margin-top: -1.25rem;
     margin-left: -1.375rem;
     margin-right: -1.375rem;
     border-radius: 0;
   }
 
+  /* The media frame runs taller than the hero itself, anchored
+     to its top and clipped by the hero's overflow: at phone
+     widths cover would otherwise show the photo's whole height
+     squeezed into the band, and its sky — the top ~27% — would
+     be too short a home for the title and intro. At 128% the
+     sky band is tall enough at 360–390px (the layout spec
+     measures the intro against it); the photo's foot crops
+     away below the band and the melt still ends the visible
+     edge. */
+  .hero-media {
+    height: 128%;
+  }
+
   .hero-body {
-    padding: 1rem 1.1rem 2.4rem;
+    padding: 1rem 1.1rem 0;
+  }
+
+  .hero-foot {
+    padding: 0 1.1rem 1.15rem;
+    /* On phone the visible bottom edge falls mid-photo (the
+       frame runs 128% tall), where the melt and the scrim's
+       deep end — both measured against the full frame — have
+       not yet darkened enough behind the counts where they
+       cross the bright foreground stalls. The foot carries its
+       own soft shade here; on desktop the melt suffices. */
+    background: linear-gradient(
+      to top,
+      rgba(19, 23, 21, 0.66) 0%,
+      rgba(19, 23, 21, 0.38) 55%,
+      rgba(19, 23, 21, 0) 100%
+    );
   }
 
   .hero-lede {

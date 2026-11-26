@@ -14,7 +14,12 @@
 //   (b) the hero h1 renders on ONE line;
 //   (c) no horizontal overflow;
 //   (d) the rating chip sits BELOW the food line (its own line),
-//       not squeezed onto the names line beside the heart.
+//       not squeezed onto the names line beside the heart;
+//   (e) the hero intro stays inside the banner's sky — the
+//       2026-11-25 redesign puts the title and intro in the
+//       taller artwork's sky band (its top ~27%); the intro's
+//       bottom edge must stay within the top 30% of the photo
+//       frame, not drift down over the skyline and stalls.
 
 import { expect, test } from "@playwright/test";
 
@@ -68,6 +73,23 @@ for (const width of [390, 360]) {
       expect(chipTop, `rating chip below food line at ${width}px`).toBeGreaterThan(
         foodTop
       );
+
+      // (e) The hero intro stays inside the banner's sky: its
+      // bottom edge, measured from the photo frame's top, stays
+      // within the frame's top 30% (the sky is its top ~27%).
+      const sky = await page.evaluate(() => {
+        const media = document
+          .querySelector(".hero-media")!
+          .getBoundingClientRect();
+        const lede = document
+          .querySelector(".hero-lede")!
+          .getBoundingClientRect();
+        return { ledeBottom: lede.bottom - media.top, mediaHeight: media.height };
+      });
+      expect(
+        sky.ledeBottom,
+        `hero intro bottom within the sky at ${width}px`
+      ).toBeLessThanOrEqual(sky.mediaHeight * 0.3);
     });
   });
 }

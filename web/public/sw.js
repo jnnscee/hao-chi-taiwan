@@ -25,6 +25,11 @@
  *    layer must never be served from, or written into, a cache.
  */
 
+// pwa-5 (2026-11-25): the banner photo was replaced with the
+// taller more-sky artwork (the hero text now sits in its sky),
+// and /banner.jpg is in the precache below. Without the bump,
+// installed apps would keep the pwa-4 worker and its precached
+// copy of the old banner.
 // pwa-4 (2026-11-24): the trial vector map's tile host joins the
 // cache-first tile route below. Without the bump, installed apps
 // would keep the pwa-3 worker, whose fetch handler lets the new
@@ -36,7 +41,7 @@
 // this bump an installed app would keep the old icon in its
 // pwa-2 caches; the bump makes activate delete them and the
 // install step precache the new artwork.
-const SW_VERSION = "pwa-4";
+const SW_VERSION = "pwa-5";
 const PRECACHE = `hao-chi-precache-${SW_VERSION}`;
 const PAGES = `hao-chi-pages-${SW_VERSION}`;
 const STATIC = `hao-chi-static-${SW_VERSION}`;

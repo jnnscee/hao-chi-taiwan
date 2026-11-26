@@ -258,12 +258,16 @@ the old brand brown is illegible on near-black). The green
 `#2f6f4e` and blue `#1f6f96` fills survive from the Taiwan
 palette (primary and travel actions), with lighter text variants
 on dark (`#6fd3a7` / `#7cc7ea`); red is alerts and the saved
-heart. The hero is the old site's banner photo (self-hosted at
-`/banner.jpg`) with the
-title and counts on the photo, its bottom edge fading directly
-into the dark page — no band, no cream. On phones the hero runs
-full-bleed to the screen edges and the title scales with the
-screen (`clamp(1.45rem, 6.6vw, 1.9rem)`, never wrapping). The
+heart. The hero is the banner photo (self-hosted at
+`/banner.jpg`): since 2026-11-25 a taller redraw (4:3) of the
+original night-market artwork whose top is a calm band of sky,
+with the title and intro sitting in that sky and the counts at
+the photo's foot, its bottom edge fading directly into the
+dark page — no band, no cream. On phones the hero runs
+full-bleed to the screen edges, its photo frame taller than
+the band so the sky stays roomy enough for the words, and the
+title scales with the screen (`clamp(1.45rem, 6.6vw, 1.9rem)`,
+never wrapping). The
 Show driver card deliberately stays black-on-white. The PWA
 theme/background colour is the night ground `#131715`. All
 colour pairings pass WCAG AA. Because the banner photo loads
